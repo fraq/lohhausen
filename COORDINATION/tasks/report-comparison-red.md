@@ -1,6 +1,6 @@
 # report-comparison-red
 
-Статус: review
+Статус: done
 Ответственный: report_delta_red (внутренний помощник Codex)
 
 Границы записи: `tests/report-comparison.test.js`, `.tdd/report-comparison-red.txt`, эта карточка и `COORDINATION/state/report_delta_red.md`.
