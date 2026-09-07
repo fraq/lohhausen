@@ -6,8 +6,8 @@
  * "Die Logik des Mißlingens" (The Logic of Failure).
  */
 
-const ADVISORS_LIST = [
-  {
+export const ADVISORS = Object.freeze({
+  factory: {
     id: 'krause',
     sphere: 'factory',
     name: 'Герр Краузе',
@@ -17,7 +17,7 @@ const ADVISORS_LIST = [
     title: 'Часовое производство и сбыт',
     evaluate: (game) => getAdvisorDiagnosis('factory', game),
   },
-  {
+  finance: {
     id: 'weber',
     sphere: 'finance',
     name: 'Фрау Вебер',
@@ -27,7 +27,7 @@ const ADVISORS_LIST = [
     title: 'Казна, налоги и долговая нагрузка',
     evaluate: (game) => getAdvisorDiagnosis('finance', game),
   },
-  {
+  housing: {
     id: 'bauer',
     sphere: 'housing',
     name: 'Герр Бауэр',
@@ -37,7 +37,7 @@ const ADVISORS_LIST = [
     title: 'Жилой фонд и градостроительство',
     evaluate: (game) => getAdvisorDiagnosis('housing', game),
   },
-  {
+  social: {
     id: 'frank',
     sphere: 'social',
     name: 'Доктор Франк',
@@ -47,7 +47,7 @@ const ADVISORS_LIST = [
     title: 'Здравоохранение, услуги и образование',
     evaluate: (game) => getAdvisorDiagnosis('social', game),
   },
-  {
+  tourism: {
     id: 'lindemann',
     sphere: 'tourism',
     name: 'Фрау Линдеманн',
@@ -57,15 +57,14 @@ const ADVISORS_LIST = [
     title: 'Гостеприимство и рекреация',
     evaluate: (game) => getAdvisorDiagnosis('tourism', game),
   },
-];
-
-ADVISORS_LIST.factory = ADVISORS_LIST[0];
-ADVISORS_LIST.finance = ADVISORS_LIST[1];
-ADVISORS_LIST.housing = ADVISORS_LIST[2];
-ADVISORS_LIST.social = ADVISORS_LIST[3];
-ADVISORS_LIST.tourism = ADVISORS_LIST[4];
-
-export const ADVISORS = Object.freeze(ADVISORS_LIST);
+  [Symbol.iterator]: function* () {
+    yield this.factory;
+    yield this.finance;
+    yield this.housing;
+    yield this.social;
+    yield this.tourism;
+  },
+});
 
 export const CAUSAL_LOOPS = Object.freeze([
   {
@@ -148,263 +147,283 @@ export const CAUSAL_LOOPS = Object.freeze([
 /**
  * Generates an intelligent, qualitative memo from the advisor of a specific sphere.
  */
-export function getAdvisorDiagnosis(sphereId, game) {
+export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
+  let sphereId = typeof sphereOrAdv === 'string' ? sphereOrAdv : (sphereOrAdv?.sphere || sphereOrAdv?.id || 'factory');
+  if (sphereId === 'krause') sphereId = 'factory';
+  if (sphereId === 'weber') sphereId = 'finance';
+  if (sphereId === 'bauer') sphereId = 'housing';
+  if (sphereId === 'frank') sphereId = 'social';
+  if (sphereId === 'lindemann') sphereId = 'tourism';
+
+  const formatDiag = (raw) => {
+    const statusMap = {
+      crisis: 'critical',
+      critical: 'critical',
+      danger: 'critical',
+      warning: 'warning',
+      good: 'calm',
+      normal: 'calm',
+      calm: 'calm',
+    };
+    const mapped = statusMap[raw.status] || 'calm';
+    return {
+      ...raw,
+      status: mapped,
+      rawStatus: raw.status,
+      verdict: raw.quote || raw.verdict || '',
+      recommendation: raw.recommendation || '',
+    };
+  };
+
   const p = game.policies || {};
   const budget = game.lastBudget || {};
   const month = game.month;
 
   switch (sphereId) {
     case 'factory': {
-      const eq = game.equipment;
-      const inv = game.inventory;
-      const dem = game.demand;
-      const profit = budget.factoryProfit ?? (game.sales * 0.57 - game.factoryJobs * 0.105 * (p.wage / 100) - game.production * 0.145 - p.maintenance - p.marketing);
+      const eq = game.equipment ?? 48;
+      const inv = game.inventory ?? 120;
+      const dem = game.demand ?? 500;
+      const profit = budget.factoryProfit ?? ((game.sales || 480) * 0.57 - (game.factoryJobs || 550) * 0.105 * ((p.wage || 100) / 100) - (game.production || 480) * 0.145 - (p.maintenance || 15) - (p.marketing || 10));
 
       if (eq < 25) {
-        return {
+        return formatDiag({
           status: 'crisis',
           tone: 'danger',
           quote: '«Господин бургомистр, станки полностью разбиты! Износ критический. Рабочие простаивают, выпуска едва хватает, фабрика несет убытки. Срочно нужен ремонт или капитальная модернизация!»',
           keyStat: `Станки: ${eq.toFixed(1)}% (Критический износ)`,
           recommendation: 'Увеличьте обслуживание станков минимум до 25–35 тыс./мес. или начните модернизацию.',
-        };
+        });
       }
       if (eq < 45) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: '«Станки заметно изношены. Текущего ремонта не хватает, чтобы перекрыть естественный износ. Если не вложиться в обслуживание, производительность продолжит падать».',
           keyStat: `Станки: ${eq.toFixed(1)}% (Ниже нормы)`,
           recommendation: 'Для восстановления оборудования расходы на обслуживание должны быть не ниже 18–22 тыс./мес.',
-        };
+        });
       }
       if (inv > dem * 1.6 && inv > 200) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«Наши склады забиты: скопилось ${Math.round(inv)} часов при месячном спросе ${Math.round(dem)} шт. Мы производим часы «на склад», замораживая средства фабрики».`,
           keyStat: `Запасы на складе: ${Math.round(inv)} шт.`,
           recommendation: 'Увеличьте маркетинг часов для расширения сбыта или временно снизьте выпуск.',
-        };
+        });
       }
       if (profit < -20) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«Фабрика в этом месяце сработала в убыток (${Math.round(profit)} тыс. м.). Выручка не покрывает зарплаты, материалы и ремонт. Фабрика тянет средства из городской казны».`,
           keyStat: `Сальдо фабрики: ${profit > 0 ? '+' : ''}${Math.round(profit)} тыс. м.`,
           recommendation: 'Проверьте ставку оплаты труда и сбалансируйте маркетинг со спросом.',
-        };
+        });
       }
       if (eq >= 70) {
-        return {
+        return formatDiag({
           status: 'good',
           tone: 'positive',
           quote: '«Оборудование в прекрасном состоянии! Выпуск часов стабилен, квалификация рабочих позволяет держать высокое качество. Фабрика работает как надежные швейцарские часы».',
-          keyStat: `Станки: ${eq.toFixed(1)}% · Выпуск: ${Math.round(game.production)} шт.`,
+          keyStat: `Станки: ${eq.toFixed(1)}% · Выпуск: ${Math.round(game.production || 500)} шт.`,
           recommendation: 'Поддерживайте текущий уровень обслуживания (около 14–16 тыс./мес.).',
-        };
+        });
       }
-      return {
+      return formatDiag({
         status: 'normal',
         tone: 'neutral',
         quote: '«Фабрика работает стабильно. Станки требуют регулярного внимания, запасы на складе соответствуют обычному месячному обороту».',
-        keyStat: `Станки: ${eq.toFixed(1)}% · Выпуск: ${Math.round(game.production)} шт.`,
+        keyStat: `Станки: ${eq.toFixed(1)}% · Выпуск: ${Math.round(game.production || 500)} шт.`,
         recommendation: 'Следите за балансом между объемом выпуска и внешним спросом на часы.',
-      };
+      });
     }
 
     case 'finance': {
-      const debt = game.debt;
-      const treasury = game.treasury;
+      const debt = game.debt ?? 0;
+      const treasury = game.treasury ?? 500;
       const net = budget.net || 0;
       const netPosition = treasury - debt;
-      const tax = p.taxRate;
+      const tax = p.taxRate ?? 20;
 
       if (debt > 5000) {
-        return {
+        return formatDiag({
           status: 'crisis',
           tone: 'danger',
           quote: `«Господин бургомистр, город на грани финансового краха! Накоплен долг ${Math.round(debt)} тыс. марок. Каждый месяц мы отдаем банку ${Math.round(budget.interest || debt * 0.008)} тыс. только в виде процентов!»`,
           keyStat: `Долг: ${Math.round(debt)} тыс. м. (Проценты: ${Math.round(budget.interest || debt * 0.008)}/мес.)`,
           recommendation: 'Срочно сокращайте неприоритетные расходы и восстанавливайте доходы фабрики.',
-        };
+        });
       }
       if (debt > 1200) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«Город живет взаймы. Накоплен долг ${Math.round(debt)} тыс. м. При дефиците он продолжит расти, увеличивая будущие процентные выплаты».`,
           keyStat: `Долг: ${Math.round(debt)} тыс. м. · Баланс: ${net > 0 ? '+' : ''}${Math.round(net)} тыс.`,
           recommendation: 'Постарайтесь выйти на ежемесячный профицит, чтобы начать погашение тела кредита.',
-        };
+        });
       }
       if (net < -45) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«В бюджете серьезная дыра: дефицит ${Math.round(net)} тыс. марок в месяц. Свободная казна тает на глазах, скоро придется брать кредиты».`,
           keyStat: `Дефицит: ${Math.round(net)} тыс. м./мес.`,
           recommendation: 'Проанализируйте статьи расходов: услуги, обучение и субсидии.',
-        };
+        });
       }
-      if (tax > 28) {
-        return {
-          status: 'warning',
-          tone: 'warning',
-          quote: `«Налоговая ставка (${tax}%) слишком высока. В казну сейчас поступает больше, но жители возмущены падением чистого дохода. Мы рискуем спровоцировать массовый отток населения».`,
-          keyStat: `Налог: ${tax}% (Опасная зона)`,
-          recommendation: 'Снизьте ставку налога до 18–22%, пока не начался отъезд налогоплательщиков.',
-        };
-      }
-      if (netPosition > 1500 && debt === 0) {
-        return {
+      if (netPosition > 3000 && debt === 0) {
+        return formatDiag({
           status: 'good',
           tone: 'positive',
-          quote: `«Превосходная финансовая форма! Казна полна (${Math.round(treasury)} тыс. м.), долгов нет, баланс положительный. У нас есть ресурсы для инвестиций в жилье или фабрику».`,
-          keyStat: `Казна: ${Math.round(treasury)} тыс. м. (Долг: 0)`,
-          recommendation: 'Рассмотрите запуск капитальных проектов: жилья или модернизации фабрики.',
-        };
+          quote: `«Городская казна в превосходном здравии: свободных средств ${Math.round(treasury)} тыс. марок, долги полностью отсутствуют. У нас надежная подушка безопасности».`,
+          keyStat: `Казна: ${Math.round(treasury)} тыс. м. · Долг: 0`,
+          recommendation: 'Избыточную ликвидность можно направить в инфраструктурные проекты с долгосрочной отдачей.',
+        });
       }
-      return {
+      return formatDiag({
         status: 'normal',
         tone: 'neutral',
-        quote: `«Бюджет находится в рабочем состоянии. Казна: ${Math.round(treasury)} тыс. м., долг: ${Math.round(debt)} тыс. м. Текущий баланс месяца: ${net > 0 ? '+' : ''}${Math.round(net)} тыс.».`,
-        keyStat: `Баланс: ${net > 0 ? '+' : ''}${Math.round(net)} тыс. м./мес.`,
-        recommendation: 'Контролируйте, чтобы обязательные расходы не превышали налоговые поступления и прибыль.',
-      };
+        quote: `«Финансовое положение устойчиво. Долг города: ${Math.round(debt)} тыс. м., казна: ${Math.round(treasury)} тыс. м. Текущий баланс под контролем».`,
+        keyStat: `Баланс: ${net > 0 ? '+' : ''}${Math.round(net)} тыс. м. · Долг: ${Math.round(debt)} тыс.`,
+        recommendation: 'Держите налоги в умеренном диапазоне (18–22%), чтобы не подавлять активность.',
+      });
     }
 
     case 'housing': {
-      const pop = game.population;
-      const cap = game.housingCapacity;
-      const shortage = game.housingShortage;
+      const cap = game.housingCapacity ?? 3700;
+      const pop = game.population ?? 3700;
+      const shortage = game.housingShortage ?? Math.max(0, pop - cap);
       const free = Math.max(0, cap - pop);
-      const activeHousing = (game.projects || []).find((pr) => pr.type === 'housing');
+      const underConstruction = (game.projects || []).filter((pr) => pr.type === 'housing').length;
 
-      if (shortage > 0) {
-        return {
+      if (shortage > 40) {
+        return formatDiag({
           status: 'crisis',
           tone: 'danger',
-          quote: `«Острый жилищный кризис! В городе не хватает ${Math.round(shortage)} мест жилья. Семьи ютятся в стесненных условиях, растет недовольство, привлекательность города падает».`,
+          quote: `«Катастрофическая нехватка жилья! ${Math.round(shortage)} горожан не имеют крыши над головой. Молодые семьи уезжают, переполненные квартиры вызывают раздражение и болезни!»`,
           keyStat: `Дефицит жилья: ${Math.round(shortage)} мест`,
-          recommendation: activeHousing
-            ? `Идет стройка (ввод через ${Math.max(1, activeHousing.completeMonth - month)} мес.). Дождитесь ввода!`
-            : 'Срочно запустите проект муниципального жилья (300 тыс. м., срок 12 мес., +60 мест).',
-        };
+          recommendation: 'Срочно профинансируйте муниципальное строительство (+60 мест, 300 тыс. м., лаг 12 мес.).',
+        });
       }
-      if (free < 40) {
-        return {
+      if (shortage > 0) {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
-          quote: `«Свободного жилья почти не осталось — всего ${Math.round(free)} мест. Если город продолжит привлекать людей, через 2–3 месяца начнется дефицит. А новое жилье строится 12 месяцев!»`,
-          keyStat: `Свободно всего: ${Math.round(free)} мест`,
-          recommendation: activeHousing
-            ? `Стройка уже идет (ввод в месяце ${activeHousing.completeMonth}).`
-            : 'Запустите строительство жилья сейчас, чтобы опередить будущий дефицит.',
-        };
+          quote: `«Жилой фонд исчерпан: дефицит ${Math.round(shortage)} мест. Если не начать строить заранее, нехватка жилья подорвет благополучие всего города».`,
+          keyStat: `Дефицит жилья: ${Math.round(shortage)} мест`,
+          recommendation: underConstruction > 0 ? 'Строительство уже идет. Главное — набраться терпения и дождаться окончания срока.' : 'Запустите проект расширения жилья.',
+        });
       }
-      if (activeHousing) {
-        const left = Math.max(1, activeHousing.completeMonth - month);
-        return {
-          status: 'normal',
-          tone: 'neutral',
-          quote: `«Строительство муниципального квартала идет полным ходом. Срок ввода — месяц ${activeHousing.completeMonth} (осталось ${left} мес.). Новые 60 мест скоро поступят горожанам».`,
-          keyStat: `Стройка: осталось ${left} мес. · Резерв: ${Math.round(free)} мест`,
-          recommendation: 'Не паникуйте и не дублируйте стройку без острой нужды — дождитесь завершения.',
-        };
+      if (free < 25 && underConstruction === 0) {
+        return formatDiag({
+          status: 'warning',
+          tone: 'warning',
+          quote: `«Свободного жилья почти не осталось: всего ${Math.round(free)} мест резерва. Приток новых жителей или рабочих фабрики быстро приведет к дефициту».`,
+          keyStat: `Свободно мест: ${Math.round(free)} из ${cap}`,
+          recommendation: 'Помните о лаге в 12 месяцев: жилье нужно закладывать до того, как резерв станет нулевым.',
+        });
       }
-      return {
-        status: 'good',
-        tone: 'positive',
-        quote: `«Жилищный фонд в порядке: вместимость ${Math.round(cap)} мест на ${Math.round(pop)} жителей. В запасе ${Math.round(free)} свободных мест. Город готов к приему новых семей».`,
-        keyStat: `Вместимость: ${Math.round(cap)} · Свободно: ${Math.round(free)} мест`,
-        recommendation: 'Отслеживайте миграционный приток: если он усилится, запланируйте стройку заранее.',
-      };
+      if (underConstruction > 0) {
+        return formatDiag({
+          status: 'good',
+          tone: 'positive',
+          quote: `«Строительство муниципального жилья идет по плану. В работе ${underConstruction} объект(а). Город планомерно расширяет жилой фонд».`,
+          keyStat: `В стройке: ${underConstruction * 60} мест · Резерв: ${Math.round(free)} мест`,
+          recommendation: 'Не начинайте новые стройки без необходимости — дайте текущим объектам достроиться.',
+        });
+      }
+      return formatDiag({
+        status: 'normal',
+        tone: 'neutral',
+        quote: `«Жилищный вопрос спокоен: вместимость фонда ${cap} мест, свободно ${Math.round(free)} квартир. Дефицита нет».`,
+        keyStat: `Свободно мест: ${Math.round(free)} из ${cap}`,
+        recommendation: 'Следите за миграционным приростом населения.',
+      });
     }
 
     case 'social': {
-      const sat = game.satisfaction;
+      const sat = game.satisfaction ?? 84;
+      const health = game.health ?? 80;
+      const qual = game.serviceQuality ?? 80;
+      const unemp = game.unemployment ?? 0;
       const groups = game.satisfactionGroups || {};
-      const unemp = game.unemployment;
-      const health = game.health;
-      const qual = game.serviceQuality;
-      const edu = game.education;
-
       const lowestGroup = Object.entries(groups).sort((a, b) => a[1] - b[1])[0];
 
-      if (sat < 65) {
-        return {
+      if (sat < 50) {
+        return formatDiag({
           status: 'crisis',
           tone: 'danger',
           quote: `«Жители крайне недовольны условиями жизни (индекс ${Math.round(sat)}/100). Наибольшее напряжение среди ${groupLabel(lowestGroup?.[0])} (${Math.round(lowestGroup?.[1] || 0)} п.). Люди голосуют ногами и уезжают!»`,
           keyStat: `Благополучие: ${Math.round(sat)}/100 (Критически низкое)`,
           recommendation: 'Поднимите расходы на общественные услуги и медицину, проверьте зарплаты и дефицит жилья.',
-        };
+        });
       }
-      if (unemp > game.workforce * 0.15 && game.workforce > 0) {
-        return {
+      if (unemp > (game.workforce || 2000) * 0.15 && (game.workforce || 2000) > 0) {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
-          quote: `«Растет безработица: ${Math.round(unemp)} человек без работы (${Math.round((unemp / game.workforce) * 100)}% рабочей силы). Безработица бьет по доходам семей и общему спокойствию».`,
+          quote: `«Растет безработица: ${Math.round(unemp)} человек без работы (${Math.round((unemp / (game.workforce || 2000)) * 100)}% рабочей силы). Безработица бьет по доходам семей и общему спокойствию».`,
           keyStat: `Без работы: ${Math.round(unemp)} чел.`,
           recommendation: 'Создайте новые рабочие места на фабрике (через спрос/маркетинг) или в сфере туризма.',
-        };
+        });
       }
       if (health < 50 || qual < 50) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«Социальные службы истощены. Здоровье жителей (${Math.round(health)}/100) или качество услуг (${Math.round(qual)}/100) просели из-за недостаточного финансирования».`,
           keyStat: `Услуги: ${Math.round(qual)}/100 · Здоровье: ${Math.round(health)}/100`,
           recommendation: 'Увеличьте ежемесячный бюджет общественных услуг (норма около 65–75 тыс. м.).',
-        };
+        });
       }
-      return {
+      return formatDiag({
         status: 'good',
         tone: 'positive',
         quote: `«Социальный климат благоприятный: благополучие ${Math.round(sat)}/100. Рабочие довольны условиями (${Math.round(groups.workers || sat)}), семьи чувствуют заботу (${Math.round(groups.families || sat)}), пожилые спокойны (${Math.round(groups.seniors || sat)})».`,
         keyStat: `Благополучие: ${Math.round(sat)}/100 · Безработица: ${Math.round(unemp)} чел.`,
         recommendation: 'Поддерживайте расходы на обучение для планомерного роста квалификации рабочих.',
-      };
+      });
     }
 
     case 'tourism': {
-      const cap = game.tourismCapacity;
-      const dem = game.tourismDemand;
-      const visitors = game.visitors;
-      const jobs = game.tourismJobs;
-      const ads = p.tourismMarketing;
+      const cap = game.tourismCapacity ?? 20;
+      const dem = game.tourismDemand ?? 25;
+      const visitors = game.visitors ?? 20;
+      const jobs = game.tourismJobs ?? 20;
+      const ads = p.tourismMarketing ?? 10;
 
       if (ads > 20 && cap < 50) {
-        return {
+        return formatDiag({
           status: 'warning',
           tone: 'warning',
           quote: `«Внимание, господин бургомистр! Мы тратим ${ads} тыс. на рекламу, спрос вырос до ${Math.round(dem)} человек, но в городе всего ${cap} гостиничных мест! Большинство желающих просто негде разместить — деньги на рекламу тратятся впустую».`,
           keyStat: `Спрос: ${Math.round(dem)} при вместимости ${cap} мест`,
           recommendation: 'Запустите проект «Туристическая инфраструктура» (+80 мест) или снизьте рекламу до расширения отелей.',
-        };
+        });
       }
       if (visitors >= cap && cap >= 100) {
-        return {
+        return formatDiag({
           status: 'good',
           tone: 'positive',
           quote: `«Гостиницы заполнены на 100%! Мы приняли ${Math.round(visitors)} туристов, это дает казне ${Math.round(visitors * 0.19)} тыс. чистыми и обеспечивает занятость ${jobs} горожан».`,
           keyStat: `Туристов: ${Math.round(visitors)} · Доход: +${Math.round(visitors * 0.19)} тыс. м.`,
           recommendation: 'Отличный сектор диверсификации. Поддерживайте умеренную рекламу (10–15 тыс./мес.).',
-        };
+        });
       }
-      return {
+      return formatDiag({
         status: 'normal',
         tone: 'neutral',
         quote: `«Туристический сектор работает в спокойном режиме: вместимость ${cap} мест, принято ${Math.round(visitors)} гостей. Спрос составляет ${Math.round(dem)} чел.».`,
         keyStat: `Мест: ${cap} · Посетителей: ${Math.round(visitors)}`,
         recommendation: 'Развитие туризма требует синхронного роста гостиниц, рекламы и доступных рабочих рук.',
-      };
+      });
     }
 
     default:
-      return { status: 'normal', tone: 'neutral', quote: 'Служба готова к исполнению поручений.', keyStat: '', recommendation: '' };
+      return formatDiag({ status: 'normal', tone: 'neutral', quote: 'Служба готова к исполнению поручений.', keyStat: '', recommendation: '' });
   }
 }
 
@@ -638,9 +657,58 @@ export function detectCognitiveTraps(game) {
 }
 
 /**
- * Provides an instant "What-If" preview when adjusting a policy slider.
+ * Provides an instant "What-If" preview when adjusting a policy slider,
+ * or calculates expected aggregate effect when passed (game, patch).
  */
-export function getPolicyWhatIf(key, value, game) {
+export function getPolicyWhatIf(arg1, arg2, arg3) {
+  if (arg1 && typeof arg1 === 'object' && arg2 && typeof arg2 === 'object') {
+    const game = arg1;
+    const patch = arg2;
+    const notes = [];
+    let delta = 0;
+    const workforce = game.workforce || Math.round((game.population || 3700) * 0.555);
+
+    if (patch.taxRate !== undefined) {
+      const curTax = game.policies?.taxRate ?? 20;
+      const dTax = patch.taxRate - curTax;
+      const estTaxDelta = Math.round(workforce * 0.09 * (dTax / 100));
+      delta += estTaxDelta;
+      notes.push(`Налоговая ставка ${patch.taxRate}%: изменение сборов ~${estTaxDelta >= 0 ? '+' : ''}${estTaxDelta} тыс. м./мес.`);
+    }
+    if (patch.maintenance !== undefined) {
+      const curMaint = game.policies?.maintenance ?? 15;
+      const dMaint = patch.maintenance - curMaint;
+      delta -= dMaint;
+      notes.push(`Обслуживание ${patch.maintenance} тыс. м.: ${patch.maintenance >= 18 ? 'восстановление станков' : 'риск износа'}.`);
+    }
+    if (patch.services !== undefined) {
+      const curServ = game.policies?.services ?? 76;
+      delta -= (patch.services - curServ);
+      notes.push(`Услуги ${patch.services} тыс. м.`);
+    }
+    if (patch.education !== undefined) {
+      const curEdu = game.policies?.education ?? 35;
+      delta -= (patch.education - curEdu);
+      notes.push(`Образование ${patch.education} тыс. м.`);
+    }
+    if (patch.tourismMarketing !== undefined) {
+      const curTour = game.policies?.tourismMarketing ?? 10;
+      delta -= (patch.tourismMarketing - curTour);
+      notes.push(`Реклама туризма ${patch.tourismMarketing} тыс. м.`);
+    }
+
+    return {
+      budgetDelta: delta,
+      forecastNotes: notes,
+      direct: notes.join('; '),
+      sideEffect: 'Оценка прямого влияния на баланс бюджета',
+      risk: delta < -30 ? 'Рост дефицита казны' : 'Умеренный риск',
+    };
+  }
+
+  const key = arg1;
+  const value = arg2;
+  const game = arg3 || {};
   const num = Number(value);
   const pop = game.population || 3700;
   const workforce = game.workforce || Math.round(pop * 0.555);

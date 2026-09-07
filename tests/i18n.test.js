@@ -50,5 +50,12 @@ test('AC-5: локализуются термины кабинета бурго�
   assert.equal(translate('Анатомия связей: почему всё зависит от всего?', 'de'), 'Anatomie der Vernetzung: Warum hängt alles mit allem zusammen?');
   assert.equal(translate('Анатомия связей: почему всё зависит от всего?', 'en'), 'Anatomy of Feedback: Why does everything depend on everything?');
   assert.equal(translate('ПРОВЕРКА ДОЛГОСРОЧНЫХ ГИПОТЕЗ (ПО ДНЕВНИКУ)', 'de'), 'HYPOTHESENPRÜFUNG (TAGEBUCH)');
+  assert.equal(translate('Директор часовой фабрики', 'de'), 'Direktor der Uhrenfabrik');
+  assert.equal(translate('Директор часовой фабрики', 'en'), 'Watch Factory Director');
+  assert.equal(translate('Директор часовой фабрики', 'fr'), 'Directeur de la fabrique d’horlogerie');
+  assert.equal(translate('Казначей города', 'de'), 'Stadtkämmerin');
+  assert.equal(translate('Казначей города', 'en'), 'City Treasurer');
+  assert.equal(translate('📥 Скачать отчет (Markdown)', 'en'), '📥 Download Report (Markdown)');
+  assert.equal(translate('📥 Скачать отчет (Markdown)', 'de'), '📥 Bericht herunterladen (Markdown)');
 });
 
