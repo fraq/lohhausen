@@ -3,6 +3,7 @@ import { createGame } from './model.js';
 export const SCENARIOS = Object.freeze({
   sandbox: {
     id: 'sandbox',
+    icon: '🏛️',
     title: 'Свободное управление (Песочница)',
     subtitle: 'Классический эксперимент Лоххаузена 1983 года',
     difficulty: 'Стандартная',
@@ -17,6 +18,7 @@ export const SCENARIOS = Object.freeze({
   },
   factory_crisis: {
     id: 'factory_crisis',
+    icon: '🏭',
     title: 'Кризис часовой фабрики',
     subtitle: 'Спасение градообразующего предприятия за 36 месяцев',
     difficulty: 'Средняя',
@@ -31,6 +33,7 @@ export const SCENARIOS = Object.freeze({
   },
   tourism_dilemma: {
     id: 'tourism_dilemma',
+    icon: '🌲',
     title: 'Экологическая дилемма туризма',
     subtitle: 'Развитие курорта без вытеснения коренных жителей',
     difficulty: 'Высокая',
@@ -45,6 +48,7 @@ export const SCENARIOS = Object.freeze({
   },
   dorner_challenge: {
     id: 'dorner_challenge',
+    icon: '⚡',
     title: 'Вызов Дёрнера: Преодоление ловушек',
     subtitle: 'Антикризисное управление при системной раскачке',
     difficulty: 'Экстремальная',
@@ -64,6 +68,7 @@ export function getScenariosList() {
   return [
     {
       id: SCENARIOS.sandbox.id,
+      icon: SCENARIOS.sandbox.icon,
       title: SCENARIOS.sandbox.title,
       subtitle: SCENARIOS.sandbox.subtitle,
       difficulty: SCENARIOS.sandbox.difficulty,
@@ -72,6 +77,7 @@ export function getScenariosList() {
     },
     {
       id: SCENARIOS.factory_crisis.id,
+      icon: SCENARIOS.factory_crisis.icon,
       title: SCENARIOS.factory_crisis.title,
       subtitle: SCENARIOS.factory_crisis.subtitle,
       difficulty: SCENARIOS.factory_crisis.difficulty,
@@ -80,6 +86,7 @@ export function getScenariosList() {
     },
     {
       id: SCENARIOS.tourism_dilemma.id,
+      icon: SCENARIOS.tourism_dilemma.icon,
       title: SCENARIOS.tourism_dilemma.title,
       subtitle: SCENARIOS.tourism_dilemma.subtitle,
       difficulty: SCENARIOS.tourism_dilemma.difficulty,
@@ -88,6 +95,7 @@ export function getScenariosList() {
     },
     {
       id: SCENARIOS.dorner_challenge.id,
+      icon: SCENARIOS.dorner_challenge.icon,
       title: SCENARIOS.dorner_challenge.title,
       subtitle: SCENARIOS.dorner_challenge.subtitle,
       difficulty: SCENARIOS.dorner_challenge.difficulty,
