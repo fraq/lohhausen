@@ -4,6 +4,7 @@ import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf } from './causal.js';
 import { analyzeDebrief } from './debrief.js';
+import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
 const LANGUAGE_KEY = 'lohhausen-language';
@@ -32,6 +33,7 @@ let notice = '';
 let errorMessage = '';
 let storageBlocked = false;
 let saved = false;
+let selectedScenarioId = 'sandbox';
 
 try {
   const raw = localStorage.getItem(SAVE_KEY);
@@ -331,8 +333,51 @@ function causalLoopExplorerSection() {
   `;
 }
 
+function scenarioObjectiveBanner() {
+  const scenario = getScenario(game.scenarioId || 'sandbox');
+  const evaluation = evaluateScenario(game);
+  const isVictory = evaluation.status === 'victory';
+  const isDefeat = evaluation.status === 'defeat';
+
+  return `
+    <section class="panel scenario-banner" style="margin-bottom: 20px; border-left: 5px solid ${isVictory ? '#3a7d44' : isDefeat ? '#8d4130' : 'var(--accent)'}; background: var(--surface);">
+      <div class="panel-heading" style="margin-bottom: 10px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:26px;">${scenario.icon || '🏛️'}</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <p class="eyebrow" style="margin:0; color:var(--accent);">СЦЕНАРИЙ: ${escapeHTML(scenario.title)}</p>
+              <span class="badge" style="font-size:11px;">${escapeHTML(scenario.difficulty)}</span>
+            </div>
+            <h3 style="margin:2px 0 0; font-size:18px;">${escapeHTML(scenario.subtitle)}</h3>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <span class="status-pill ${isVictory ? 'good' : isDefeat ? 'crisis' : 'warning'}" style="font-size:13px;">
+            ${isVictory ? '🎉 Цели достигнуты' : isDefeat ? '💥 Сценарий провален' : `Осталось месяцев: ${evaluation.monthsLeft}`}
+          </span>
+          <div style="font-size:12px; color:var(--muted); margin-top:4px;">Выполнено: ${evaluation.metCount} из ${evaluation.totalCount} (${evaluation.completionRate}%)</div>
+        </div>
+      </div>
+
+      <div class="scenario-objectives-list" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
+        ${evaluation.objectives.map(obj => `
+          <div class="scenario-objective-card" style="padding: 8px 10px; background: ${obj.met ? 'rgba(58, 125, 68, 0.08)' : 'rgba(141, 65, 48, 0.05)'}; border-radius: 6px; border: 1px solid ${obj.met ? 'rgba(58, 125, 68, 0.3)' : 'rgba(141, 65, 48, 0.2)'}; font-size: 13px;">
+            <div style="font-weight:600; margin-bottom:2px;">${obj.met ? '✅' : '⏳'} ${escapeHTML(obj.label)}</div>
+            <div style="color:var(--muted); font-size:12px;">Цель: <strong>${escapeHTML(obj.target)}</strong> · Сейчас: <strong style="color:${obj.met ? '#3a7d44' : '#8d4130'};">${escapeHTML(String(obj.current))}</strong></div>
+          </div>
+        `).join('')}
+      </div>
+      ${isDefeat && evaluation.reason ? `
+        <p style="margin: 10px 0 0; color: #8d4130; font-weight: 600; font-size: 13px;">Причина завершения: ${escapeHTML(evaluation.reason)}</p>
+      ` : ''}
+    </section>
+  `;
+}
+
 function overviewView() {
   return `
+    ${scenarioObjectiveBanner()}
     <div class="dashboard-top">
       <section class="hero-card">
         <div class="hero-copy">
@@ -674,6 +719,9 @@ function debriefView() {
   const analysis = analyzeDebrief(game);
   const detectedTemporalTraps = analysis.traps.filter(t => t.detected);
   const staticTraps = detectCognitiveTraps(game);
+  const scenario = getScenario(game.scenarioId || 'sandbox');
+  const evaluation = evaluateScenario(game);
+  const benchmark = getScenarioBenchmark(game.scenarioId || 'sandbox');
 
   return `
     <section data-testid="debrief">
@@ -683,11 +731,52 @@ function debriefView() {
         <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из 120 месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
       </div>
 
+      <div class="panel" style="margin-bottom: 24px; border-left: 4px solid ${evaluation.status === 'victory' ? '#3a7d44' : evaluation.status === 'defeat' ? '#8d4130' : 'var(--accent)'}; background: var(--surface);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <p class="eyebrow" style="color: var(--accent); margin:0;">ИТОГИ СЦЕНАРИЯ: ${escapeHTML(scenario.title)}</p>
+            <h3 style="margin: 4px 0 6px;">${evaluation.status === 'victory' ? '🏆 Сценарий успешно завершен' : evaluation.status === 'defeat' ? '⚠️ Цели сценария не были достигнуты' : '⏳ Промежуточный срез сценария'}</h3>
+          </div>
+          <span class="badge" style="font-size:13px;">${evaluation.metCount} из ${evaluation.totalCount} целей выполнено (${evaluation.completionRate}%)</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px;">
+          ${evaluation.objectives.map(o => `
+            <div style="padding: 8px 10px; background: ${o.met ? 'rgba(58, 125, 68, 0.08)' : 'rgba(141, 65, 48, 0.05)'}; border-radius: 6px; border: 1px solid ${o.met ? 'rgba(58, 125, 68, 0.3)' : 'rgba(141, 65, 48, 0.2)'}; font-size: 13px;">
+              <div style="font-weight: 600;">${o.met ? '✅' : '❌'} ${escapeHTML(o.label)}</div>
+              <div style="color: var(--muted); font-size: 12px; margin-top: 2px;">Требование: ${escapeHTML(o.target)} · Результат: <strong style="color:${o.met ? '#3a7d44' : '#8d4130'};">${escapeHTML(String(o.current))}</strong></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
       <div class="panel" style="margin-bottom: 24px; border-left: 4px solid var(--accent); background: var(--surface);">
         <p class="eyebrow" style="color: var(--accent);">УПРАВЛЕНЧЕСКИЙ АРХЕТИП ПО ДЁРНЕРУ</p>
         <h3 style="margin: 4px 0 8px; font-size: 20px;">${escapeHTML(analysis.archetype.name)}</h3>
         <p style="margin: 0 0 8px;"><strong>${escapeHTML(analysis.archetype.title)}:</strong> ${escapeHTML(analysis.archetype.description)}</p>
         <p style="margin: 0; font-size: 14px; color: var(--muted); font-style: italic;">${escapeHTML(analysis.summary)}</p>
+      </div>
+
+      <div class="panel" style="margin-bottom: 24px;">
+        <p class="eyebrow">ЭТАЛОННЫЕ СРАВНЕНИЯ ПО КНИГЕ ДЁРНЕРА</p>
+        <h3 style="margin: 4px 0 12px;">Как с этим сценарием справлялись участники эксперимента?</h3>
+        <div class="grid-two" style="gap: 16px;">
+          <div style="padding: 14px; background: rgba(58, 125, 68, 0.05); border-radius: 8px; border: 1px solid rgba(58, 125, 68, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+              <strong style="color: #2b6134; font-size: 15px;">🌟 ${escapeHTML(benchmark.conrad.name)}</strong>
+              <span class="badge" style="background:#e0f0e3; color:#2b6134;">Системный эталон</span>
+            </div>
+            <p style="font-size: 13px; margin: 0 0 8px; color: var(--ink);"><strong>Стратегия:</strong> ${escapeHTML(benchmark.conrad.strategy)}</p>
+            <p style="font-size: 12px; margin: 0; color: var(--muted); font-style: italic;">${escapeHTML(benchmark.conrad.verdict)}</p>
+          </div>
+          <div style="padding: 14px; background: rgba(141, 65, 48, 0.05); border-radius: 8px; border: 1px solid rgba(141, 65, 48, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+              <strong style="color: #8d4130; font-size: 15px;">⚠️ ${escapeHTML(benchmark.marcus.name)}</strong>
+              <span class="badge" style="background:#fbeae7; color:#8d4130;">Реактивная ловушка</span>
+            </div>
+            <p style="font-size: 13px; margin: 0 0 8px; color: var(--ink);"><strong>Стратегия:</strong> ${escapeHTML(benchmark.marcus.strategy)}</p>
+            <p style="font-size: 12px; margin: 0; color: var(--muted); font-style: italic;">${escapeHTML(benchmark.marcus.verdict)}</p>
+          </div>
+        </div>
       </div>
 
       <div class="debrief-grid">
@@ -939,11 +1028,25 @@ function render() {
         </footer>
       </main>
     </div>
-    <dialog id="new-game-dialog" aria-labelledby="reset-title">
-      <h2 id="reset-title">Начать заново?</h2>
-      <p>Текущая партия в этом браузере будет заменена новой. У вас снова будет 10 лет управления городом.</p>
+    <dialog id="new-game-dialog" aria-labelledby="reset-title" style="max-width: 620px;">
+      <h2 id="reset-title">Новая партия в Лоххаузене</h2>
+      <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите исторический сценарий управления по книге Дитриха Дёрнера:</p>
+      <div class="scenario-select-list" style="display: grid; gap: 8px; margin-bottom: 20px;">
+        ${getScenariosList().map(sc => `
+          <label class="scenario-option" style="display:flex; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--surface); align-items:flex-start;">
+            <input type="radio" name="scenario-choice" value="${sc.id}" ${sc.id === selectedScenarioId ? 'checked' : ''} style="margin-top:4px;">
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:14px;">${sc.icon} ${escapeHTML(sc.title)}</strong>
+                <span class="badge" style="font-size:11px;">${sc.horizon} мес. · ${escapeHTML(sc.difficulty)}</span>
+              </div>
+              <p style="margin:4px 0 0; font-size:12px; color:var(--muted); line-height:1.4;">${escapeHTML(sc.briefing)}</p>
+            </div>
+          </label>
+        `).join('')}
+      </div>
       <div class="dialog-actions">
-        <button class="button secondary" data-action="cancel-new-game">Остаться в городе</button>
+        <button class="button secondary" data-action="cancel-new-game">Остаться в текущей</button>
         <button class="button danger" data-action="confirm-new-game" data-testid="confirm-new-game">Начать новую игру</button>
       </div>
     </dialog>
@@ -1018,13 +1121,15 @@ app.addEventListener('click', event => {
         document.querySelector('#new-game-dialog').close();
         break;
       case 'confirm-new-game':
-        game = createGame();
+        const checkedRadio = document.querySelector('input[name="scenario-choice"]:checked');
+        if (checkedRadio) selectedScenarioId = checkedRadio.value;
+        game = applyScenario(createGame(), selectedScenarioId);
         storageBlocked = false;
         errorMessage = '';
         setRoute('overview');
         reportKind = 'factory';
         chartMetric = 'finance';
-        notice = 'Новая партия началась. У вас десять лет управления.';
+        notice = `Новая партия начата: «${getScenario(selectedScenarioId).title}».`;
         persist();
         render();
         window.scrollTo(0, 0);
