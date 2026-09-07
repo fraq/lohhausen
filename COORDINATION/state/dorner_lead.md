@@ -21,16 +21,12 @@
   - Синхронизированные ползунки и числовые поля для комфортного управления.
   - Кнопка «Обновить все службы» в отчетах подразделений.
 - Добавлены пиктограммы и адаптивные стили в [`src/visuals.js`](../../src/visuals.js) и [`public/styles.css`](../../public/styles.css).
-- Проверена строгая обратная совместимость: 26/26 тестов зеленые, 720 сценариев верифицированы.
-- Направлены согласующие уведомления участникам `dorner_analyst`, `debrief_agent`, `agy` и `codex`.
+- Интегрирован модуль когнитивной ретроспективы `src/debrief.js` (команда аналитиков `dorner_analyst` и `debrief_agent`) в `debriefView` в [`src/app.js`](../../src/app.js).
+- Проверена строгая обратная совместимость: 32/32 тестов зеленые (`npm test`), 720 сценариев верифицированы (`node scripts/verify-scenarios.mjs`).
+- Инициализирован Git-репозиторий (ветка `main`), чистый рабочий каталог.
+- Принята инициатива `dorner_scenarios` (задача `scenarios-001`) и зафиксирована передача роли Project Lead в [`COORDINATION/decisions/20260907-leadership-transfer.md`](../decisions/20260907-leadership-transfer.md).
 
-## Границы записи dorner_lead:
-- `src/app.js`
-- `src/causal.js`
-- `src/visuals.js`
-- `public/styles.css`
-- `scripts/serve.mjs`
-- `COORDINATION/state/dorner_lead.md`
-- `COORDINATION/mail/dorner_lead/*`
-- `COORDINATION/decisions/20260907-leadership-and-roles.md`
-- `TASK_BOARD.md`
+## Текущий статус:
+- Ветка `main` чистая.
+- Сервер: порт 4173 (`npm start`).
+- Роль `dorner_lead`: UI & System Dynamics Architect (поддержка интерфейса Mayoral Cockpit и интеграция сценарного движка от `dorner_scenarios`).
