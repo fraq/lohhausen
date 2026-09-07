@@ -3,6 +3,7 @@ import { icon, cityIllustration, sparkline, trendChart } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf } from './causal.js';
+import { analyzeDebrief } from './debrief.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
 const LANGUAGE_KEY = 'lohhausen-language';
@@ -670,7 +671,9 @@ function journalView() {
 
 function debriefView() {
   const summary = summarize(game);
-  const traps = detectCognitiveTraps(game);
+  const analysis = analyzeDebrief(game);
+  const detectedTemporalTraps = analysis.traps.filter(t => t.detected);
+  const staticTraps = detectCognitiveTraps(game);
 
   return `
     <section data-testid="debrief">
@@ -679,6 +682,14 @@ function debriefView() {
         <h2>${complete() ? 'Как изменился ваш Лоххаузен?' : 'Остановиться и посмотреть на целое.'}</h2>
         <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из 120 месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
       </div>
+
+      <div class="panel" style="margin-bottom: 24px; border-left: 4px solid var(--accent); background: var(--surface);">
+        <p class="eyebrow" style="color: var(--accent);">УПРАВЛЕНЧЕСКИЙ АРХЕТИП ПО ДЁРНЕРУ</p>
+        <h3 style="margin: 4px 0 8px; font-size: 20px;">${escapeHTML(analysis.archetype.name)}</h3>
+        <p style="margin: 0 0 8px;"><strong>${escapeHTML(analysis.archetype.title)}:</strong> ${escapeHTML(analysis.archetype.description)}</p>
+        <p style="margin: 0; font-size: 14px; color: var(--muted); font-style: italic;">${escapeHTML(analysis.summary)}</p>
+      </div>
+
       <div class="debrief-grid">
         ${summary.metrics.map(metric => `
           <article class="debrief-metric" data-testid="metric-${metric.key}">
@@ -692,6 +703,7 @@ function debriefView() {
           </article>
         `).join('')}
       </div>
+
       <div class="grid-two">
         <section class="panel">
           <p class="eyebrow">СИСТЕМНЫЕ НАБЛЮДЕНИЯ ПО ВАШЕЙ ПАРТИИ</p>
@@ -699,13 +711,36 @@ function debriefView() {
           <div class="lesson-list">
             ${summary.lessons.map(lesson => `<p>${escapeHTML(lesson)}</p>`).join('')}
           </div>
-          ${traps.length ? `
-            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);">
-              <h4 style="margin:0 0 8px; font-family:var(--serif); font-size:16px; color:#8d4130;">Обнаруженные ловушки мышления:</h4>
-              ${traps.map(t => `<p>⚠️ <strong>${escapeHTML(t.title)}:</strong> ${escapeHTML(t.message)}</p>`).join('')}
+
+          ${detectedTemporalTraps.length ? `
+            <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line);">
+              <h4 style="margin:0 0 10px; font-family:var(--serif); font-size:16px; color:#8d4130;">Ловушки мышления (анализ траектории партии):</h4>
+              ${detectedTemporalTraps.map(t => `
+                <div style="margin-bottom: 12px; padding: 10px 12px; background: rgba(141, 65, 48, 0.06); border-radius: 6px;">
+                  <p style="margin:0 0 4px;">⚠️ <strong>${escapeHTML(t.title)}:</strong> ${escapeHTML(t.description)}</p>
+                  ${t.dornerQuote ? `<p style="margin:0; font-size: 13px; font-style: italic; color: var(--muted);">${escapeHTML(t.dornerQuote)}</p>` : ''}
+                </div>
+              `).join('')}
             </div>
           ` : ''}
-          <button class="button secondary" data-view="journal" style="margin-top:14px;">
+
+          ${staticTraps.length && !detectedTemporalTraps.length ? `
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);">
+              <h4 style="margin:0 0 8px; font-family:var(--serif); font-size:16px; color:#8d4130;">Текущие риски решений:</h4>
+              ${staticTraps.map(t => `<p>⚠️ <strong>${escapeHTML(t.title)}:</strong> ${escapeHTML(t.message)}</p>`).join('')}
+            </div>
+          ` : ''}
+
+          ${analysis.reflectionQuestions && analysis.reflectionQuestions.length ? `
+            <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line);">
+              <h4 style="margin:0 0 10px; font-family:var(--serif); font-size:16px;">Вопросы для саморефлексии:</h4>
+              <ul style="margin: 0; padding-left: 20px; font-size: 14px;">
+                ${analysis.reflectionQuestions.map(q => `<li style="margin-bottom: 6px;">${escapeHTML(q)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          <button class="button secondary" data-view="journal" style="margin-top:16px;">
             Вернуться к дневнику решений ${icon('arrow', 16)}
           </button>
         </section>
