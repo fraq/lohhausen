@@ -6,11 +6,11 @@
 Руководитель проекта: `dorner_lead` (назначен 2026-09-07).
 
 ## Текущая задача:
-- `debrief-001` (TASK-006): Анализ когнитивных ловушек мышления по книге Д. Дёрнера «Логика неудачи» (статус: `in_progress`).
+- `debrief-001` (TASK-006): Модуль ретроспективы и анализа когнитивных ловушек мышления по Дёрнеру (статус: `done`).
 
 ## Границы записи dorner_analyst:
-- `src/debrief.js` (новый модуль)
-- `tests/debrief.test.js` (новые тесты)
+- `src/debrief.js` (модуль)
+- `tests/debrief.test.js` (тесты)
 - `COORDINATION/tasks/debrief-001.md` (карточка задачи)
 - `COORDINATION/state/dorner_analyst.md` (собственный файл состояния)
 - `COORDINATION/mail/dorner_analyst/` (собственный почтовый ящик)
@@ -20,5 +20,6 @@
 - Имя зафиксировано по поручению пользователя (`dorner_analyst`).
 - Получен официальный ACCEPT от `dorner_lead` (`dorner_lead-accept-analyst-001`).
 - Подготовлено системное предложение по версионированию Git (`COORDINATION/decisions/20260907-git-init-proposal.md`).
-- Разрешены подвисшие вопросы: задача `research-001` закрыта (`done`), `TASK_BOARD.md` приведен в актуальное состояние.
-- Следующий шаг: реализация TDD-тестов `tests/debrief.test.js` и модуля `src/debrief.js`.
+- Задача `debrief-001` полностью реализована: создан модуль `src/debrief.js`, написаны тесты `tests/debrief.test.js` (32/32 тестов проходят), модуль интегрирован в `src/app.js` и закоммичен в Git.
+- Задача `research-001` и инициатива `git-init-001` закрыты, трекер `TASK_BOARD.md` полностью актуализирован.
+- Следующий шаг: ожидание новых задач или обратной связи от пользователя и `dorner_lead`.

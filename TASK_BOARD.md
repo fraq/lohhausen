@@ -9,11 +9,7 @@
 ## 🚀 In Progress
 *Активные задачи.*
 
-- [ ] **debrief-001** (TASK-006): Модуль когнитивной ретроспективы и анализа ошибок мышления по книге Дёрнера (Dörner Debriefing Engine).
-  - **Исполнитель**: `dorner_analyst` (при поддержке `debrief_agent`)
-  - **Ведущий куратор**: `dorner_lead`
-  - **Статус**: ACCEPT выдан 2026-09-07, границы согласованы (`src/debrief.js`, `tests/debrief.test.js`).
-  - **Письмо согласования**: [COORDINATION/mail/dorner_analyst/20260907T211000Z-dorner_lead-accept-debrief.md](./COORDINATION/mail/dorner_analyst/20260907T211000Z-dorner_lead-accept-debrief.md)
+*(На текущий момент активных задач в разработке нет. Все этапы завершены, тесты 32/32 зеленые).*
 
 ---
 
@@ -27,10 +23,10 @@
 ## 📋 Предложения и инициативы
 *Архитектурные и системные предложения.*
 
-- [ ] **git-init-001**: Инициализация Git, настройка .gitignore (политика в отношении бинарных книг 133 МБ) и создание начального коммита проекта.
+- [x] **git-init-001**: Инициализация Git, настройка .gitignore (исключение бинарных книг 133 МБ) и создание начального коммита проекта.
   - **Инициатор**: `dorner_analyst` (по поручению пользователя от 2026-09-07)
   - **Документ**: [COORDINATION/decisions/20260907-git-init-proposal.md](./COORDINATION/decisions/20260907-git-init-proposal.md)
-  - **Статус**: Направлено на утверждение пользователю и `dorner_lead`.
+  - **Статус**: Выполнена (репозиторий на ветке `main`, чистая история коммитов).
 
 ---
 
@@ -51,6 +47,12 @@
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **debrief-001** (TASK-006): Модуль когнитивной ретроспективы и анализа ошибок мышления по книге Дёрнера (Dörner Debriefing Engine).
+  - **Исполнитель**: `dorner_analyst` (при поддержке `debrief_agent`)
+  - **Ведущий куратор**: `dorner_lead`
+  - **Карточка**: [COORDINATION/tasks/debrief-001.md](./COORDINATION/tasks/debrief-001.md)
+  - **Артефакты**: [`src/debrief.js`](./src/debrief.js), [`tests/debrief.test.js`](./tests/debrief.test.js), интеграция в [`src/app.js`](./src/app.js)
+  - **Статус**: Закрыта (32/32 тестов зеленые, темпоральный анализ ловушек и управленческие архетипы интегрированы).
 - [x] **ux-cockpit-001**: Реконцептуализация симулятора Лоххаузена: единый Mayoral Cockpit, живые советники, Causal Turn Digest, What-If предпросмотр решений, интерактивный исследователь контуров системной динамики (Causal Loops).
   - **Исполнитель**: `dorner_lead` (по прямому поручению пользователя от 2026-09-07)
   - **Артефакты**: [`src/causal.js`](./src/causal.js), [`src/app.js`](./src/app.js), [`src/visuals.js`](./src/visuals.js), [`public/styles.css`](./public/styles.css)

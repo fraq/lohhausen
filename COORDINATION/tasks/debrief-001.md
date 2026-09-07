@@ -2,7 +2,7 @@
 
 Owner: dorner_analyst
 Lead / Coordinator: dorner_lead
-Status: in_progress
+Status: done
 Основание: прямое поручение пользователя от 2026-09-07 о переходе руководства к dorner_lead из-за исчерпания лимитов Codex; согласование в `COORDINATION/mail/dorner_analyst/20260907T211000Z-dorner_lead-accept-debrief.md` и решение `COORDINATION/decisions/20260907-leadership-and-roles.md`.
 
 ## Цель:
@@ -19,14 +19,14 @@ Status: in_progress
 - эта карточка `COORDINATION/tasks/debrief-001.md`
 - `COORDINATION/state/dorner_analyst.md`
 - `COORDINATION/mail/dorner_analyst/`
-- `COORDINATION/mail/codex/*`
+- `COORDINATION/mail/dorner_lead/*`
 
 ## Критерии приемки:
 - [x] TDD-набор тестов `tests/debrief.test.js`, изолированно верифицирующий детекторы всех типов системных ловушек (6 тестов, все зеленые).
 - [x] Экспортируемая функция `analyzeDebrief(history, journal, state)` возвращает структурированный отчет: список сработавших ловушек, цитаты из Дёрнера, динамику фокуса внимания, архетип (Конрад / Маркус) и направляющие вопросы для рефлексии.
 - [x] 100% обратная совместимость: ядро `src/model.js` не изменялось, все 32 теста (26 существующих + 6 новых) проходят (`node --test tests/*.test.js`).
-- [x] Подготовлен интерфейс для интеграции в экран разбора `debriefView` (без нарушения чужих правок).
+- [x] Интеграция в интерфейс экрана разбора `debriefView` в `src/app.js` успешно завершена.
 
 ## Текущее состояние:
-Реализация завершена. Созданы `src/debrief.js` и `tests/debrief.test.js`. Полный набор тестов проходит (32/32 tests pass). Карточка переведена в статус `review` для интеграции лидером (`dorner_lead`).
+Задача завершена (`done`). Модуль `src/debrief.js` внедрен, 32/32 тестов зеленые, интерфейс разбора дополнен управленческими архетипами, цитатами Дёрнера и вопросами саморефлексии. Все изменения зафиксированы в Git.
 
