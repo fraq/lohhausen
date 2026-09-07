@@ -839,3 +839,23 @@ html:not([lang="ru"]) .city-illustration text { font-size: 9px; letter-spacing: 
   margin: 18px 0;
 }
 
+/* Causal Diagram SVG Styling */
+.loop-diagram-container {
+  margin: 14px 0 16px;
+  display: flex;
+  justify-content: center;
+}
+.causal-diagram {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  display: block;
+}
+.debrief-export-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+

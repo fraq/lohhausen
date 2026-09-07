@@ -316,6 +316,9 @@ function causalLoopExplorerSection() {
       </div>
       <div class="loop-content">
         <h4>${escapeHTML(currentLoop.title)} <small class="advisor-meta">· ${escapeHTML(currentLoop.category)}</small></h4>
+        <div class="loop-diagram-container">
+          ${renderCausalLoopDiagram(currentLoop)}
+        </div>
         <div class="loop-chain">
           ${currentLoop.nodes.map((node, i) => `
             <span class="loop-node-tag">${escapeHTML(node)}</span>
@@ -729,6 +732,14 @@ function debriefView() {
         <p class="eyebrow">${complete() ? 'ДЕСЯТЬ ЛЕТ СПУСТЯ' : 'ПРОМЕЖУТОЧНЫЙ РАЗБОР'}</p>
         <h2>${complete() ? 'Как изменился ваш Лоххаузен?' : 'Остановиться и посмотреть на целое.'}</h2>
         <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из 120 месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="button secondary" data-action="export-debrief-md" title="Скачать подробный аналитический отчет">
+            📥 Скачать отчет (Markdown)
+          </button>
+          <button class="button secondary" data-action="export-debrief-json" title="Экспортировать снимок партии в JSON">
+            📊 Экспорт данных (JSON)
+          </button>
+        </div>
       </div>
 
       <div class="panel" style="margin-bottom: 24px; border-left: 4px solid ${evaluation.status === 'victory' ? '#3a7d44' : evaluation.status === 'defeat' ? '#8d4130' : 'var(--accent)'}; background: var(--surface);">
@@ -1059,6 +1070,22 @@ function render() {
   if (focusTarget && !focusTarget.disabled) focusTarget.focus({ preventScroll: true });
 }
 
+function downloadFile(filename, mimeType, content) {
+  try {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('Download error:', err);
+  }
+}
+
 app.addEventListener('click', event => {
   const control = event.target.closest('[data-view], [data-action], [data-project], [data-report], [data-open-report], [data-district], [data-loop]');
   if (!control || control.disabled) return;
@@ -1091,6 +1118,25 @@ app.addEventListener('click', event => {
       return;
     }
     switch (control.dataset.action) {
+      case 'export-debrief-md': {
+        const scenario = getScenario(game.scenarioId || 'sandbox');
+        const evaluation = evaluateScenario(game);
+        const analysis = analyzeDebrief(game);
+        const mdText = formatDebriefMarkdown(game, analysis, evaluation);
+        downloadFile(`lohhausen-debrief-month-${game.month}.md`, 'text/markdown;charset=utf-8', mdText);
+        notice = 'Аналитический отчет Дёрнера скачан в формате Markdown.';
+        render();
+        break;
+      }
+      case 'export-debrief-json': {
+        const evaluation = evaluateScenario(game);
+        const analysis = analyzeDebrief(game);
+        const jsonText = formatDebriefJSON(game, analysis, evaluation);
+        downloadFile(`lohhausen-session-month-${game.month}.json`, 'application/json;charset=utf-8', jsonText);
+        notice = 'Полный снимок партии экспортирован в формате JSON.';
+        render();
+        break;
+      }
       case 'advance-1':
       case 'advance-3': {
         const months = control.dataset.action === 'advance-1' ? 1 : 3;

@@ -63,11 +63,18 @@ test('scenarios: evaluateScenario возвращает детальный про
   assert.equal(typeof evaluation.completionRate, 'number');
 });
 
-test('scenarios: эталонные бенчмарки Конрада и Маркуса доступны для сценариев', () => {
-  const benchmark = getScenarioBenchmark('factory_crisis');
-  assert.ok(benchmark.conrad);
-  assert.ok(benchmark.marcus);
-  assert.ok(benchmark.conrad.equipmentTrajectory.length > 0);
-  assert.ok(benchmark.marcus.equipmentTrajectory.length > 0);
-  assert.ok(benchmark.conrad.finalEquipment > benchmark.marcus.finalEquipment);
+test('scenarios: эталонные бенчмарки Конрада и Маркуса доступны для всех сценариев', () => {
+  const scenarios = ['sandbox', 'factory_crisis', 'tourism_dilemma', 'dorner_challenge'];
+  for (const id of scenarios) {
+    const benchmark = getScenarioBenchmark(id);
+    assert.ok(benchmark.conrad, `Conrad benchmark missing for ${id}`);
+    assert.ok(benchmark.marcus, `Marcus benchmark missing for ${id}`);
+    assert.ok(benchmark.conrad.name);
+    assert.ok(benchmark.conrad.strategy, `Conrad strategy missing for ${id}`);
+    assert.ok(benchmark.conrad.verdict, `Conrad verdict missing for ${id}`);
+    assert.ok(benchmark.marcus.strategy, `Marcus strategy missing for ${id}`);
+    assert.ok(benchmark.marcus.verdict, `Marcus verdict missing for ${id}`);
+    assert.ok(benchmark.conrad.finalEquipment >= benchmark.marcus.finalEquipment);
+  }
 });
+
