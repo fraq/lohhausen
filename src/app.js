@@ -1,9 +1,9 @@
 import { createGame, setPolicies, startProject, advance, requestReport, serializeGame, deserializeGame, summarize, POLICY_CONFIG, PROJECTS } from './model.js';
-import { icon, cityIllustration, sparkline, trendChart } from './visuals.js';
+import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf } from './causal.js';
-import { analyzeDebrief } from './debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON } from './debrief.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';

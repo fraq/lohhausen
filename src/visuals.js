@@ -131,82 +131,88 @@ export function cityIllustration() {
   <g fill="#f5f2e9" stroke="#273a31" stroke-width="2"><path d="M380 248h76v28h-76z"/><path d="M385 248v-10h66v10"/><path d="M394 238v-10h10v10M414 238v-10h10v10M434 238v-10h10v10"/></g><path d="M362 275h111" stroke="#273a31" stroke-width="4"/><text x="417" y="302" text-anchor="middle" fill="#f5f2e9" font-size="10" font-family="system-ui, sans-serif" letter-spacing="1">ЛОХХАУЗЕН</text></svg>`;
 }
 
-/** Render an interactive, beautifully styled SVG diagram of a causal loop. */
+/**
+ * Render an interactive or static SVG diagram of a systemic causal loop.
+ */
 export function renderCausalLoopDiagram(loop) {
   const width = 720;
   const height = 280;
 
   if (!loop || !Array.isArray(loop.nodes) || loop.nodes.length === 0) {
-    return `<svg class="causal-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Схема контура"><rect width="${width}" height="${height}" rx="12" fill="#faf8f2"/><text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#888" font-size="14">Контур не выбран</text></svg>`;
+    return `<svg class="causal-loop-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Пустой контур"><rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#ebe5d6" stroke-width="1"/><text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#888" font-size="14">Контур не выбран</text></svg>`;
   }
 
+  const isReinforcing = loop.loopType === 'reinforcing' || loop.type === 'reinforcing' || loop.id === 'debt_spiral' || (loop.typeLabel && loop.typeLabel.includes('Усиливающий'));
+  const hasDelay = Boolean(loop.delayNodeIndex >= 0 || loop.hasDelay || loop.id === 'housing_lag_loop' || (loop.nodes && loop.nodes.some(n => /жиль|лаг|delay/i.test(n))));
+  const typeBadgeText = isReinforcing ? '🔄 Усиливающий контур (R)' : '⚖️ Балансирующий контур (B)';
+  const centerSymbol = isReinforcing ? 'R' : 'B';
+  const strokeColor = isReinforcing ? '#8d4130' : '#345944';
+
+  const cx = 360;
+  const cy = 140;
+  const rx = 245;
+  const ry = 80;
   const nodes = loop.nodes;
   const count = nodes.length;
-  const cx = 360;
-  const cy = 135;
-  const rx = 240;
-  const ry = 80;
-
-  const isReinforcing = loop.loopType === 'reinforcing' || (loop.id && loop.id.includes('debt'));
-  const typeColor = isReinforcing ? '#8d4130' : '#345944';
 
   const nodeCoords = nodes.map((node, i) => {
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / count;
-    const x = cx + rx * Math.cos(angle);
-    const y = cy + ry * Math.sin(angle);
-    return { node, x, y, angle };
+    const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+    const x = Math.round(cx + rx * Math.cos(angle));
+    const y = Math.round(cy + ry * Math.sin(angle));
+    return { node, x, y };
   });
 
-  const arrows = nodeCoords.map((pt, i) => {
+  const arrowPaths = nodeCoords.map((pt, i) => {
     const next = nodeCoords[(i + 1) % count];
     const midX = (pt.x + next.x) / 2;
     const midY = (pt.y + next.y) / 2;
-    const pull = 0.2;
+    const pull = 0.22;
     const ctrlX = midX + (cx - midX) * pull;
     const ctrlY = midY + (cy - midY) * pull;
 
-    const isDelayNode = (loop.delayNodeIndex === i) || (pt.node && pt.node.toLowerCase().includes('лаг'));
-    const delayBadge = isDelayNode ? `<g transform="translate(${ctrlX.toFixed(1)}, ${ctrlY.toFixed(1)})"><rect x="-24" y="-12" width="48" height="24" rx="12" fill="#fff8ea" stroke="#d4a340" stroke-width="1.5"/><text x="0" y="4" text-anchor="middle" font-size="11" fill="#8a6110">⏳ лаг</text></g>` : '';
+    const isDelayEdge = (loop.delayNodeIndex === i) || (pt.node && /жиль|лаг|строит/i.test(pt.node));
+    const delayBadge = isDelayEdge ? `<g transform="translate(${ctrlX.toFixed(1)}, ${ctrlY.toFixed(1)})"><rect x="-28" y="-11" width="56" height="22" rx="11" fill="#fff8ea" stroke="#d4a340" stroke-width="1.5"/><text x="0" y="4" text-anchor="middle" font-size="11" fill="#8a6110">⏳ лаг</text></g>` : '';
 
     return `
-      <path d="M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)} Q ${ctrlX.toFixed(1)} ${ctrlY.toFixed(1)} ${next.x.toFixed(1)} ${next.y.toFixed(1)}" fill="none" stroke="${typeColor}" stroke-width="2" stroke-dasharray="${isDelayNode ? '4,4' : 'none'}" marker-end="url(#causal-arrow)" opacity="0.8"/>
+      <path d="M ${pt.x} ${pt.y} Q ${ctrlX.toFixed(1)} ${ctrlY.toFixed(1)} ${next.x} ${next.y}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="${isDelayEdge ? '4 3' : 'none'}" marker-end="url(#causal-arrow)" opacity="0.85"/>
       ${delayBadge}
     `;
   }).join('');
 
-  const nodeElements = nodeCoords.map((pt) => {
+  const nodeElements = nodeCoords.map((pt, i) => {
     const safeNode = xmlEscape(pt.node);
-    const boxW = Math.max(80, safeNode.length * 8 + 20);
-    const boxH = 32;
+    const boxW = Math.min(180, Math.max(100, safeNode.length * 7.5 + 24));
+    const boxH = 34;
+    const isDelayNode = (loop.delayNodeIndex === i) || (hasDelay && /жиль/i.test(pt.node));
+    const delayLabel = isDelayNode ? `<text x="${pt.x}" y="${pt.y + 27}" text-anchor="middle" font-size="11" fill="#b65e47" font-weight="600">⏳ лаг 12 мес.</text>` : '';
+
     return `
-      <g transform="translate(${pt.x.toFixed(1)}, ${pt.y.toFixed(1)})" class="causal-node">
-        <rect x="${(-boxW / 2).toFixed(1)}" y="${(-boxH / 2).toFixed(1)}" width="${boxW}" height="${boxH}" rx="6" fill="#ffffff" stroke="#d5cebc" stroke-width="1.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.06))"/>
-        <text x="0" y="4" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#2d3732">${safeNode}</text>
+      <g class="causal-node">
+        <rect x="${(pt.x - boxW / 2).toFixed(1)}" y="${(pt.y - boxH / 2).toFixed(1)}" width="${boxW}" height="${boxH}" rx="6" fill="#ffffff" stroke="#273a31" stroke-width="1.8" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.06))"/>
+        <text x="${pt.x}" y="${pt.y + 5}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="#273a31">${safeNode}</text>
+        ${delayLabel}
       </g>
     `;
   }).join('');
 
-  const delayMarkerGlobal = (loop.delayNodeIndex >= 0 || loop.id === 'housing_lag_loop' || nodes.some(n => n.includes('лаг')))
-    ? `<text x="${cx}" y="${cy + 42}" text-anchor="middle" font-size="11" fill="#8a6110" font-weight="500">⏳ Временная задержка (delay lag)</text>`
-    : '';
-
-  return `<svg class="causal-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Диаграмма контура: ${xmlEscape(loop.title || '')}">
+  return `<svg class="causal-loop-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${xmlEscape(loop.title || 'Контур системной динамики')}">
     <defs>
-      <marker id="causal-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 10 5 L 0 9 z" fill="${typeColor}"/>
+      <marker id="causal-arrow" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="${strokeColor}"/>
       </marker>
     </defs>
-    <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#ebe5d6" stroke-width="1"/>
-    ${arrows}
+    <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#e3dfd3" stroke-width="1.5"/>
+    <g class="causal-edges">${arrowPaths}</g>
     <g class="causal-center-badge">
-      <circle cx="${cx}" cy="${cy}" r="38" fill="#ffffff" stroke="${typeColor}" stroke-width="2.5" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.08))"/>
-      <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="20">${isReinforcing ? '🔄' : '⚖️'}</text>
-      <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="${typeColor}">${isReinforcing ? 'R' : 'B'}</text>
-      <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="${typeColor}">${isReinforcing ? 'Усиливающий' : 'Балансирующий'}</text>
+      <circle cx="${cx}" cy="${cy}" r="34" fill="#ffffff" stroke="${strokeColor}" stroke-width="2.5" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.08))"/>
+      <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="18">${isReinforcing ? '🔄' : '⚖️'}</text>
+      <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="${strokeColor}">${centerSymbol}</text>
+      <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="${strokeColor}">${isReinforcing ? 'Усиливающий' : 'Балансирующий'}</text>
     </g>
-    ${delayMarkerGlobal}
-    ${nodeElements}
+    <text x="24" y="30" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#273a31">${xmlEscape(loop.title || '')}</text>
+    <text x="24" y="48" font-family="system-ui, sans-serif" font-size="11" fill="#666">${typeBadgeText} ${hasDelay ? '· ⏳ Временной лаг (delay)' : ''}</text>
+    <g class="causal-nodes">
+      ${nodeElements}
+    </g>
   </svg>`;
 }
-
-
