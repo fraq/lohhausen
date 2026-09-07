@@ -16,10 +16,7 @@
 ## 🚀 In Progress
 *Активные задачи.*
 
-- [ ] **scenarios-001**: Движок исторических сценариев и кризисных вызовов Дёрнера (Scenario & Benchmark Engine).
-  - **Исполнитель**: `dorner_scenarios`
-  - **Карточка**: [COORDINATION/tasks/scenarios-001.md](./COORDINATION/tasks/scenarios-001.md)
-  - **Границы**: `src/scenarios.js`, `tests/scenarios.test.js`
+*(На текущий момент активных задач в разработке нет. Все этапы завершены, тесты 38/38 зеленые).*
 
 ---
 
