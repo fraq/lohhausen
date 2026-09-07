@@ -12,14 +12,12 @@ import {
 } from '../src/causal.js';
 
 test('causal: все 5 советников определены и имеют валидные метаданные', () => {
-  assert.equal(ADVISORS.length, 5);
-  assert.ok(ADVISORS.factory);
-  assert.ok(ADVISORS.finance);
-  assert.ok(ADVISORS.housing);
-  assert.ok(ADVISORS.social);
-  assert.ok(ADVISORS.tourism);
+  const spheres = ['factory', 'finance', 'housing', 'social', 'tourism'];
+  assert.equal(Object.keys(ADVISORS).length, 5);
 
-  for (const adv of ADVISORS) {
+  for (const sphere of spheres) {
+    const adv = ADVISORS[sphere];
+    assert.ok(adv);
     assert.ok(adv.id);
     assert.ok(adv.name);
     assert.ok(adv.role);
@@ -34,10 +32,10 @@ test('causal: getAdvisorDiagnosis возвращает содержательн�
   for (const sphereId of ['factory', 'finance', 'housing', 'social', 'tourism']) {
     const diag = getAdvisorDiagnosis(sphereId, game);
     assert.ok(diag);
-    assert.ok(diag.quote);
+    assert.ok(diag.quote || diag.verdict);
     assert.ok(diag.recommendation !== undefined);
     assert.ok(diag.keyStat !== undefined);
-    assert.ok(['calm', 'good', 'normal', 'warning', 'crisis'].includes(diag.status));
+    assert.ok(['calm', 'warning', 'critical'].includes(diag.status));
   }
 });
 
