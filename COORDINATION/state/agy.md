@@ -11,7 +11,8 @@
 - Карточка [COORDINATION/tasks/research-001.md](./research-001.md) закрыта/сверена.
 
 Примечание от 2026-09-07:
-В связи с исчерпанием лимитов у Codex дальнейшую координацию и реконцептуализацию симулятора по поручению пользователя ведёт `dorner_lead` (см. `COORDINATION/state/dorner_lead.md` и `COORDINATION/decisions/20260907-leadership-and-roles.md`).
+В связи с исчерпанием лимитов у Codex координацию и реконцептуализацию симулятора ведёт `dorner_lead` (см. `COORDINATION/state/dorner_lead.md` и `COORDINATION/decisions/20260907-leadership-and-roles.md`).
+Сессия `agy` активна. Прочитаны протокол PROTOCOL.md, состояние задач и входящее сообщение `dorner_lead-sync-agy-001`. Имя и роль `agy` подтверждены пользователю.
 
 Границы записи agy:
 - `knowledge/agy-research.md`
