@@ -1,0 +1,132 @@
+/**
+ * Small, dependency-free SVG primitives used by the Lohhausen interface.
+ * The returned strings are intentionally self-contained so the app can run
+ * from a local file or the tiny development server without an asset build.
+ */
+
+const ICON_PATHS = {
+  guide: '<path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1v15"/>',
+  overview: '<path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="7" cy="5.5" r="1"/><circle cx="13" cy="12" r="1"/><circle cx="9" cy="18.5" r="1"/>',
+  reports: '<path d="M5 3.5h10l4 4v13H5z"/><path d="M15 3.5v4h4M8 12h8M8 16h6"/>',
+  decisions: '<path d="M4 19.5h16M6.5 17V9l5.5-4 5.5 4v8"/><path d="M9 17v-4h6v4M4 9l8-5 8 5"/>',
+  journal: '<path d="M6 3.5h12v17H6zM9 3.5v17M12 8h3M12 12h3M12 16h3"/>',
+  debrief: '<path d="M5 19.5V10M12 19.5V4M19 19.5v-7"/><path d="m4 7 5-3 5 4 6-5"/>',
+  model: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 4.5V2.5M12 21.5v-2M4.5 12h-2M21.5 12h-2M6.7 6.7 5.3 5.3M18.7 18.7l-1.4-1.4M17.3 6.7l1.4-1.4M6.7 17.3l-1.4 1.4"/>',
+  save: '<path d="M4 4h13l3 3v13H4zM8 4v6h8V4M8 20v-6h8v6"/>',
+  reset: '<path d="M5 8a7.5 7.5 0 1 1-1 7"/><path d="M5 4v4h4"/>',
+  next: '<path d="M5 12h13M13 6l6 6-6 6"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+  arrow: '<path d="M4 12h15M13 6l6 6-6 6"/>',
+  coins: '<circle cx="9" cy="9" r="5"/><circle cx="15" cy="15" r="5"/><path d="M9 6.5v5M7.5 8h3M15 12.5v5M13.5 14h3"/>',
+  people: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 19c.6-3 2.5-4.5 5.5-4.5s4.9 1.5 5.5 4.5M14 15c2.8-.2 4.7 1.1 5.5 4"/>',
+  factory: '<path d="M3.5 20V9l6 3V9l6 3V6l5 2.5V20zM3.5 20h17"/><path d="M6.5 16h2M12 16h2M17.5 16h2M7 9V5h3v5"/>',
+  home: '<path d="m3.5 11.5 8.5-7 8.5 7V20h-17z"/><path d="M9 20v-5h6v5M4 11.5h16"/>',
+  leaf: '<path d="M19.5 4.5C10 4.5 4.5 8.2 4.5 14c0 3 2.2 5.5 5.5 5.5 5.8 0 9.5-5.5 9.5-15z"/><path d="M4.7 19.3c2.5-4.2 5.5-6.9 10-9.4"/>',
+  alert: '<path d="m10.3 3.6-8 14A2 2 0 0 0 4 20.5h16a2 2 0 0 0 1.7-2.9l-8-14a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
+  shield: '<path d="M12 2.5 4.5 5.8v6.7c0 4.6 3.2 8.9 7.5 9.8 4.3-.9 7.5-5.2 7.5-9.8V5.8L12 2.5z"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  spark: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/>',
+  loop: '<path d="M21.5 12A9.5 9.5 0 0 1 5 17.5M2.5 12A9.5 9.5 0 0 1 19 6.5"/><path d="m20 2 2 4.5-4.5.5M4 22l-2-4.5 4.5-.5"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/>'
+};
+
+const xmlEscape = (value) => String(value)
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;');
+
+const finiteValues = (values) => (Array.isArray(values) ? values : [values])
+  .map(Number)
+  .filter(Number.isFinite);
+
+/** Return a line icon with a stable, accessible viewBox. */
+export function icon(name, size = 20) {
+  const content = ICON_PATHS[name] ?? '<circle cx="12" cy="12" r="7.5"/><path d="M12 8v5M12 16v.1"/>';
+  const safeSize = Number.isFinite(Number(size)) && Number(size) > 0 ? Number(size) : 20;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${safeSize}" height="${safeSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${content}</svg>`;
+}
+
+/** A tiny accessible sparkline for metric cards. */
+export function sparkline(values, color = '#345944') {
+  const nums = finiteValues(values);
+  const points = nums.length === 0 ? [0, 0] : nums;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = max - min || 1;
+  const width = 132;
+  const height = 34;
+  const pad = 2;
+  const path = points.map((value, index) => {
+    const x = points.length === 1 ? width / 2 : pad + index * (width - pad * 2) / (points.length - 1);
+    const y = height - pad - ((value - min) / span) * (height - pad * 2);
+    return `${index ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+  const safeColor = xmlEscape(color);
+  return `<svg class="sparkline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Динамика показателя"><path d="${path}" fill="none" stroke="${safeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${points.length === 1 ? width / 2 : width - pad}" cy="${points.length === 1 ? height / 2 : (height - pad - ((points.at(-1) - min) / span) * (height - pad * 2)).toFixed(2)}" r="2.5" fill="${safeColor}"/></svg>`;
+}
+
+/**
+ * Draw a compact, readable chart from history snapshots. Missing and invalid
+ * values are ignored; one point and a constant series remain meaningful.
+ */
+export function trendChart(history, key, options = {}) {
+  const { color = '#345944', label = key, unit = '' } = options || {};
+  const rows = Array.isArray(history) ? history : [];
+  const values = rows.map((row, index) => ({
+    month: Number.isFinite(Number(row?.month)) ? Number(row.month) : index,
+    value: Number(row?.[key])
+  })).filter((row) => Number.isFinite(row.value));
+  const width = 640;
+  const height = 220;
+  const left = 48;
+  const right = 18;
+  const top = 22;
+  const bottom = 34;
+  const plotW = width - left - right;
+  const plotH = height - top - bottom;
+  const safeValues = values.length ? values : [{ month: 0, value: 0 }];
+  const min = Math.min(...safeValues.map((point) => point.value));
+  const max = Math.max(...safeValues.map((point) => point.value));
+  const span = max - min || Math.max(Math.abs(max) * 0.08, 1);
+  const low = min - (max === min ? span / 2 : span * 0.08);
+  const high = max + (max === min ? span / 2 : span * 0.08);
+  const ySpan = high - low || 1;
+  const firstMonth = safeValues[0].month;
+  const lastMonth = safeValues.at(-1).month;
+  const monthSpan = lastMonth - firstMonth || 1;
+  const x = (month) => left + ((month - firstMonth) / monthSpan) * plotW;
+  const y = (value) => top + (1 - (value - low) / ySpan) * plotH;
+  const line = safeValues.map((point, index) => `${index ? 'L' : 'M'}${x(point.month).toFixed(2)} ${y(point.value).toFixed(2)}`).join(' ');
+  const area = `${line} L ${x(lastMonth).toFixed(2)} ${(top + plotH).toFixed(2)} L ${x(firstMonth).toFixed(2)} ${(top + plotH).toFixed(2)} Z`;
+  const ticks = [0, 0.5, 1].map((ratio) => {
+    const tickValue = high - ratio * ySpan;
+    const yy = top + ratio * plotH;
+    return `<line x1="${left}" y1="${yy.toFixed(2)}" x2="${width - right}" y2="${yy.toFixed(2)}" stroke="#d9d6cb" stroke-dasharray="3 5"/><text x="${left - 8}" y="${(yy + 4).toFixed(2)}" text-anchor="end">${xmlEscape(Math.round(tickValue))}</text>`;
+  }).join('');
+  const xLabels = safeValues.length === 1
+    ? `<text x="${left}" y="${height - 10}">${firstMonth === 0 ? 'начало управления' : `месяц ${xmlEscape(firstMonth)}`}</text><text x="${width - right}" y="${height - 10}" text-anchor="end">текущий</text>`
+    : `<text x="${left}" y="${height - 10}">${firstMonth === 0 ? 'начало управления' : `месяц ${xmlEscape(firstMonth)}`}</text><text x="${width - right}" y="${height - 10}" text-anchor="end">месяц ${xmlEscape(lastMonth)} · текущий</text>`;
+  const safeColor = xmlEscape(color);
+  const safeLabel = xmlEscape(label);
+  const safeUnit = xmlEscape(unit);
+  return `<svg class="trend-chart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safeLabel}${safeUnit ? `, ${safeUnit}` : ''}"><g class="chart-grid">${ticks}</g><path d="${area}" fill="${safeColor}" fill-opacity=".12"/><path d="${line}" fill="none" stroke="${safeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${x(lastMonth).toFixed(2)}" cy="${y(safeValues.at(-1).value).toFixed(2)}" r="4" fill="${safeColor}"/>${xLabels}<text x="${left}" y="14" class="chart-label">${safeLabel}${safeUnit ? ` · ${safeUnit}` : ''}</text></svg>`;
+}
+
+/** An original, code-native town illustration for the dashboard hero. */
+export function cityIllustration() {
+  return `<svg class="city-illustration" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 360" role="group" aria-label="Схема Лоххаузена: фабрика, ратуша, жилой квартал и школа" preserveAspectRatio="xMidYMid meet">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe8df"/><stop offset="1" stop-color="#f7f0df"/></linearGradient><linearGradient id="river" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a6c9c2"/><stop offset="1" stop-color="#75a8a2"/></linearGradient><pattern id="roadDots" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M0 6h12" stroke="#d0ad78" stroke-width="1" stroke-dasharray="2 4"/></pattern></defs>
+  <rect width="780" height="360" rx="18" fill="url(#sky)"/><path d="M0 126Q96 78 195 121t193 0 198-5 194 26v81H0z" fill="#a9bda4"/><path d="M0 164q100-38 190 0t190 0 200-2 200 14v90H0z" fill="#8daa88" opacity=".75"/><path d="M0 278q95-28 188-3t197-8 205-1 190 11v83H0z" fill="url(#river)" opacity=".92"/><path d="M0 288q94-28 188-4t197-8 205-1 190 11" fill="none" stroke="#e7f0dd" stroke-width="3" opacity=".72"/>
+  <path d="M30 245C160 208 246 252 355 224s219-26 395 5" fill="none" stroke="#dbc39b" stroke-width="26" stroke-linecap="round"/><path d="M30 245C160 208 246 252 355 224s219-26 395 5" fill="none" stroke="url(#roadDots)" stroke-width="22" stroke-linecap="round"/>
+  <g data-district="tourism" role="button" tabindex="0" aria-label="Туристическая набережная, открыть отчет"><path d="M613 271h100M623 271v-19M644 271v-19M665 271v-19M686 271v-19" stroke="#fffdf7" stroke-width="5"/><path d="M605 278q58-16 116 0" fill="none" stroke="#bc9150" stroke-width="3"/><text x="662" y="299" text-anchor="middle" fill="#f5f2e9" font-size="10" font-family="system-ui, sans-serif" font-weight="700" letter-spacing="1">ТУРИЗМ</text></g>
+  <g fill="#537956" opacity=".95"><path d="M68 182q-14-25 0-45 14 20 0 45Z"/><path d="M76 181q17-34 34-34-3 29-34 34Z"/><path d="M690 181q-14-25 0-45 14 20 0 45Z"/><path d="M698 181q17-34 34-34-3 29-34 34Z"/><path d="M123 220q-13-24 0-39 13 18 0 39Z"/><path d="M132 218q14-28 29-28-4 25-29 28Z"/></g>
+  <g data-district="factory" role="button" tabindex="0" aria-label="Фабрика, открыть отчет"><path d="M54 205v-54l38 19v-19l38 19v-32l45 23v44z" fill="#b65e47"/><path d="M62 205h113" stroke="#273a31" stroke-width="3"/><path d="M84 171h16v34H84zM119 179h16v26h-16zM150 184h12v21h-12z" fill="#f5f2e9"/><path d="M143 142V91h20l7 14v37" fill="#7e5946"/><path d="M150 88q10-11 21 0" fill="none" stroke="#b65e47" stroke-width="6" stroke-linecap="round"/><text x="109" y="231" text-anchor="middle" fill="#273a31" font-size="11" font-family="system-ui, sans-serif" font-weight="700" letter-spacing="1">ФАБРИКА</text></g>
+  <g data-district="social" role="button" tabindex="0" aria-label="Ратуша, открыть отчет"><path d="m291 136 51-42 51 42v70h-102z" fill="#fdf9ed" stroke="#273a31" stroke-width="3"/><path d="M282 137h120l-9-15H291z" fill="#b65e47" stroke="#273a31" stroke-width="2"/><path d="M304 137v69M322 137v69M340 137v69M358 137v69M376 137v69" stroke="#bc9150" stroke-width="4"/><path d="M302 206h80" stroke="#273a31" stroke-width="4"/><path d="M325 122V58h34v64" fill="#fdf9ed" stroke="#273a31" stroke-width="3"/><path d="M321 60h42l-5-8h-32z" fill="#b65e47"/><circle cx="342" cy="87" r="10" fill="#fffdf7" stroke="#bc9150" stroke-width="3"/><path d="M342 87v-6M342 87l5 3" stroke="#273a31" stroke-width="2"/><text x="342" y="231" text-anchor="middle" fill="#273a31" font-size="11" font-family="system-ui, sans-serif" font-weight="700" letter-spacing="1">РАТУША</text></g>
+  <g data-district="housing" role="button" tabindex="0" aria-label="Жилой квартал, открыть отчет"><g fill="#fffdf7" stroke="#273a31" stroke-width="2"><path d="m491 173 25-21 25 21v32h-50z"/><path d="m539 161 30-25 30 25v44h-60z"/><path d="m591 177 24-19 24 19v28h-48z"/></g><g fill="#b65e47"><path d="m486 174 30-27 30 27h-11l-19-17-19 17z"/><path d="m533 162 36-31 36 31h-12l-24-20-24 20z"/><path d="m586 178 29-25 29 25h-11l-18-16-18 16z"/></g><g fill="#bc9150"><path d="M502 184h9v10h-9zM535 178h9v10h-9zM557 178h9v10h-9zM601 184h9v10h-9z"/></g><text x="555" y="231" text-anchor="middle" fill="#273a31" font-size="11" font-family="system-ui, sans-serif" font-weight="700" letter-spacing="1">ЖИЛОЙ КВАРТАЛ</text></g>
+  <g data-district="social" role="button" tabindex="0" aria-label="Школа, открыть отчет"><path d="m213 185 31-24 31 24v21h-62z" fill="#fdf9ed" stroke="#273a31" stroke-width="3"/><path d="m207 185 37-29 37 29h-11l-26-20-26 20z" fill="#b65e47"/><path d="M224 190h40M244 174v32" stroke="#bc9150" stroke-width="3"/><text x="244" y="231" text-anchor="middle" fill="#273a31" font-size="11" font-family="system-ui, sans-serif" font-weight="700" letter-spacing="1">ШКОЛА</text></g>
+  <g fill="#537956"><circle cx="198" cy="145" r="13"/><circle cx="184" cy="151" r="11"/><path d="M191 153v39M204 153v39" stroke="#6b533d" stroke-width="5"/><circle cx="441" cy="137" r="15"/><circle cx="457" cy="145" r="11"/><path d="M447 148v42" stroke="#6b533d" stroke-width="5"/><circle cx="649" cy="131" r="14"/><path d="M649 144v47" stroke="#6b533d" stroke-width="5"/></g>
+  <g fill="#f5f2e9" stroke="#273a31" stroke-width="2"><path d="M380 248h76v28h-76z"/><path d="M385 248v-10h66v10"/><path d="M394 238v-10h10v10M414 238v-10h10v10M434 238v-10h10v10"/></g><path d="M362 275h111" stroke="#273a31" stroke-width="4"/><text x="417" y="302" text-anchor="middle" fill="#f5f2e9" font-size="10" font-family="system-ui, sans-serif" letter-spacing="1">ЛОХХАУЗЕН</text></svg>`;
+}

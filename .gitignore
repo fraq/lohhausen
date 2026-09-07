@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+.tdd/
+.tdd-gate-passed
+artifacts/*.png
+artifacts/*.json
+
+# Large source books (read-only reference, avoids 100MB+ Git limit)
+*.pdf
+*.djvu
+*.epub
+
+# IDE & workspace metadata
+.idea/
+.vscode/
+.gemini/
+
