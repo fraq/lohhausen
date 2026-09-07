@@ -187,40 +187,60 @@ export function evaluateScenario(game) {
 
   const objectives = scenario.objectives.map((obj) => {
     let current = null;
-    if (obj.id === 'equipment') current = game.equipment;
-    else if (obj.id === 'debt' || obj.id === 'solvency' || obj.id === 'treasury') current = game.debt;
-    else if (obj.id === 'production') current = game.production;
+    if (obj.id === 'equipment') current = Math.round(game.equipment);
+    else if (obj.id === 'debt' || obj.id === 'solvency' || obj.id === 'treasury') current = Math.round(game.debt);
+    else if (obj.id === 'production') current = Math.round(game.production);
     else if (obj.id === 'tourism_capacity') current = game.tourismCapacity;
     else if (obj.id === 'housing') current = game.housingShortage || 0;
-    else if (obj.id === 'satisfaction') current = game.satisfaction;
-    else if (obj.id === 'population') current = game.population;
+    else if (obj.id === 'satisfaction') current = Math.round(game.satisfaction);
+    else if (obj.id === 'population') current = Math.round(game.population);
 
-    const isMet = obj.check(game);
+    const isMet = Boolean(obj.check(game));
     return {
       id: obj.id,
       label: obj.label,
       target: obj.target,
       current,
+      met: isMet,
       isMet,
     };
   });
 
   const metCount = objectives.filter((o) => o.isMet).length;
-  const completionRate = objectives.length > 0 ? Number((metCount / objectives.length).toFixed(2)) : 1;
+  const totalCount = objectives.length;
+  const completionRate = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 100;
+  const monthsLeft = Math.max(0, scenario.horizon - game.month);
 
   let status = 'active';
-  if (game.debt > 25000 || game.population < 1500) {
-    status = 'failed';
+  let reason = '';
+
+  if (game.debt > 25000) {
+    status = 'defeat';
+    reason = 'Казна города объявила дефолт из-за критического долга.';
+  } else if (game.population < 1500) {
+    status = 'defeat';
+    reason = 'Массовый исход жителей привел к опустению города.';
   } else if (game.month >= scenario.horizon) {
-    status = metCount === objectives.length ? 'completed' : 'failed';
+    if (metCount === totalCount) {
+      status = 'victory';
+    } else {
+      status = 'defeat';
+      reason = 'Срок управления завершен: не все цели сценария выполнены.';
+    }
+  } else if (metCount === totalCount && game.month >= Math.floor(scenario.horizon * 0.75)) {
+    status = 'victory';
   }
 
   return {
     scenarioId: scenario.id,
     scenarioTitle: scenario.title,
     status,
+    reason,
     month: game.month,
     horizon: scenario.horizon,
+    monthsLeft,
+    metCount,
+    totalCount,
     objectives,
     completionRate,
   };
