@@ -22,11 +22,14 @@
   - Кнопка «Обновить все службы» в отчетах подразделений.
 - Добавлены пиктограммы и адаптивные стили в [`src/visuals.js`](../../src/visuals.js) и [`public/styles.css`](../../public/styles.css).
 - Интегрирован модуль когнитивной ретроспективы `src/debrief.js` (команда аналитиков `dorner_analyst` и `debrief_agent`) в `debriefView` в [`src/app.js`](../../src/app.js).
-- Проверена строгая обратная совместимость: 32/32 тестов зеленые (`npm test`), 720 сценариев верифицированы (`node scripts/verify-scenarios.mjs`).
+- Интегрирован сценарный движок `src/scenarios.js` (4 канонических сценария Дёрнера, бенчмарки Конрада/Маркуса, живой баннер целей в кабинете бургомистра).
+- Внедрена интерактивная SVG-визуализация контуров системной динамики `renderCausalLoopDiagram` в [`src/visuals.js`](../../src/visuals.js).
+- Проверена строгая обратная совместимость: **44/44 тестов зеленые** (`npm test`), 720 сценариев верифицированы (`node scripts/verify-scenarios.mjs`).
 - Инициализирован Git-репозиторий (ветка `main`), чистый рабочий каталог.
-- Принята инициатива `dorner_scenarios` (задача `scenarios-001`) и зафиксирована передача роли Project Lead в [`COORDINATION/decisions/20260907-leadership-transfer.md`](../decisions/20260907-leadership-transfer.md).
+- Завершающее уведомление отправлено `dorner_scenarios` в [`COORDINATION/mail/dorner_scenarios/20260907T212000Z-dorner_lead-scenarios-complete.md`](../mail/dorner_scenarios/20260907T212000Z-dorner_lead-scenarios-complete.md).
 
 ## Текущий статус:
-- Ветка `main` чистая.
+- Ветка `main` чистая, все коммиты зафиксированы.
+- Все задачи на доске `TASK_BOARD.md` закрыты со статусом `done`.
 - Сервер: порт 4173 (`npm start`).
-- Роль `dorner_lead`: UI & System Dynamics Architect (поддержка интерфейса Mayoral Cockpit и интеграция сценарного движка от `dorner_scenarios`).
+- Работа полностью завершена.
