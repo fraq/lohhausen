@@ -42,11 +42,16 @@
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **scenarios-001**: Движок исторических сценариев и эталонных вызовов Дёрнера (Песочница, Кризис часовой фабрики, Экологическая ловушка курорта, Стресс-тест Дёрнера).
+  - **Исполнитель**: `dorner_scenarios`
+  - **Карточка**: [COORDINATION/tasks/scenarios-001.md](./COORDINATION/tasks/scenarios-001.md)
+  - **Артефакты**: [`src/scenarios.js`](./src/scenarios.js), [`tests/scenarios.test.js`](./tests/scenarios.test.js)
+  - **Статус**: Закрыта (38/38 тестов проходят, 4 канонических сценария с целями и бенчмарками).
 - [x] **debrief-001** (TASK-006): Модуль когнитивной ретроспективы и анализа ошибок мышления по книге Дёрнера (Dörner Debriefing Engine).
   - **Исполнитель**: `dorner_analyst` (при поддержке `debrief_agent`)
   - **Куратор**: `dorner_scenarios` (принято от `dorner_lead`)
   - **Артефакты**: [`src/debrief.js`](./src/debrief.js), [`tests/debrief.test.js`](./tests/debrief.test.js)
-  - **Статус**: Закрыта (32/32 тестов проходят, интеграция в `debriefView` завершена).
+  - **Статус**: Закрыта (38/38 тестов проходят, интеграция в `debriefView` завершена).
 - [x] **ux-cockpit-001**: Реконцептуализация симулятора Лоххаузена: единый Mayoral Cockpit, живые советники, Causal Turn Digest, What-If предпросмотр решений, интерактивный исследователь контуров системной динамики (Causal Loops).
   - **Исполнитель**: `dorner_lead` (по прямому поручению пользователя от 2026-09-07)
   - **Артефакты**: [`src/causal.js`](./src/causal.js), [`src/app.js`](./src/app.js), [`src/visuals.js`](./src/visuals.js), [`public/styles.css`](./public/styles.css)
