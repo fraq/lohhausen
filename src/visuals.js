@@ -130,3 +130,67 @@ export function cityIllustration() {
   <g fill="#537956"><circle cx="198" cy="145" r="13"/><circle cx="184" cy="151" r="11"/><path d="M191 153v39M204 153v39" stroke="#6b533d" stroke-width="5"/><circle cx="441" cy="137" r="15"/><circle cx="457" cy="145" r="11"/><path d="M447 148v42" stroke="#6b533d" stroke-width="5"/><circle cx="649" cy="131" r="14"/><path d="M649 144v47" stroke="#6b533d" stroke-width="5"/></g>
   <g fill="#f5f2e9" stroke="#273a31" stroke-width="2"><path d="M380 248h76v28h-76z"/><path d="M385 248v-10h66v10"/><path d="M394 238v-10h10v10M414 238v-10h10v10M434 238v-10h10v10"/></g><path d="M362 275h111" stroke="#273a31" stroke-width="4"/><text x="417" y="302" text-anchor="middle" fill="#f5f2e9" font-size="10" font-family="system-ui, sans-serif" letter-spacing="1">ЛОХХАУЗЕН</text></svg>`;
 }
+
+/** Render an interactive or static SVG diagram of a systemic causal loop. */
+export function renderCausalLoopDiagram(loop) {
+  if (!loop || !Array.isArray(loop.nodes) || loop.nodes.length === 0) {
+    return `<svg class="causal-loop-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Пустой контур"><rect width="720" height="280" rx="8" fill="#f8f6f0"/><text x="360" y="140" text-anchor="middle" fill="#888">Контур не выбран</text></svg>`;
+  }
+
+  const isReinforcing = loop.type === 'reinforcing' || loop.id === 'debt_spiral' || (loop.typeLabel && loop.typeLabel.includes('Усиливающий'));
+  const typeBadgeText = isReinforcing ? '🔄 Усиливающий (R)' : '⚖️ Балансирующий (B)';
+  const centerSymbol = isReinforcing ? 'R' : 'B';
+  const hasDelay = Boolean(loop.hasDelay || loop.id === 'housing_lag_loop' || (loop.description && loop.description.includes('лаг')));
+
+  const cx = 360;
+  const cy = 140;
+  const rx = 240;
+  const ry = 85;
+  const nodes = loop.nodes;
+  const count = nodes.length;
+
+  const nodeElements = nodes.map((node, i) => {
+    const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+    const nx = cx + rx * Math.cos(angle);
+    const ny = cy + ry * Math.sin(angle);
+    const isDelayNode = hasDelay && (node.includes('жиль') || node.includes('строитель') || i === count - 1);
+    const delayBadge = isDelayNode ? `<text x="${nx}" y="${ny + 26}" text-anchor="middle" font-size="11" fill="#b65e47">⏳ лаг (12 мес.)</text>` : '';
+
+    return `
+      <g class="causal-node">
+        <rect x="${nx - 85}" y="${ny - 18}" width="170" height="36" rx="6" fill="#fffdf7" stroke="#273a31" stroke-width="2"/>
+        <text x="${nx}" y="${ny + 5}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="#273a31">${xmlEscape(node)}</text>
+        ${delayBadge}
+      </g>
+    `;
+  }).join('');
+
+  let pathD = '';
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + (rx * 0.85) * Math.cos(angle);
+    const y1 = cy + (ry * 0.85) * Math.sin(angle);
+    pathD += `${i === 0 ? 'M' : 'L'} ${x1.toFixed(1)} ${y1.toFixed(1)} `;
+  }
+  pathD += 'Z';
+
+  return `<svg class="causal-loop-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="${xmlEscape(loop.title || 'Контур')}">
+    <defs>
+      <marker id="causal-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#273a31" />
+      </marker>
+    </defs>
+    <rect width="720" height="280" rx="12" fill="#faf8f2" stroke="#e3dfd3" stroke-width="1.5"/>
+    <path d="${pathD}" fill="none" stroke="#273a31" stroke-width="2" stroke-dasharray="4 4" marker-mid="url(#causal-arrow)" opacity="0.6"/>
+    <g class="causal-center-badge">
+      <circle cx="${cx}" cy="${cy}" r="32" fill="#fffdf7" stroke="${isReinforcing ? '#b65e47' : '#345944'}" stroke-width="3"/>
+      <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="20" font-weight="700" fill="${isReinforcing ? '#b65e47' : '#345944'}">${centerSymbol}</text>
+      <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="9" font-weight="600" fill="#666">${isReinforcing ? 'Усиливающий' : 'Балансирующий'}</text>
+    </g>
+    <text x="24" y="32" font-size="14" font-weight="700" fill="#273a31">${xmlEscape(loop.title || '')}</text>
+    <text x="24" y="50" font-size="12" fill="#666">${typeBadgeText} ${hasDelay ? '· ⏳ Временной лаг' : ''}</text>
+    <g class="causal-nodes">
+      ${nodeElements}
+    </g>
+  </svg>`;
+}

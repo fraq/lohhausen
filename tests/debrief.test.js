@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analyzeDebrief } from '../src/debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON } from '../src/debrief.js';
 import { createGame, setPolicies, startProject, advance, requestReport } from '../src/model.js';
 
 test('debrief: сбалансированная игра без грубых ловушек получает системный профиль Конрада', () => {
@@ -112,3 +112,29 @@ test('debrief: совместим с вызовом как от game, так и 
   assert.deepEqual(res1.archetype, res2.archetype);
   assert.equal(res1.traps.length, res2.traps.length);
 });
+
+test('debrief: formatDebriefMarkdown генерирует содержательный отчет для скачивания', () => {
+  const game = createGame();
+  const analysis = analyzeDebrief(game);
+  const md = formatDebriefMarkdown(game, analysis, { status: 'victory' });
+
+  assert.equal(typeof md, 'string');
+  assert.match(md, /Итоговый разбор управления городом Лоххаузен/);
+  assert.match(md, /Управленческий архетип/);
+  assert.match(md, /Население:/);
+  assert.match(md, /Вопросы для саморефлексии/);
+});
+
+test('debrief: formatDebriefJSON возвращает валидный структурированный JSON', () => {
+  const game = createGame();
+  const analysis = analyzeDebrief(game);
+  const jsonStr = formatDebriefJSON(game, analysis, { status: 'victory' });
+
+  const parsed = JSON.parse(jsonStr);
+  assert.equal(parsed.scenario, 'sandbox');
+  assert.equal(parsed.status, 'victory');
+  assert.ok(parsed.archetype);
+  assert.ok(Array.isArray(parsed.traps));
+  assert.ok(parsed.finalMetrics);
+});
+

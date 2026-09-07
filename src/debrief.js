@@ -228,3 +228,71 @@ function generateSummary(archetype, traps, game) {
   }
   return `В ходе управления выявлено ${activeTraps.length} характерных системных ловушек мышления. Ваш преобладающий паттерн — «${archetype.name}». Симулятор наглядно показал, как естественные психологические реакции человека могут непреднамеренно приводить к дестабилизации сложной среды.`;
 }
+
+export function formatDebriefMarkdown(game, analysis, evaluation = {}) {
+  const scenarioTitle = game.scenarioId ? String(game.scenarioId) : 'sandbox';
+  const lines = [
+    `# Итоговый разбор управления городом Лоххаузен`,
+    `**Сценарий:** ${scenarioTitle} | **Месяц:** ${game.month} из ${game.horizon || 120}`,
+    `**Статус сценария:** ${evaluation.status === 'victory' ? 'Победа' : evaluation.status === 'defeat' ? 'Поражение' : 'Завершено'}`,
+    '',
+    `## 1. Управленческий архетип по Дёрнеру`,
+    `### ${analysis.archetype.name} — ${analysis.archetype.title}`,
+    `${analysis.archetype.description}`,
+    `*${analysis.summary}*`,
+    '',
+    `## 2. Ловушки мышления и системная динамика`,
+  ];
+
+  const detected = analysis.traps.filter(t => t.detected);
+  if (detected.length === 0) {
+    lines.push(`- Ловушек мышления не зафиксировано: действия были последовательными и выдержанными.`);
+  } else {
+    for (const trap of detected) {
+      lines.push(`### ⚠️ ${trap.title || trap.name}`);
+      lines.push(`${trap.description}`);
+      if (trap.dornerQuote || trap.quote) {
+        lines.push(`> ${trap.dornerQuote || trap.quote}`);
+      }
+      lines.push('');
+    }
+  }
+
+  lines.push('## 3. Ключевые показатели города');
+  lines.push(`- Население: ${Math.round(game.population)}`);
+  lines.push(`- Казна: ${Math.round(game.treasury)} тыс. марок`);
+  lines.push(`- Долг: ${Math.round(game.debt)} тыс. марок`);
+  lines.push(`- Оборудование фабрики: ${Math.round(game.equipment)}%`);
+  lines.push(`- Общая удовлетворенность: ${Math.round(game.satisfaction)}%`);
+  lines.push('');
+
+  lines.push('## 4. Вопросы для саморефлексии (по книге «Логика неудачи»)');
+  for (const q of (analysis.reflectionQuestions || [])) {
+    lines.push(`- ${q}`);
+  }
+
+  return lines.join('\n');
+}
+
+export function formatDebriefJSON(game, analysis, evaluation = {}) {
+  return JSON.stringify({
+    scenario: game.scenarioId || 'sandbox',
+    month: game.month,
+    horizon: game.horizon || 120,
+    status: evaluation.status || 'complete',
+    archetype: analysis.archetype,
+    summary: analysis.summary,
+    traps: analysis.traps,
+    reflectionQuestions: analysis.reflectionQuestions,
+    finalMetrics: {
+      population: game.population,
+      treasury: game.treasury,
+      debt: game.debt,
+      equipment: game.equipment,
+      production: game.production,
+      satisfaction: game.satisfaction,
+    },
+    journal: game.journal,
+  }, null, 2);
+}
+
