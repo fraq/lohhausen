@@ -251,6 +251,8 @@ export function advance(game, months = 1) {
   return next;
 }
 
+export const stepMonth = advance;
+
 export function summarize(game) {
   assertGameLike(game);
   const first = game.history[0] || snapshot(game); const last = game.history.at(-1) || snapshot(game);
