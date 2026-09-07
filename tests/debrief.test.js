@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON } from '../src/debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from '../src/debrief.js';
 import { createGame, setPolicies, startProject, advance, requestReport } from '../src/model.js';
 
 test('debrief: сбалансированная игра без грубых ловушек получает системный профиль Конрада', () => {
@@ -136,5 +136,20 @@ test('debrief: formatDebriefJSON возвращает валидный стру�
   assert.ok(parsed.archetype);
   assert.ok(Array.isArray(parsed.traps));
   assert.ok(parsed.finalMetrics);
+});
+
+test('debrief: verifyHypotheses сопоставляет прогнозы из журнала с исходом завершенных проектов', () => {
+  let game = createGame();
+  game = startProject(game, 'housing', 'Ожидаю ликвидировать дефицит жилья через год');
+  game = advance(game, 12);
+
+  const reflections = verifyHypotheses(game);
+  assert.ok(Array.isArray(reflections));
+  assert.ok(reflections.length >= 1);
+  const ref = reflections[0];
+  assert.equal(ref.projectType, 'housing');
+  assert.ok(ref.playerNote.includes('Ожидаю'));
+  assert.ok(ref.outcomeSummary);
+  assert.ok(ref.hindsightLesson);
 });
 

@@ -296,3 +296,52 @@ export function formatDebriefJSON(game, analysis, evaluation = {}) {
   }, null, 2);
 }
 
+export function verifyHypotheses(game) {
+  if (!game || !Array.isArray(game.journal)) return [];
+
+  const completedProjects = [];
+  for (const entry of game.journal) {
+    if (entry.type === 'project' && entry.project) {
+      const proj = entry.project;
+      if (game.month >= proj.completeMonth) {
+        let outcomeSummary = '';
+        let hindsightLesson = '';
+
+        if (proj.type === 'housing') {
+          outcomeSummary = `Вместимость жилья увеличена на 60 мест (до ${game.housingCapacity} мест). Текущий дефицит: ${Math.max(0, Math.round(game.housingShortage || 0))} мест.`;
+          hindsightLesson = entry.note && entry.note.trim()
+            ? `Сверка ожидания: «${entry.note}». Проект завершен через 12 месяцев задержки. В сложных системах результат наступает с отсрочкой, требуя терпения и невмешательства в ход строительства.`
+            : `Проект начат без предварительной записи ожиданий. Дёрнер подчеркивал, что отсутствие четко сформулированной гипотезы лишает руководителя объективного критерия оценки успеха.`;
+        } else if (proj.type === 'modernization') {
+          outcomeSummary = `Модернизация станков фабрики завершена (+30% к ресурсу). Состояние оборудования: ${Math.round(game.equipment)}%.`;
+          hindsightLesson = entry.note && entry.note.trim()
+            ? `Сверка ожидания: «${entry.note}». Разовая модернизация компенсирует накопленный износ, но без ежемесячного бюджета на ремонт станки быстро вернутся к деградации.`
+            : `Модернизация фабрики завершена. Помните: капитальное вложение требует поддержки текущим обслуживанием, иначе инвестиция сгорает.`;
+        } else if (proj.type === 'tourism') {
+          outcomeSummary = `Туристическая инфраструктура введена в строй (+80 мест). Вместимость: ${game.tourismCapacity} мест.`;
+          hindsightLesson = entry.note && entry.note.trim()
+            ? `Сверка ожидания: «${entry.note}». Номерной фонд расширен. Дёрнер предостерегал от расхождения между пропускной способностью гостиниц и маркетинговым бюджетом.`
+            : `Гостиницы построены. Для окупаемости инвестиций требуется синхронизировать туристический маркетинг с реальной вместимостью.`;
+        } else {
+          outcomeSummary = `Проект «${proj.label || proj.type}» успешно завершен в месяце ${proj.completeMonth}.`;
+          hindsightLesson = `Реализация проекта подтвердила завершение строительного цикла.`;
+        }
+
+        completedProjects.push({
+          projectType: proj.type,
+          projectLabel: proj.label || proj.type,
+          startMonth: proj.startMonth,
+          completeMonth: proj.completeMonth,
+          playerNote: entry.note || '',
+          outcomeSummary,
+          hindsightLesson,
+        });
+      }
+    }
+  }
+
+  return completedProjects;
+}
+
+
+

@@ -216,3 +216,107 @@ export function renderCausalLoopDiagram(loop) {
     </g>
   </svg>`;
 }
+
+
+
+/**
+ * Render a comparative SVG chart showing the player's trajectory alongside
+ * Conrad (systemic master benchmark) and Marcus (crisis/reactive benchmark).
+ */
+export function renderBenchmarkComparisonChart({
+  playerHistory = [],
+  conradTrajectory = [],
+  marcusTrajectory = [],
+  metricLabel = 'Показатель',
+  unit = '',
+  horizon = 120,
+} = {}) {
+  const width = 720;
+  const height = 260;
+  const left = 55;
+  const right = 25;
+  const top = 40;
+  const bottom = 35;
+  const plotW = width - left - right;
+  const plotH = height - top - bottom;
+
+  const playerPoints = Array.isArray(playerHistory) ? playerHistory.map((pt, i) => ({
+    month: Number.isFinite(Number(pt?.month)) ? Number(pt.month) : i,
+    value: Number(pt?.value ?? pt),
+  })).filter(pt => Number.isFinite(pt.value)) : [];
+
+  const conradPoints = Array.isArray(conradTrajectory) ? conradTrajectory.map((val, i) => ({
+    month: Math.round((i / Math.max(1, conradTrajectory.length - 1)) * horizon),
+    value: Number(val),
+  })).filter(pt => Number.isFinite(pt.value)) : [];
+
+  const marcusPoints = Array.isArray(marcusTrajectory) ? marcusTrajectory.map((val, i) => ({
+    month: Math.round((i / Math.max(1, marcusTrajectory.length - 1)) * horizon),
+    value: Number(val),
+  })).filter(pt => Number.isFinite(pt.value)) : [];
+
+  const allValues = [
+    ...playerPoints.map(p => p.value),
+    ...conradPoints.map(p => p.value),
+    ...marcusPoints.map(p => p.value),
+  ];
+
+  const minVal = allValues.length ? Math.min(...allValues) : 0;
+  const maxVal = allValues.length ? Math.max(...allValues) : 100;
+  const span = maxVal - minVal || 10;
+  const low = Math.max(0, minVal - span * 0.1);
+  const high = maxVal + span * 0.1;
+  const ySpan = high - low || 1;
+
+  const x = (m) => left + (Math.max(0, Math.min(horizon, m)) / horizon) * plotW;
+  const y = (v) => top + (1 - (v - low) / ySpan) * plotH;
+
+  const toLinePath = (pts) => pts.length === 0 ? '' : pts.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${x(pt.month).toFixed(1)} ${y(pt.value).toFixed(1)}`).join(' ');
+
+  const playerPath = toLinePath(playerPoints);
+  const conradPath = toLinePath(conradPoints);
+  const marcusPath = toLinePath(marcusPoints);
+
+  const gridTicks = [0, 0.5, 1].map(r => {
+    const val = high - r * ySpan;
+    const yy = top + r * plotH;
+    return `<line x1="${left}" y1="${yy.toFixed(1)}" x2="${width - right}" y2="${yy.toFixed(1)}" stroke="#e6e1d5" stroke-dasharray="3 4"/><text x="${left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#7d786d">${Math.round(val)}</text>`;
+  }).join('');
+
+  return `<svg class="benchmark-comparison-chart" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Сравнение с эталонами Дёрнера: ${xmlEscape(metricLabel)}">
+    <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#e8e3d5" stroke-width="1"/>
+    <g class="chart-grid">${gridTicks}</g>
+    
+    <!-- Conrad (Master) Trajectory -->
+    ${conradPath ? `<path d="${conradPath}" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="5 3" opacity="0.85"/>` : ''}
+    
+    <!-- Marcus (Reactive) Trajectory -->
+    ${marcusPath ? `<path d="${marcusPath}" fill="none" stroke="#c62828" stroke-width="2.5" stroke-dasharray="3 3" opacity="0.85"/>` : ''}
+    
+    <!-- Player Trajectory -->
+    ${playerPath ? `<path d="${playerPath}" fill="none" stroke="#1f4e38" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+    ${playerPoints.length ? `<circle cx="${x(playerPoints.at(-1).month).toFixed(1)}" cy="${y(playerPoints.at(-1).value).toFixed(1)}" r="4.5" fill="#1f4e38"/>` : ''}
+
+    <!-- Axis Labels -->
+    <text x="${left}" y="${height - 12}" font-size="11" fill="#7d786d">Месяц 0</text>
+    <text x="${width - right}" y="${height - 12}" text-anchor="end" font-size="11" fill="#7d786d">Месяц ${horizon}</text>
+
+    <!-- Legend -->
+    <g class="chart-legend" transform="translate(${left}, 22)">
+      <text x="0" y="0" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#273a31">${xmlEscape(metricLabel)}${unit ? ` (${xmlEscape(unit)})` : ''}</text>
+      <g transform="translate(260, -4)">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#1f4e38" stroke-width="3"/>
+        <text x="26" y="4" font-size="11" font-weight="600" fill="#1f4e38">Игрок (Вы)</text>
+      </g>
+      <g transform="translate(390, -4)">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="4 2"/>
+        <text x="26" y="4" font-size="11" font-weight="600" fill="#2e7d32">🌟 Конрад (Эталон)</text>
+      </g>
+      <g transform="translate(540, -4)">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#c62828" stroke-width="2.5" stroke-dasharray="3 3"/>
+        <text x="26" y="4" font-size="11" font-weight="600" fill="#c62828">⚠️ Маркус (Ловушка)</text>
+      </g>
+    </g>
+  </svg>`;
+}
+

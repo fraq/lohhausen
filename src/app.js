@@ -1,9 +1,9 @@
 import { createGame, setPolicies, startProject, advance, requestReport, serializeGame, deserializeGame, summarize, POLICY_CONFIG, PROJECTS } from './model.js';
-import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram } from './visuals.js';
+import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf } from './causal.js';
-import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON } from './debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from './debrief.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
@@ -788,7 +788,45 @@ function debriefView() {
             <p style="font-size: 12px; margin: 0; color: var(--muted); font-style: italic;">${escapeHTML(benchmark.marcus.verdict)}</p>
           </div>
         </div>
+        <div style="margin-top: 18px;">
+          ${renderBenchmarkComparisonChart({
+            playerHistory: game.history.map(h => ({ month: h.month, value: game.scenarioId === 'factory_crisis' ? h.equipment : h.satisfaction })),
+            conradTrajectory: game.scenarioId === 'factory_crisis' ? benchmark.conrad.equipmentTrajectory : (benchmark.conrad.satisfactionTrajectory || benchmark.conrad.equipmentTrajectory),
+            marcusTrajectory: game.scenarioId === 'factory_crisis' ? benchmark.marcus.equipmentTrajectory : (benchmark.marcus.satisfactionTrajectory || benchmark.marcus.equipmentTrajectory),
+            metricLabel: game.scenarioId === 'factory_crisis' ? 'Состояние оборудования фабрики' : 'Индекс благополучия жителей',
+            unit: '%',
+            horizon: game.horizon || 120,
+          })}
+        </div>
       </div>
+
+      ${(() => {
+        const hypothesisReflections = verifyHypotheses(game);
+        if (!hypothesisReflections.length) return '';
+        return `
+          <div class="panel" style="margin-bottom: 24px;">
+            <p class="eyebrow">ПРОВЕРКА ДОЛГОСРОЧНЫХ ГИПОТЕЗ (ПО ДНЕВНИКУ)</p>
+            <h3 style="margin: 4px 0 12px;">Ожидание против Реальности: уроки завершенных проектов</h3>
+            <div style="display: grid; gap: 12px;">
+              ${hypothesisReflections.map(h => `
+                <div style="padding: 12px 14px; background: #fff; border-radius: 8px; border: 1px solid var(--line);">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <strong>🏗️ ${escapeHTML(h.projectLabel)}</strong>
+                    <span class="badge">Ввод: месяц ${h.completeMonth}</span>
+                  </div>
+                  <p style="font-size: 13px; margin: 0 0 6px; color: var(--ink);">
+                    <strong>Исход:</strong> ${escapeHTML(h.outcomeSummary)}
+                  </p>
+                  ${h.playerNote ? `<p style="font-size: 12.5px; margin: 0 0 6px; color: var(--ink-soft); font-style: italic;">«${escapeHTML(h.playerNote)}»</p>` : ''}
+                  <p style="font-size: 12px; margin: 0; color: #7a5a22; background: #fff9ed; padding: 6px 10px; border-radius: 6px;">
+                    💡 <strong>Урок Дёрнера:</strong> ${escapeHTML(h.hindsightLesson)}
+                  </p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      })()}
 
       <div class="debrief-grid">
         ${summary.metrics.map(metric => `
@@ -840,9 +878,17 @@ function debriefView() {
             </div>
           ` : ''}
 
-          <button class="button secondary" data-view="journal" style="margin-top:16px;">
-            Вернуться к дневнику решений ${icon('arrow', 16)}
-          </button>
+          <div class="debrief-export-actions">
+            <button class="button primary" data-action="export-debrief-md" data-testid="export-debrief-md">
+              📥 Скачать разбор (Markdown)
+            </button>
+            <button class="button secondary" data-action="export-debrief-json" data-testid="export-debrief-json">
+              📊 Экспорт данных (JSON)
+            </button>
+            <button class="button secondary" data-view="journal">
+              К дневнику решений ${icon('arrow', 16)}
+            </button>
+          </div>
         </section>
         ${budgetPanel()}
       </div>

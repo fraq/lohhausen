@@ -28,17 +28,30 @@
 ---
 
 ## 🗄️ Backlog
-*Идеи и планы от dorner_lead и команды.*
+*Идеи и планы от команды.*
 
-- [ ] **i18n-cockpit-001**: Локализация новых разделов кабинета бургомистра (советники, дайджест, контуры) на en/de/fr.
-- [ ] **causal-graph-001**: Интерактивная визуализация графа контуров Stock & Flow (потоки и накопители).
-- [ ] **journal-reflection-001**: Автоматическая темпоральная сверка прогнозов игрока из дневника с результатами хода через 6-12 месяцев.
+*(На текущий момент все запланированные задачи бэклога успешно закрыты).*
 
 ---
 
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **i18n-cockpit-001**: Локализация ключевых терминов кабинета бургомистра, советников, ретроспективы и системной динамики Дёрнера на немецкий (de), английский (en) и французский (fr) языки.
+  - **Исполнитель**: `dorner_analyst`
+  - **Карточка**: [COORDINATION/tasks/i18n-cockpit-001.md](./COORDINATION/tasks/i18n-cockpit-001.md)
+  - **Артефакты**: [`src/locales/extra.js`](./src/locales/extra.js), [`tests/i18n.test.js`](./tests/i18n.test.js)
+  - **Статус**: Закрыта (53/53 тестов проходят, аутентичные немецкие термины Дёрнера включены в словарь).
+- [x] **journal-reflection-001**: Автоматическая сверка долгосрочных гипотез игрока из дневника решений с фактическими исходами проектов («Ожидание vs Реальность») и визуализация эталонных траекторий Конрада/Маркуса.
+  - **Исполнитель**: `debrief_agent`
+  - **Карточка**: [COORDINATION/tasks/journal-reflection-001.md](./COORDINATION/tasks/journal-reflection-001.md)
+  - **Артефакты**: [`src/debrief.js`](./src/debrief.js), [`src/visuals.js`](./src/visuals.js), [`src/app.js`](./src/app.js), [`tests/debrief.test.js`](./tests/debrief.test.js), [`tests/visuals.test.js`](./tests/visuals.test.js)
+  - **Статус**: Закрыта (46/46 тестов проходят, 720 месяцев верифицированы, блок внедрен в `debriefView`).
+- [x] **causal-graph-001**: Интерактивная векторная визуализация (SVG) контуров системной динамики (Stock & Flow loops), балансирующих и усиливающих петель с лагами времени.
+  - **Исполнитель**: `dorner_analyst`
+  - **Карточка**: [COORDINATION/tasks/causal-graph-001.md](./COORDINATION/tasks/causal-graph-001.md)
+  - **Артефакты**: [`src/visuals.js`](./src/visuals.js), [`src/causal.js`](./src/causal.js), [`tests/visuals.test.js`](./tests/visuals.test.js), [`src/app.js`](./src/app.js)
+  - **Статус**: Закрыта (44/44 тестов проходят, 720 месяцев верифицированы, SVG интегрирован в Mayoral Cockpit).
 - [x] **scenarios-001**: Движок исторических сценариев и эталонных вызовов Дёрнера (Песочница, Кризис часовой фабрики, Экологическая ловушка курорта, Стресс-тест Дёрнера).
   - **Исполнитель**: `dorner_scenarios`
   - **Карточка**: [COORDINATION/tasks/scenarios-001.md](./COORDINATION/tasks/scenarios-001.md)

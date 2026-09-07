@@ -784,6 +784,20 @@ html:not([lang="ru"]) .city-illustration text { font-size: 9px; letter-spacing: 
   font-family: var(--serif);
   font-size: 20px;
 }
+.loop-diagram-container {
+  margin: 14px 0 16px;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.causal-loop-diagram {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto;
+}
 .loop-chain {
   display: flex;
   flex-wrap: wrap;

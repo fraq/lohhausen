@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { renderCausalLoopDiagram } from '../src/visuals.js';
+import { renderCausalLoopDiagram, renderBenchmarkComparisonChart } from '../src/visuals.js';
 import { CAUSAL_LOOPS } from '../src/causal.js';
 
 test('visuals: renderCausalLoopDiagram генерирует валидный SVG для налоговой петли', () => {
@@ -49,4 +49,29 @@ test('visuals: renderCausalLoopDiagram безопасно обрабатывае
   const svgEmpty = renderCausalLoopDiagram({ nodes: [] });
   assert.equal(typeof svgEmpty, 'string');
   assert.ok(svgEmpty.startsWith('<svg'));
+});
+
+test('visuals: renderBenchmarkComparisonChart строит SVG сопоставления игрока, Конрада и Маркуса', () => {
+  const chart = renderBenchmarkComparisonChart({
+    playerHistory: [
+      { month: 0, value: 24 },
+      { month: 6, value: 32 },
+      { month: 12, value: 45 },
+      { month: 18, value: 60 },
+      { month: 24, value: 72 },
+    ],
+    conradTrajectory: [24, 30, 42, 56, 68],
+    marcusTrajectory: [24, 21, 18, 14, 11],
+    metricLabel: 'Состояние оборудования',
+    unit: '%',
+    horizon: 24,
+  });
+
+  assert.equal(typeof chart, 'string');
+  assert.ok(chart.startsWith('<svg'));
+  assert.ok(chart.includes('</svg>'));
+  assert.ok(chart.includes('Игрок') || chart.includes('Вы'));
+  assert.ok(chart.includes('Конрад'));
+  assert.ok(chart.includes('Маркус'));
+  assert.ok(chart.includes('viewBox="0 0 720 260"'));
 });

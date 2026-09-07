@@ -43,3 +43,12 @@ test('EC-1: неизвестный язык использует ru, а неиз
   assert.equal(translate('Пользовательский текст', 'en'), 'Пользовательский текст');
   assert.equal(localizedPath('/guide', 'xx'), '/guide?lang=ru');
 });
+
+test('AC-5: локализуются термины кабинета бургомистра и системной динамики Дёрнера', () => {
+  assert.equal(translate('СИСТЕМНАЯ ДИНАМИКА ПО ДЁРНЕРУ', 'de'), 'SYSTEMDYNAMIK NACH DÖRNER');
+  assert.equal(translate('СИСТЕМНАЯ ДИНАМИКА ПО ДЁРНЕРУ', 'en'), 'SYSTEM DYNAMICS (DÖRNER)');
+  assert.equal(translate('Анатомия связей: почему всё зависит от всего?', 'de'), 'Anatomie der Vernetzung: Warum hängt alles mit allem zusammen?');
+  assert.equal(translate('Анатомия связей: почему всё зависит от всего?', 'en'), 'Anatomy of Feedback: Why does everything depend on everything?');
+  assert.equal(translate('ПРОВЕРКА ДОЛГОСРОЧНЫХ ГИПОТЕЗ (ПО ДНЕВНИКУ)', 'de'), 'HYPOTHESENPRÜFUNG (TAGEBUCH)');
+});
+
