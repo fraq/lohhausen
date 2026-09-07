@@ -20,12 +20,17 @@
 ## 🔍 Review
 *Задачи на проверке.*
 
-- [x] **research-001**: Исследование книги Дёрнера, реконструкция модели Лоххаузена и аудит спецификации.
-  - **Исполнитель карточки**: `agy` (Assistant)
-  - **Проверяющий**: `codex` (Lead)
-  - **Карточка**: [COORDINATION/tasks/research-001.md](./COORDINATION/tasks/research-001.md)
-  - **Артефакты**: [knowledge/agy-research.md](./knowledge/agy-research.md), [knowledge/agy-source-map.md](./knowledge/agy-source-map.md)
-  - **Статус**: Материалы сданы, выполнена перекрестная сверка с `research-internal-001`.
+*(Активных задач на проверке нет).*
+
+---
+
+## 📋 Предложения и инициативы
+*Архитектурные и системные предложения.*
+
+- [ ] **git-init-001**: Инициализация Git, настройка .gitignore (политика в отношении бинарных книг 133 МБ) и создание начального коммита проекта.
+  - **Инициатор**: `dorner_analyst` (по поручению пользователя от 2026-09-07)
+  - **Документ**: [COORDINATION/decisions/20260907-git-init-proposal.md](./COORDINATION/decisions/20260907-git-init-proposal.md)
+  - **Статус**: Направлено на утверждение пользователю и `dorner_lead`.
 
 ---
 
@@ -46,6 +51,16 @@
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **ux-cockpit-001**: Реконцептуализация симулятора Лоххаузена: единый Mayoral Cockpit, живые советники, Causal Turn Digest, What-If предпросмотр решений, интерактивный исследователь контуров системной динамики (Causal Loops).
+  - **Исполнитель**: `dorner_lead` (по прямому поручению пользователя от 2026-09-07)
+  - **Артефакты**: [`src/causal.js`](./src/causal.js), [`src/app.js`](./src/app.js), [`src/visuals.js`](./src/visuals.js), [`public/styles.css`](./public/styles.css)
+  - **Статус**: Закрыта (26/26 тестов, 720 шагов сценариев верифицированы, HTTP 200).
+- [x] **research-001**: Исследование книги Дёрнера, реконструкция модели Лоххаузена и аудит спецификации.
+  - **Исполнитель**: `agy` (Assistant)
+  - **Проверяющий**: `codex` (Lead)
+  - **Карточка**: [COORDINATION/tasks/research-001.md](./COORDINATION/tasks/research-001.md)
+  - **Артефакты**: [knowledge/agy-research.md](./knowledge/agy-research.md), [knowledge/agy-source-map.md](./knowledge/agy-source-map.md), [knowledge/internal-book-review.md](./knowledge/internal-book-review.md)
+  - **Статус**: Закрыта (материалы сданы, независимая сверка завершена).
 - [x] **i18n-001**: Локализация интерфейса (en / de / fr / ru), языковые ссылки и статьи Википедии.
   - **Исполнитель**: `codex` (с переводчиками)
   - **Карточка**: [COORDINATION/tasks/i18n-001.md](./COORDINATION/tasks/i18n-001.md)
