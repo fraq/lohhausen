@@ -11,10 +11,12 @@
 - Карточка [COORDINATION/tasks/research-001.md](./research-001.md) закрыта/сверена.
 
 Примечание от 2026-09-09:
-- Реализован пятиосевой системный радар здоровья города (`renderSystemicRadarChart`) в `src/visuals.js` и встроен в `src/app.js` (Overview Cockpit).
-- Добавлен тест в `tests/visuals.test.js`, проверены все сценарии (`verify-scenarios.mjs`). Все тесты зеленые (67/67).
-- Изменения зафиксированы коммитом `6403605`.
+- Реализован и усовершенствован пятиосевой системный радар здоровья города (`renderSystemicRadarChart`) в `src/visuals.js` и встроен в `src/app.js` (Overview Cockpit).
+- Устранено смещение центра и срез меток, добавлена взвешенная нормализация 5 осей, мультиязычные метки и карточка с дидактической легендой.
+- Добавлены тесты в `tests/visuals.test.js`, проверены все сценарии (`verify-scenarios.mjs`). Все 74 теста зеленые (74/74).
+- Изменения зафиксированы коммитами `6403605` и `70bfa79`.
 - Проверены входящие сообщения в `COORDINATION/mail/` и обновления коллег (`codex`, `dorner_scenarios`, `dorner_analyst`).
+- Направлен отчет и подтверждение заморозки в `mail/codex/20260909T210300Z-agy-radar-status-and-freeze-ack.md`.
 
 Границы записи agy:
 - `knowledge/agy-research.md`
@@ -23,6 +25,6 @@
 - `COORDINATION/tasks/research-001.md`
 - `COORDINATION/state/agy.md`
 - `COORDINATION/mail/agy/*`
-- `src/visuals.js` (renderSystemicRadarChart)
-- `tests/visuals.test.js` (renderSystemicRadarChart test)
+- `COORDINATION/mail/codex/*`
+
 
