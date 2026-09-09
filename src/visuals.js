@@ -320,4 +320,69 @@ export function renderBenchmarkComparisonChart({
     </g>
   </svg>`;
 }
+/**
+ * Render a five‑axis systemic health radar (spider) chart.
+ * Axes: Production, Fiscal Health, Housing, Services/Health, Satisfaction.
+ * The chart shows the current values (0‑100) and a red ring at the 40 % critical level.
+ */
+export function renderSystemicRadarChart(game) {
+  const width = 260;
+  const height = 260;
+  const radius = Math.min(width, height) / 2 - 20; // margin for labels
+
+  const axes = [
+    { key: 'production', label: 'Производство' },
+    { key: 'fiscal', label: 'Финансы' },
+    { key: 'housing', label: 'Жильё' },
+    { key: 'services', label: 'Службы' },
+    { key: 'satisfaction', label: 'Удовлетворённость' },
+  ];
+
+  const values = {
+    production: clamp(game.production, 0, 100),
+    fiscal: clamp(game.treasury - game.debt, 0, 100),
+    housing: clamp(100 - (game.housingShortage / Math.max(1, game.population)) * 100, 0, 100),
+    services: clamp(game.serviceQuality, 0, 100),
+    satisfaction: clamp(game.satisfaction, 0, 100),
+  };
+
+  const angleStep = (2 * Math.PI) / axes.length;
+  const points = axes.map((axis, i) => {
+    const r = (values[axis.key] / 100) * radius;
+    const x = radius + r * Math.sin(i * angleStep);
+    const y = radius - r * Math.cos(i * angleStep);
+    return { x, y, label: axis.label };
+  });
+
+  const grid = [20, 40, 60, 80, 100]
+    .map(p => {
+      const r = (p / 100) * radius;
+      return `<circle cx="${radius}" cy="${radius}" r="${r}" fill="none" stroke="#e6e1d5" stroke-dasharray="2 4"/>`;
+    })
+    .join('\n');
+
+  const criticalRing = `<circle cx="${radius}" cy="${radius}" r="${(40 / 100) * radius}" fill="none" stroke="#c62828" stroke-width="2"/>`;
+
+  const axesMarkup = axes.map((axis, i) => {
+    const x = radius + radius * Math.sin(i * angleStep);
+    const y = radius - radius * Math.cos(i * angleStep);
+    const labelX = radius + (radius + 12) * Math.sin(i * angleStep);
+    const labelY = radius - (radius + 12) * Math.cos(i * angleStep);
+    return `
+      <line x1="${radius}" y1="${radius}" x2="${x}" y2="${y}" stroke="#bbb"/>
+      <text x="${labelX}" y="${labelY}" text-anchor="middle" font-size="11" fill="#333">${axis.label}</text>`;
+  }).join('\n');
+
+  const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ');
+  const polygon = `<polygon points="${polygonPoints}" fill="rgba(46,125,50,0.3)" stroke="#2e7d32" stroke-width="2"/>`;
+
+  return `
+    <svg class="systemic-radar" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-label="Системный радар здоровья города">
+      <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#e3dfd3" stroke-width="1.5"/>
+      ${grid}
+      ${criticalRing}
+      ${axesMarkup}
+      ${polygon}
+    </svg>`;
+}
 

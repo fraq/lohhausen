@@ -61,5 +61,9 @@ test('AC-5: локализуются термины кабинета бурго�
   assert.equal(translate('ИТОГИ ПАРТИИ', 'fr'), 'RÉSULTAT DE LA PARTIE');
   assert.equal(translate('Посмотреть итоги партии (Debrief)', 'en'), 'View Scenario Results (Debrief)');
   assert.equal(translate('Посмотреть итоги партии (Debrief)', 'de'), 'Ergebnisse anzeigen (Debrief)');
+  assert.equal(translate('Горячие клавиши', 'en'), 'Keyboard Shortcuts');
+  assert.equal(translate('Горячие клавиши', 'de'), 'Tastaturkürzel');
+  assert.equal(translate('Горячие клавиши', 'fr'), 'Raccourcis clavier');
+  assert.equal(translate('Клавиши [K]', 'en'), 'Keys [K]');
 });
 

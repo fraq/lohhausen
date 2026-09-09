@@ -9,6 +9,7 @@ import {
   explainStepCauses,
   detectCognitiveTraps,
   getPolicyWhatIf,
+  getProjectAdvisorEndorsement,
 } from '../src/causal.js';
 
 test('causal: все 5 советников определены и имеют валидные метаданные', () => {
@@ -93,4 +94,23 @@ test('causal: detectCognitiveTraps выявляет синдром ремонт�
   assert.ok(Array.isArray(traps));
   const repair = traps.find(t => t.id === 'repair_service');
   assert.ok(repair, 'Должен детектировать синдром ремонтника');
+});
+
+test('causal: getProjectAdvisorEndorsement возвращает актуальные советы советников по проектам', () => {
+  const game = createGame();
+  
+  const housingEndorsement = getProjectAdvisorEndorsement('housing', game);
+  assert.equal(housingEndorsement.advisor.id, 'bauer');
+  assert.equal(housingEndorsement.duration, 12);
+  assert.ok(housingEndorsement.advice.length > 10);
+
+  const modEndorsement = getProjectAdvisorEndorsement('modernization', game);
+  assert.equal(modEndorsement.advisor.id, 'krause');
+  assert.equal(modEndorsement.duration, 6);
+  assert.ok(modEndorsement.advice.length > 10);
+
+  const tourismEndorsement = getProjectAdvisorEndorsement('tourism', game);
+  assert.equal(tourismEndorsement.advisor.id, 'lindemann');
+  assert.equal(tourismEndorsement.duration, 6);
+  assert.ok(tourismEndorsement.advice.length > 10);
 });

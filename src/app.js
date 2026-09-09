@@ -2,7 +2,7 @@ import { createGame, setPolicies, startProject, advance, requestReport, serializ
 import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
-import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf } from './causal.js';
+import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf, getProjectAdvisorEndorsement } from './causal.js';
 import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from './debrief.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
@@ -464,23 +464,27 @@ function overviewView() {
 function decisionsView() {
   const groups = [
     {
+      sphere: 'factory',
       title: '🏭 Часовая фабрика и производство',
-      advisor: ADVISORS.factory.name,
+      advisor: ADVISORS.factory,
       keys: ['maintenance', 'wage', 'marketing'],
     },
     {
+      sphere: 'finance',
       title: '🏛️ Финансы и налоги',
-      advisor: ADVISORS.finance.name,
+      advisor: ADVISORS.finance,
       keys: ['taxRate'],
     },
     {
+      sphere: 'social',
       title: '👥 Общественные услуги и образование',
-      advisor: ADVISORS.social.name,
+      advisor: ADVISORS.social,
       keys: ['services', 'education'],
     },
     {
+      sphere: 'tourism',
       title: '🌲 Туризм и рекреация',
-      advisor: ADVISORS.tourism.name,
+      advisor: ADVISORS.tourism,
       keys: ['tourismMarketing'],
     },
   ];
@@ -501,34 +505,56 @@ function decisionsView() {
         <span class="pill">Применяется каждый шаг</span>
       </div>
       <div class="policy-grid">
-        ${groups.map(group => `
-          <div class="policy-group-heading">
-            <h4>${escapeHTML(group.title)}</h4>
-            <span class="advisor-meta">${escapeHTML(group.advisor)}</span>
-          </div>
-          ${group.keys.map(key => {
-            const config = POLICY_CONFIG[key];
-            const whatIf = getPolicyWhatIf(key, game.policies[key], game);
-            return `
-              <div class="field">
-                <label class="field-label" for="policy-${key}">${escapeHTML(config.label)}</label>
-                <div class="range-slider-pair">
-                  <input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${game.policies[key]}" data-sync-for="policy-${key}" ${disabled(locked())}>
-                  <div class="input-unit">
-                    <input type="number" id="policy-${key}" name="${key}" min="${config.min}" max="${config.max}" step="${config.step}" value="${game.policies[key]}" required ${disabled(locked())}>
-                    <span>${escapeHTML(config.unit)}</span>
+        ${groups.map(group => {
+          const advisorObj = group.advisor;
+          const diag = getAdvisorDiagnosis(group.sphere, game);
+          const statusBadge = diag.status === 'critical'
+            ? `<span class="badge" style="background:#fbeae7; color:#8d4130;">${translate('Критично', language)}</span>`
+            : diag.status === 'warning'
+              ? `<span class="badge" style="background:#fdf3dc; color:#8c591b;">${translate('Внимание', language)}</span>`
+              : `<span class="badge" style="background:#e0f0e3; color:#2b6134;">${translate('Стабильно', language)}</span>`;
+
+          return `
+            <div class="policy-group-heading">
+              <h4>${escapeHTML(group.title)}</h4>
+              <span class="advisor-meta">${escapeHTML(advisorObj.name)} (${escapeHTML(advisorObj.role)})</span>
+            </div>
+            <div class="advisor-inline-memo advisor-memo-${diag.status}">
+              <div class="advisor-inline-memo-header">
+                <div class="advisor-memo-identity">
+                  <span class="advisor-memo-avatar" style="background:${advisorObj.color}">${icon(advisorObj.icon, 15)}</span>
+                  <strong>${escapeHTML(advisorObj.name)}</strong>
+                  <span class="advisor-memo-role">${escapeHTML(advisorObj.role)}</span>
+                </div>
+                ${statusBadge}
+              </div>
+              <p class="advisor-memo-quote">${escapeHTML(diag.verdict)}</p>
+              ${diag.recommendation ? `<p class="advisor-memo-rec">💡 <strong>${translate('Совет:', language)}</strong> ${escapeHTML(diag.recommendation)}</p>` : ''}
+            </div>
+            ${group.keys.map(key => {
+              const config = POLICY_CONFIG[key];
+              const whatIf = getPolicyWhatIf(key, game.policies[key], game);
+              return `
+                <div class="field">
+                  <label class="field-label" for="policy-${key}">${escapeHTML(config.label)}</label>
+                  <div class="range-slider-pair">
+                    <input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${game.policies[key]}" data-sync-for="policy-${key}" ${disabled(locked())}>
+                    <div class="input-unit">
+                      <input type="number" id="policy-${key}" name="${key}" min="${config.min}" max="${config.max}" step="${config.step}" value="${game.policies[key]}" required ${disabled(locked())}>
+                      <span>${escapeHTML(config.unit)}</span>
+                    </div>
+                  </div>
+                  <p class="field-description">${escapeHTML(config.description)}</p>
+                  <div class="what-if-box" id="what-if-${key}">
+                    <span class="what-if-direct">⚡ ${escapeHTML(whatIf.direct)}</span>
+                    <span class="what-if-side">🔄 ${escapeHTML(whatIf.sideEffect)}</span>
+                    <span class="what-if-risk">⚠️ ${escapeHTML(whatIf.risk)}</span>
                   </div>
                 </div>
-                <p class="field-description">${escapeHTML(config.description)}</p>
-                <div class="what-if-box" id="what-if-${key}">
-                  <span class="what-if-direct">⚡ ${escapeHTML(whatIf.direct)}</span>
-                  <span class="what-if-side">🔄 ${escapeHTML(whatIf.sideEffect)}</span>
-                  <span class="what-if-risk">⚠️ ${escapeHTML(whatIf.risk)}</span>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        `).join('')}
+              `;
+            }).join('')}
+          `;
+        }).join('')}
       </div>
       <div class="journal-note">
         <label for="policy-note"><strong>Что вы хотите изменить и какого результата ждете?</strong> (Дневник намерений по Дёрнеру)</label>
@@ -550,20 +576,30 @@ function decisionsView() {
       <span data-testid="housing-capacity" data-value="${game.housingCapacity}" class="pill">Жилье: ${integer.format(game.housingCapacity)} мест</span>
     </div>
     <section class="project-grid">
-      ${Object.entries(PROJECTS).map(([key, project]) => `
-        <article class="project-card">
-          <div class="project-icon">${icon(key === 'housing' ? 'home' : key === 'modernization' ? 'factory' : 'leaf', 28)}</div>
-          <h3>${escapeHTML(project.label)}</h3>
-          <p>${escapeHTML(project.description)}</p>
-          <div class="project-meta">
-            <strong>${money(project.cost)}</strong>
-            <span>${icon('clock', 15)} ${project.duration} мес.</span>
-          </div>
-          <button class="button secondary" data-project="${key}" data-testid="project-${key}" ${disabled(locked() || game.treasury < project.cost || game.month + project.duration > game.horizon)}>
-            ${game.month + project.duration > game.horizon ? 'Не успеет до конца срока' : game.treasury < project.cost ? 'Недостаточно средств' : 'Оплатить и начать'}
-          </button>
-        </article>
-      `).join('')}
+      ${Object.entries(PROJECTS).map(([key, project]) => {
+        const endorsement = getProjectAdvisorEndorsement(key, game);
+        return `
+          <article class="project-card">
+            <div class="project-icon">${icon(key === 'housing' ? 'home' : key === 'modernization' ? 'factory' : 'leaf', 28)}</div>
+            <h3>${escapeHTML(project.label)}</h3>
+            <p>${escapeHTML(project.description)}</p>
+            <div class="project-advisor-endorsement">
+              <span class="project-advisor-badge" style="background:${endorsement.advisor.color}">${icon(endorsement.advisor.icon, 13)}</span>
+              <div class="project-advisor-text">
+                <strong>${escapeHTML(endorsement.advisor.name)} (${escapeHTML(endorsement.advisor.role)}):</strong>
+                <span>${escapeHTML(endorsement.advice)}</span>
+              </div>
+            </div>
+            <div class="project-meta">
+              <strong>${money(project.cost)}</strong>
+              <span>${icon('clock', 15)} ${project.duration} мес.</span>
+            </div>
+            <button class="button secondary" data-project="${key}" data-testid="project-${key}" ${disabled(locked() || game.treasury < project.cost || game.month + project.duration > game.horizon)}>
+              ${game.month + project.duration > game.horizon ? 'Не успеет до конца срока' : game.treasury < project.cost ? 'Недостаточно средств' : 'Оплатить и начать'}
+            </button>
+          </article>
+        `;
+      }).join('')}
     </section>
     <section class="panel projects-panel">
       <div class="panel-heading">
@@ -1085,6 +1121,7 @@ function render() {
             ${storageBlocked ? 'Сохранение требует внимания' : saved ? 'Сохранено в этом браузере' : 'Новая партия'}
           </p>
           <div class="step-controls">
+            <button class="button quiet" data-action="open-keyboard-help" aria-label="Горячие клавиши" title="Горячие клавиши (?)" style="font-size: 16px; font-weight: 700; padding: 5px 10px;">?</button>
             <button class="button quiet" data-action="save" aria-label="Сохранить партию" data-testid="save" ${disabled(storageBlocked)}>
               ${icon('save', 17)}
               <span class="save-label">Сохранить</span>
@@ -1105,6 +1142,9 @@ function render() {
         <footer class="main-footer">
           ${bookLink()}
           <button class="mobile-reset" data-action="new-game">Новая игра</button>
+          <button class="button quiet shortcuts-trigger" data-action="open-keyboard-help" title="Горячие клавиши (K)">
+            ${icon('keyboard', 15)} <span>${translate('Клавиши [K]', language)}</span>
+          </button>
           <span>ЛОХХАУЗЕН · СИМУЛЯТОР СИСТЕМНОГО МЫШЛЕНИЯ ПО ДЁРНЕРУ</span>
           <button data-view="model">О книге и допущениях ${icon('arrow', 13)}</button>
         </footer>
@@ -1132,7 +1172,26 @@ function render() {
         <button class="button danger" data-action="confirm-new-game" data-testid="confirm-new-game">Начать новую игру</button>
       </div>
     </dialog>
+    <dialog id="keyboard-help-dialog" aria-labelledby="kb-help-title" style="max-width: 520px;">
+      <h2 id="kb-help-title">${icon('keyboard', 22)} ${translate('Горячие клавиши', language)}</h2>
+      <p style="margin: 6px 0 16px; color: var(--muted); font-size: 13px;">${translate('Быстрое управление Лоххаузеном без мыши (действует, когда фокус не в поле ввода):', language)}</p>
+      <div style="display: grid; gap: 6px;">
+        <div class="hotkeys-row"><span>${translate('Следующий месяц', language)}</span><span><kbd>Пробел</kbd> / <kbd>Enter</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[0][1])}</span><span><kbd>1</kbd> / <kbd>O</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[1][1])}</span><span><kbd>2</kbd> / <kbd>G</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[2][1])}</span><span><kbd>3</kbd> / <kbd>D</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[3][1])}</span><span><kbd>4</kbd> / <kbd>R</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[4][1])}</span><span><kbd>5</kbd> / <kbd>J</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[5][1])}</span><span><kbd>6</kbd> / <kbd>B</kbd></span></div>
+        <div class="hotkeys-row"><span>${escapeHTML(navigation[6][1])}</span><span><kbd>7</kbd> / <kbd>M</kbd></span></div>
+        <div class="hotkeys-row"><span>${translate('Открыть/закрыть эту подсказку', language)}</span><span><kbd>K</kbd> / <kbd>?</kbd></span></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="button primary" data-action="close-keyboard-help">${translate('Понятно', language)}</button>
+      </div>
+    </dialog>
   `;
+
 
   renderNavigationLinks();
   localizeDocument(app, language);
@@ -1238,6 +1297,12 @@ app.addEventListener('click', event => {
       case 'cancel-new-game':
         document.querySelector('#new-game-dialog').close();
         break;
+      case 'close-keyboard-help':
+        document.getElementById('keyboard-help-dialog')?.close();
+        break;
+      case 'open-keyboard-help':
+        document.getElementById('keyboard-help-dialog')?.showModal();
+        break;
       case 'confirm-new-game':
         const checkedRadio = document.querySelector('input[name="scenario-choice"]:checked');
         if (checkedRadio) selectedScenarioId = checkedRadio.value;
@@ -1329,10 +1394,91 @@ app.addEventListener('change', event => {
 });
 
 app.addEventListener('keydown', event => {
+  // District cards: Enter/Space activate them
   const landmark = event.target.closest('[data-district]');
   if (landmark && ['Enter', ' '].includes(event.key)) {
     event.preventDefault();
     landmark.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return;
+  }
+
+  // Ignore shortcuts when typing in form fields or dialogs
+  const tag = event.target.tagName;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+  if (event.target.closest('dialog')) return;
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+  const viewKeys = ['1', '2', '3', '4', '5', '6', '7'];
+  const viewNames = ['overview', 'guide', 'decisions', 'reports', 'journal', 'debrief', 'model'];
+
+  const keyLower = event.key.toLowerCase();
+  switch (keyLower) {
+    case ' ':
+    case 'enter': {
+      if (!locked()) {
+        event.preventDefault();
+        const next = advance(game, 1);
+        const reachedEnd = next.month >= (next.horizon || 120);
+        if (reachedEnd) setRoute('debrief');
+        commit(next, reachedEnd ? 'Срок завершен. Итоги партии готовы.' : `Рассчитан месяц ${next.month}.`);
+      }
+      break;
+    }
+    case 'k':
+    case '?':
+    case '/': {
+      event.preventDefault();
+      const dlg = document.getElementById('keyboard-help-dialog');
+      if (dlg) {
+        if (dlg.open) dlg.close();
+        else dlg.showModal();
+      }
+      break;
+    }
+    case 'o': {
+      event.preventDefault();
+      setRoute('overview');
+      break;
+    }
+    case 'g': {
+      event.preventDefault();
+      setRoute('guide');
+      break;
+    }
+    case 'd': {
+      event.preventDefault();
+      setRoute('decisions');
+      break;
+    }
+    case 'r': {
+      event.preventDefault();
+      setRoute('reports');
+      break;
+    }
+    case 'j': {
+      event.preventDefault();
+      setRoute('journal');
+      break;
+    }
+    case 'b': {
+      event.preventDefault();
+      setRoute('debrief');
+      break;
+    }
+    case 'm': {
+      event.preventDefault();
+      setRoute('model');
+      break;
+    }
+    default: {
+      const idx = viewKeys.indexOf(event.key);
+      if (idx !== -1) {
+        event.preventDefault();
+        const target = viewNames[idx];
+        setRoute(target);
+        render();
+      }
+    }
   }
 });
 

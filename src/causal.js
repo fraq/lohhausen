@@ -800,3 +800,71 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       return { direct: 'Изменение действующей политики.', sideEffect: 'Вступит в силу со следующего месяца.', risk: 'Нет.' };
   }
 }
+
+/**
+ * Returns specific mayoral advisor guidance for capital investment projects,
+ * highlighting time lags, physical bottlenecks, and long-term implications.
+ */
+export function getProjectAdvisorEndorsement(projectKey, game = {}) {
+  switch (projectKey) {
+    case 'housing': {
+      const pop = game.population ?? 3700;
+      const cap = game.housingCapacity ?? 3900;
+      const surplus = cap - pop;
+      let advice = '';
+      if (surplus < 100) {
+        advice = 'Жилой фонд почти исчерпан! Строительство длится 12 месяцев. Если не начать сейчас, неизбежно возникнет острый дефицит жилья и отток людей.';
+      } else if (surplus < 300) {
+        advice = `Запас жилья умеренный (~${Math.round(surplus)} мест). С учетом 12-месячного строительного лага стоит готовить расширение заранее.`;
+      } else {
+        advice = `Жилья пока достаточно (~${Math.round(surplus)} свободных мест). Проект добавит еще 60 мест через 12 месяцев.`;
+      }
+      return {
+        advisor: ADVISORS.housing,
+        advice,
+        duration: 12,
+        key: 'housing',
+      };
+    }
+    case 'modernization': {
+      const eq = game.equipment ?? 48;
+      let advice = '';
+      if (eq < 40) {
+        advice = `Критически необходимый шаг! Станки изношены до ${eq.toFixed(1)}%. Через 6 месяцев оборудование будет полностью восстановлено до 100%.`;
+      } else if (eq < 70) {
+        advice = `Оборудование изношено на ${(100 - eq).toFixed(1)}%. Модернизация вернет оборудованию 100% готовность за 6 месяцев.`;
+      } else {
+        advice = `Оборудование в хорошем состоянии (${eq.toFixed(1)}%). Модернизация за 6 месяцев доведет его до максимума.`;
+      }
+      return {
+        advisor: ADVISORS.factory,
+        advice,
+        duration: 6,
+        key: 'modernization',
+      };
+    }
+    case 'tourism': {
+      const cap = game.tourismCapacity ?? 20;
+      const ads = game.policies?.tourismMarketing ?? 5;
+      let advice = '';
+      if (cap <= 20 && ads > 10) {
+        advice = 'Отели забиты, а реклама сжигает бюджет впустую! Этот проект добавит 80 мест за 6 месяцев и расширит узкое горлышко.';
+      } else {
+        advice = 'Добавляет 80 гостиничных мест через 6 месяцев. Создает физическую базу для приема гостей города и доходов казны.';
+      }
+      return {
+        advisor: ADVISORS.tourism,
+        advice,
+        duration: 6,
+        key: 'tourism',
+      };
+    }
+    default:
+      return {
+        advisor: ADVISORS.finance,
+        advice: 'Капитальные инвестиции требуют учета временного лага отдачи.',
+        duration: 0,
+        key: projectKey,
+      };
+  }
+}

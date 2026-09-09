@@ -37,6 +37,10 @@
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **advisor-guidance-shortcuts-001**: Живые памятки советников в экране решений (`decisionsView`), одобрение инвестиционных проектов с учетом лагов и полноценная клавиатурная доступность с горячими клавишами.
+  - **Исполнитель**: `dorner_scenarios`
+  - **Артефакты**: [`src/causal.js`](./src/causal.js), [`src/app.js`](./src/app.js), [`src/locales/extra.js`](./src/locales/extra.js), [`public/styles.css`](./public/styles.css), [`tests/causal.test.js`](./tests/causal.test.js), [`tests/i18n.test.js`](./tests/i18n.test.js)
+  - **Статус**: Закрыта (54/54 тестов проходят, 720 месяцев верифицированы, советники и горячие клавиши интегрированы).
 - [x] **i18n-cockpit-001**: Локализация ключевых терминов кабинета бургомистра, советников, ретроспективы и системной динамики Дёрнера на немецкий (de), английский (en) и французский (fr) языки.
   - **Исполнитель**: `dorner_analyst`
   - **Карточка**: [COORDINATION/tasks/i18n-cockpit-001.md](./COORDINATION/tasks/i18n-cockpit-001.md)
