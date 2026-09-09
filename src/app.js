@@ -107,7 +107,7 @@ const stateValue = metric => metric.key === 'finance' ? game.treasury - game.deb
 const complete = () => game.month >= game.horizon;
 const locked = () => storageBlocked || complete();
 const disabled = value => value ? 'disabled' : '';
-const dateLabel = month => month >= 120 ? 'Десять лет спустя' : `${['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][month % 12]} · год ${Math.floor(month / 12) + 1}`;
+const dateLabel = month => month >= (game?.horizon || 120) ? (game?.horizon && game.horizon < 120 ? 'Срок управления завершен' : 'Десять лет спустя') : `${['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][month % 12]} · год ${Math.floor(month / 12) + 1}`;
 
 function persist() {
   if (storageBlocked) return false;
@@ -374,6 +374,14 @@ function scenarioObjectiveBanner() {
       ${isDefeat && evaluation.reason ? `
         <p style="margin: 10px 0 0; color: #8d4130; font-weight: 600; font-size: 13px;">Причина завершения: ${escapeHTML(evaluation.reason)}</p>
       ` : ''}
+      ${(isVictory || isDefeat || complete()) ? `
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 13px; color: var(--ink-soft);">Сценарий завершен. Ознакомьтесь с подробным разбором когнитивных паттернов и сравнением с эталоном.</span>
+          <button class="button primary" data-view="debrief" style="font-size: 13px; padding: 6px 14px;">
+            📊 Посмотреть итоги партии (Debrief)
+          </button>
+        </div>
+      ` : ''}
     </section>
   `;
 }
@@ -381,6 +389,18 @@ function scenarioObjectiveBanner() {
 function overviewView() {
   return `
     ${scenarioObjectiveBanner()}
+    ${complete() ? `
+      <div class="panel completion-banner" style="background: linear-gradient(135deg, rgba(58, 125, 68, 0.12), rgba(39, 58, 49, 0.06)); border: 2px solid var(--accent); margin-bottom: 20px; padding: 18px 22px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <span class="badge" style="background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; margin-bottom: 6px;">ИТОГИ ПАРТИИ</span>
+          <h3 style="margin: 4px 0 6px; font-size: 19px;">🏁 Срок полномочий завершен (${game.month} из ${game.horizon || 120} мес.)</h3>
+          <p style="margin: 0; color: var(--ink-soft); font-size: 14px;">Вы завершили руководство Лоххаузеном. Узнайте ваш управленческий архетип по Дёрнеру, сверьте прогнозы с реальностью и оцените попадание в когнитивные ловушки.</p>
+        </div>
+        <button class="button primary" data-view="debrief" style="font-size: 15px; padding: 12px 20px;">
+          📊 Открыть итоговый разбор (Debrief)
+        </button>
+      </div>
+    ` : ''}
     <div class="dashboard-top">
       <section class="hero-card">
         <div class="hero-copy">
@@ -388,15 +408,20 @@ function overviewView() {
           <h2>Будущее складывается<br>из сегодняшних решений.</h2>
           <p>Фабрика, жители, казна — части одной связанной системы.<br>Изучайте связи. Учитывайте время и задержки.</p>
           <div class="cockpit-actions">
-            <button class="button primary hero-guide" data-view="guide">Как играть ${icon('arrow', 16)}</button>
-            <button class="button secondary" data-view="decisions">Принять решения ${icon('decisions', 16)}</button>
-            <button class="button quiet" data-view="reports">Отчеты служб ${icon('reports', 16)}</button>
+            ${complete() ? `
+              <button class="button primary" data-view="debrief">📊 Итоговый разбор (Debrief) ${icon('arrow', 16)}</button>
+              <button class="button secondary" data-action="new-game">Новая партия ${icon('reset', 16)}</button>
+            ` : `
+              <button class="button primary hero-guide" data-view="guide">Как играть ${icon('arrow', 16)}</button>
+              <button class="button secondary" data-view="decisions">Принять решения ${icon('decisions', 16)}</button>
+              <button class="button quiet" data-view="reports">Отчеты служб ${icon('reports', 16)}</button>
+            `}
           </div>
         </div>
         <div class="city-art">${cityIllustration()}</div>
         <div class="hero-caption">
           <span>${icon('people', 16)} ${integer.format(game.population)} жителей</span>
-          <span>${icon('clock', 16)} Горизонт — 10 лет (120 мес.)</span>
+          <span>${icon('clock', 16)} Горизонт — ${game.horizon ? `${Math.round(game.horizon / 12 * 10) / 10} г. (${game.horizon} мес.)` : '10 лет (120 мес.)'}</span>
           <span>Нажмите на район города, чтобы открыть отчет подразделения</span>
         </div>
       </section>
@@ -1049,9 +1074,9 @@ function render() {
           <div class="period">
             <span class="period-label">${dateLabel(game.month)}</span>
             <strong class="period-value" data-testid="month" data-month="${game.month}">
-              ${monthLabel(game.month)} <span>${game.month ? '/ 120' : '· впереди 120 месяцев'}</span>
+              ${monthLabel(game.month)} <span>${game.month ? `/ ${game.horizon || 120}` : `· впереди ${game.horizon || 120} месяцев`}</span>
             </strong>
-            <progress aria-label="Срок управления" value="${game.month}" max="120"></progress>
+            <progress aria-label="Срок управления" value="${game.month}" max="${game.horizon || 120}"></progress>
           </div>
         </header>
         <div class="toolbar">
@@ -1187,8 +1212,9 @@ app.addEventListener('click', event => {
       case 'advance-3': {
         const months = control.dataset.action === 'advance-1' ? 1 : 3;
         const next = advance(game, months);
-        if (next.month >= 120) setRoute('debrief');
-        commit(next, next.month >= 120 ? 'Десять лет завершены. Итоги вашей партии готовы.' : `Рассчитан месяц ${next.month}. Ознакомьтесь с хроникой хода.`);
+        const reachedEnd = next.month >= (next.horizon || 120);
+        if (reachedEnd) setRoute('debrief');
+        commit(next, reachedEnd ? (next.horizon && next.horizon < 120 ? 'Срок сценария завершен. Итоги вашей партии готовы.' : 'Десять лет завершены. Итоги вашей партии готовы.') : `Рассчитан месяц ${next.month}. Ознакомьтесь с хроникой хода.`);
         break;
       }
       case 'request-report':

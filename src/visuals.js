@@ -28,7 +28,8 @@ const ICON_PATHS = {
   target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   spark: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/>',
   loop: '<path d="M21.5 12A9.5 9.5 0 0 1 5 17.5M2.5 12A9.5 9.5 0 0 1 19 6.5"/><path d="m20 2 2 4.5-4.5.5M4 22l-2-4.5 4.5-.5"/>',
-  info: '<circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/>'
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/>',
+  keyboard: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M10 13h4"/>'
 };
 
 const xmlEscape = (value) => String(value)

@@ -55,7 +55,11 @@ test('AC-5: локализуются термины кабинета бурго�
   assert.equal(translate('Директор часовой фабрики', 'fr'), 'Directeur de la fabrique d’horlogerie');
   assert.equal(translate('Казначей города', 'de'), 'Stadtkämmerin');
   assert.equal(translate('Казначей города', 'en'), 'City Treasurer');
-  assert.equal(translate('📥 Скачать отчет (Markdown)', 'en'), '📥 Download Report (Markdown)');
   assert.equal(translate('📥 Скачать отчет (Markdown)', 'de'), '📥 Bericht herunterladen (Markdown)');
+  assert.equal(translate('ИТОГИ ПАРТИИ', 'en'), 'SESSION RESULTS');
+  assert.equal(translate('ИТОГИ ПАРТИИ', 'de'), 'PARTIE-ERGEBNIS');
+  assert.equal(translate('ИТОГИ ПАРТИИ', 'fr'), 'RÉSULTAT DE LA PARTIE');
+  assert.equal(translate('Посмотреть итоги партии (Debrief)', 'en'), 'View Scenario Results (Debrief)');
+  assert.equal(translate('Посмотреть итоги партии (Debrief)', 'de'), 'Ergebnisse anzeigen (Debrief)');
 });
 
