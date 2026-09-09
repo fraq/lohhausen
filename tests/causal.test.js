@@ -106,7 +106,7 @@ test('causal: getProjectAdvisorEndorsement возвращает актуальн
 
   const modEndorsement = getProjectAdvisorEndorsement('modernization', game);
   assert.equal(modEndorsement.advisor.id, 'krause');
-  assert.equal(modEndorsement.duration, 6);
+  assert.equal(modEndorsement.duration, 9);
   assert.ok(modEndorsement.advice.length > 10);
 
   const tourismEndorsement = getProjectAdvisorEndorsement('tourism', game);

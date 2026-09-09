@@ -1415,6 +1415,11 @@ app.addEventListener('keydown', event => {
   switch (keyLower) {
     case ' ':
     case 'enter': {
+      // Skip Enter if a focusable interactive element is targeted (button, a, summary, etc.)
+      // Space is generally safe for advancing when body/app is focused.
+      const interactive = ['BUTTON', 'A', 'SUMMARY', 'LABEL'];
+      if (event.key === 'Enter' && interactive.includes(event.target.tagName)) return;
+      if (event.repeat) return; // No auto-fire on held key
       if (!locked()) {
         event.preventDefault();
         const next = advance(game, 1);
