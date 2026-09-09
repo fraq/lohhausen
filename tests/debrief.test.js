@@ -120,7 +120,7 @@ test('debrief: formatDebriefMarkdown генерирует содержатель
 
   assert.equal(typeof md, 'string');
   assert.match(md, /Итоговый разбор управления городом Лоххаузен/);
-  assert.match(md, /Управленческий архетип/);
+  assert.match(md, /Наблюдения по журналу решений/);
   assert.match(md, /Население:/);
   assert.match(md, /Вопросы для саморефлексии/);
 });
