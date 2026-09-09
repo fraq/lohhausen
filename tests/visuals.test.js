@@ -87,3 +87,25 @@ test('visuals: renderSystemicRadarChart produces valid SVG and includes critical
   assert.ok(svg.includes('</svg>'), 'Should have closing </svg>');
   assert.ok(svg.includes('polygon'), 'Should contain data polygon');
 });
+
+test('visuals: renderSystemicRadarChart supports custom translated labels and dimensions', () => {
+  const game = createGame();
+  const svg = renderSystemicRadarChart(game, {
+    width: 320,
+    height: 320,
+    labels: {
+      production: 'Produktion',
+      fiscal: 'Finanzen',
+      housing: 'Wohnen',
+      services: 'Dienste',
+      satisfaction: 'Zufriedenheit',
+    },
+  });
+  assert.ok(svg.includes('viewBox="0 0 320 320"'));
+  assert.ok(svg.includes('Produktion'));
+  assert.ok(svg.includes('Finanzen'));
+  assert.ok(svg.includes('Wohnen'));
+  assert.ok(svg.includes('Dienste'));
+  assert.ok(svg.includes('Zufriedenheit'));
+});
+

@@ -327,64 +327,70 @@ export function renderBenchmarkComparisonChart({
  * Axes: Production, Fiscal Health, Housing, Services/Health, Satisfaction.
  * The chart shows the current values (0‑100) and a red ring at the 40 % critical level.
  */
-export function renderSystemicRadarChart(game) {
-  const width = 260;
-  const height = 260;
-  const radius = Math.min(width, height) / 2 - 20; // margin for labels
+export function renderSystemicRadarChart(game, options = {}) {
+  const width = options.width || 280;
+  const height = options.height || 280;
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) / 2 - 38; // margin for labels
 
+  const labels = options.labels || {};
   const axes = [
-    { key: 'production', label: 'Производство' },
-    { key: 'fiscal', label: 'Финансы' },
-    { key: 'housing', label: 'Жильё' },
-    { key: 'services', label: 'Службы' },
-    { key: 'satisfaction', label: 'Удовлетворённость' },
+    { key: 'production', label: labels.production || 'Производство' },
+    { key: 'fiscal', label: labels.fiscal || 'Финансы' },
+    { key: 'housing', label: labels.housing || 'Жильё' },
+    { key: 'services', label: labels.services || 'Службы' },
+    { key: 'satisfaction', label: labels.satisfaction || 'Удовлетворённость' },
   ];
 
   const values = {
-    production: clamp(game.production, 0, 100),
-    fiscal: clamp(game.treasury - game.debt, 0, 100),
-    housing: clamp(100 - (game.housingShortage / Math.max(1, game.population)) * 100, 0, 100),
-    services: clamp(game.serviceQuality, 0, 100),
-    satisfaction: clamp(game.satisfaction, 0, 100),
+    production: clamp(Math.round((game.production / 1000) * 100), 0, 100),
+    fiscal: clamp(Math.round(50 + ((game.treasury - game.debt) / 2400) * 50), 0, 100),
+    housing: clamp(Math.round(100 - (game.housingShortage / 250) * 60), 0, 100),
+    services: clamp(Math.round(game.serviceQuality), 0, 100),
+    satisfaction: clamp(Math.round(game.satisfaction), 0, 100),
   };
 
   const angleStep = (2 * Math.PI) / axes.length;
   const points = axes.map((axis, i) => {
     const r = (values[axis.key] / 100) * radius;
-    const x = radius + r * Math.sin(i * angleStep);
-    const y = radius - r * Math.cos(i * angleStep);
-    return { x, y, label: axis.label };
+    const x = cx + r * Math.sin(i * angleStep);
+    const y = cy - r * Math.cos(i * angleStep);
+    return { x, y, value: values[axis.key], label: axis.label };
   });
 
   const grid = [20, 40, 60, 80, 100]
     .map(p => {
       const r = (p / 100) * radius;
-      return `<circle cx="${radius}" cy="${radius}" r="${r}" fill="none" stroke="#e6e1d5" stroke-dasharray="2 4"/>`;
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e6e1d5" stroke-dasharray="2 4"/>`;
     })
     .join('\n');
 
-  const criticalRing = `<circle cx="${radius}" cy="${radius}" r="${(40 / 100) * radius}" fill="none" stroke="#c62828" stroke-width="2"/>`;
+  const criticalRing = `<circle cx="${cx}" cy="${cy}" r="${(40 / 100) * radius}" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="4 2"/>`;
 
   const axesMarkup = axes.map((axis, i) => {
-    const x = radius + radius * Math.sin(i * angleStep);
-    const y = radius - radius * Math.cos(i * angleStep);
-    const labelX = radius + (radius + 12) * Math.sin(i * angleStep);
-    const labelY = radius - (radius + 12) * Math.cos(i * angleStep);
+    const x = cx + radius * Math.sin(i * angleStep);
+    const y = cy - radius * Math.cos(i * angleStep);
+    const labelDist = radius + 18;
+    const labelX = cx + labelDist * Math.sin(i * angleStep);
+    const labelY = cy - labelDist * Math.cos(i * angleStep) + 4;
     return `
-      <line x1="${radius}" y1="${radius}" x2="${x}" y2="${y}" stroke="#bbb"/>
-      <text x="${labelX}" y="${labelY}" text-anchor="middle" font-size="11" fill="#333">${axis.label}</text>`;
+      <line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#cfc9be" stroke-width="1"/>
+      <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="#273a31">${xmlEscape(axis.label)}</text>`;
   }).join('\n');
 
-  const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ');
-  const polygon = `<polygon points="${polygonPoints}" fill="rgba(46,125,50,0.3)" stroke="#2e7d32" stroke-width="2"/>`;
+  const polygonPoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const polygon = `<polygon points="${polygonPoints}" fill="rgba(46,125,50,0.25)" stroke="#2e7d32" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const dots = points.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#1f4e38"/>`).join('');
 
   return `
-    <svg class="systemic-radar" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-label="Системный радар здоровья города">
+    <svg class="systemic-radar" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Системный радар здоровья города">
       <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#e3dfd3" stroke-width="1.5"/>
-      ${grid}
+      <g class="radar-grid">${grid}</g>
       ${criticalRing}
-      ${axesMarkup}
+      <g class="radar-axes">${axesMarkup}</g>
       ${polygon}
+      <g class="radar-dots">${dots}</g>
     </svg>`;
 }
 

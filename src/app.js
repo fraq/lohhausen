@@ -203,7 +203,11 @@ function causalDigestSection() {
             <div class="causal-icon">${icon(item.icon || 'spark', 20)}</div>
             <div class="causal-body">
               <span class="causal-title">${escapeHTML(item.headline)}</span>
-              <p class="causal-desc">${escapeHTML(item.explanation)}</p>
+              <p class="causal-desc">
+                ${item.playerNote
+                  ? escapeHTML(item.explanation).replace(escapeHTML(`«${item.playerNote}»`), `<span class="player-note" translate="no">«${escapeHTML(item.playerNote)}»</span>`)
+                  : escapeHTML(item.explanation)}
+              </p>
             </div>
           </div>
         `).join('')}
@@ -386,6 +390,56 @@ function scenarioObjectiveBanner() {
   `;
 }
 
+function systemicHealthPanel() {
+  return `
+    <section class="panel systemic-radar-panel" aria-label="Системный радар здоровья города">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">${translate('БАЛАНС СИСТЕМЫ', language)}</p>
+          <h2>${translate('Радар здоровья Лоххаузена', language)}</h2>
+        </div>
+        ${icon('target', 24)}
+      </div>
+      <div class="systemic-radar-layout">
+        <div class="systemic-radar-visual">
+          ${renderSystemicRadarChart(game, {
+            width: 280,
+            height: 280,
+            labels: {
+              production: translate('Производство', language),
+              fiscal: translate('Финансы', language),
+              housing: translate('Жильё', language),
+              services: translate('Службы', language),
+              satisfaction: translate('Удовлетворённость', language),
+            },
+          })}
+        </div>
+        <div class="systemic-radar-info">
+          <p class="source-note" style="margin-top: 0;">
+            ${translate('По Дёрнеру, крах сложной системы наступает не от одного фактора, а при одновременном проседании нескольких сфер ниже критического порога.', language)}
+          </p>
+          <div class="systemic-radar-legend-items">
+            <div class="legend-item">
+              <span class="legend-marker marker-profile"></span>
+              <div>
+                <strong>${translate('Профиль города (зелёный многоугольник)', language)}</strong>
+                <p>${translate('Текущий статус 5 ключевых систем. Равномерная форма свидетельствует о сбалансированности управления.', language)}</p>
+              </div>
+            </div>
+            <div class="legend-item">
+              <span class="legend-marker marker-critical"></span>
+              <div>
+                <strong>${translate('Критический порог 40% (красный пунктир)', language)}</strong>
+                <p>${translate('Граница необратимого кризиса. Падение показателей внутрь кольца вызывает кумулятивный крах.', language)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function overviewView() {
   return `
     ${scenarioObjectiveBanner()}
@@ -450,7 +504,7 @@ function overviewView() {
     </div>
 
     ${metricCards()}
-    ${renderSystemicRadarChart(game)}
+    ${systemicHealthPanel()}
     ${causalDigestSection()}
     ${mayoralSpheresSection()}
     ${causalLoopExplorerSection()}
@@ -758,7 +812,7 @@ function journalView() {
                 <h4>${escapeHTML(entry.title)}</h4>
                 ${entry.changes ? `<p>${Object.entries(entry.changes).map(([key, value]) => `${escapeHTML(POLICY_CONFIG[key]?.label || key)}: ${fmt(value)} ${escapeHTML(POLICY_CONFIG[key]?.unit || '')}`).join(' · ')}</p>` : ''}
                 ${entry.project ? `<p>${money(entry.project.cost)} · ввод в месяце ${entry.project.completeMonth}</p>` : ''}
-                ${entry.note ? `<p class="journal-quote" ${entry.type === 'policy' ? 'translate="no"' : ''}>${escapeHTML(entry.note)}</p>` : ''}
+                ${entry.note ? `<p class="journal-quote" ${['policy', 'project'].includes(entry.type) ? 'translate="no"' : ''}>${escapeHTML(entry.note)}</p>` : ''}
               </div>
             </article>
           `).join('') : '<div class="empty-state">Здесь появятся принятые решения и ваши ожидания. Запись можно добавить при изменении политики.</div>'}
@@ -788,12 +842,14 @@ function debriefView() {
   const evaluation = evaluateScenario(game);
   const benchmark = getScenarioBenchmark(game.scenarioId || 'sandbox');
 
+  const horizon = game.horizon || 120;
+
   return `
     <section data-testid="debrief">
       <div class="view-heading">
-        <p class="eyebrow">${complete() ? 'ДЕСЯТЬ ЛЕТ СПУСТЯ' : 'ПРОМЕЖУТОЧНЫЙ РАЗБОР'}</p>
+        <p class="eyebrow">${complete() ? (horizon < 120 ? 'ИТОГИ УПРАВЛЕНИЯ' : 'ДЕСЯТЬ ЛЕТ СПУСТЯ') : 'ПРОМЕЖУТОЧНЫЙ РАЗБОР'}</p>
         <h2>${complete() ? 'Как изменился ваш Лоххаузен?' : 'Остановиться и посмотреть на целое.'}</h2>
-        <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из 120 месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
+        <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из ${horizon} месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
         <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
           <button class="button secondary" data-action="export-debrief-md" title="Скачать подробный аналитический отчет">
             📥 Скачать отчет (Markdown)
@@ -833,7 +889,7 @@ function debriefView() {
         <p class="eyebrow">ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА</p>
         <h3 style="margin: 4px 0 6px;">Сравнение с модельными профилями поведения</h3>
         <p class="source-note" style="margin: 0 0 14px;">
-          Траектории Конрада (системный эталон) и Маркуса (реактивная ловушка) построены на основе описаний из глав 2 и 7 книги «Логика неудачи» как дидактические ориентиры для самоанализа.
+          Траектории Конрада (системный эталон) и Маркуса (реактивная ловушка) — это вымышленные учебные примеры, смоделированные по мотивам глав 2 и 7 книги «Логика неудачи» для дидактического сопоставления.
         </p>
         <div class="grid-two" style="gap: 16px;">
           <div style="padding: 14px; background: rgba(58, 125, 68, 0.05); border-radius: 8px; border: 1px solid rgba(58, 125, 68, 0.25);">
@@ -889,7 +945,7 @@ function debriefView() {
                   <p style="font-size: 13px; margin: 0 0 6px; color: var(--ink);">
                     <strong>Исход:</strong> ${escapeHTML(h.outcomeSummary)}
                   </p>
-                  ${h.playerNote ? `<p style="font-size: 12.5px; margin: 0 0 6px; color: var(--ink-soft); font-style: italic;">«${escapeHTML(h.playerNote)}»</p>` : ''}
+                  ${h.playerNote ? `<p translate="no" style="font-size: 12.5px; margin: 0 0 6px; color: var(--ink-soft); font-style: italic;">«${escapeHTML(h.playerNote)}»</p>` : ''}
                   <p style="font-size: 12px; margin: 0; color: #7a5a22; background: #fff9ed; padding: 6px 10px; border-radius: 6px;">
                     💡 <strong>Урок Дёрнера:</strong> ${escapeHTML(h.hindsightLesson)}
                   </p>
@@ -928,7 +984,7 @@ function debriefView() {
               ${detectedTemporalTraps.map(t => `
                 <div style="margin-bottom: 12px; padding: 10px 12px; background: rgba(141, 65, 48, 0.06); border-radius: 6px;">
                   <p style="margin:0 0 4px;">⚠️ <strong>${escapeHTML(t.title)}:</strong> ${escapeHTML(t.description)}</p>
-                  ${t.dornerQuote ? `<p style="margin:0; font-size: 13px; font-style: italic; color: var(--muted);">${escapeHTML(t.dornerQuote)}</p>` : ''}
+                  ${t.learningPrompt ? `<p style="margin:0; font-size: 13px; font-style: italic; color: var(--muted);">${escapeHTML(t.learningPrompt)}</p>` : ''}
                 </div>
               `).join('')}
             </div>
@@ -1163,7 +1219,7 @@ function render() {
     </div>
     <dialog id="new-game-dialog" aria-labelledby="reset-title" style="max-width: 620px;">
       <h2 id="reset-title">Новая партия в Лоххаузене</h2>
-      <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите исторический сценарий управления по книге Дитриха Дёрнера:</p>
+      <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите дидактический сценарий управления по мотивам книги Дитриха Дёрнера:</p>
       <div class="scenario-select-list" style="display: grid; gap: 8px; margin-bottom: 20px;">
         ${getScenariosList().map(sc => `
           <label class="scenario-option" style="display:flex; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--surface); align-items:flex-start;">
@@ -1351,6 +1407,7 @@ app.addEventListener('input', event => {
           <span class="what-if-side">🔄 ${escapeHTML(preview.sideEffect)}</span>
           <span class="what-if-risk">⚠️ ${escapeHTML(preview.risk)}</span>
         `;
+        localizeDocument(whatIfBox, language);
       }
     }
   } else if (event.target.matches('#policy-form input[type="number"]')) {
@@ -1365,6 +1422,7 @@ app.addEventListener('input', event => {
         <span class="what-if-side">🔄 ${escapeHTML(preview.sideEffect)}</span>
         <span class="what-if-risk">⚠️ ${escapeHTML(preview.risk)}</span>
       `;
+      localizeDocument(whatIfBox, language);
     }
   }
 });
@@ -1395,7 +1453,23 @@ app.addEventListener('change', event => {
     render();
     for (const [name, value] of draft) {
       const field = app.querySelector(`[name="${CSS.escape(name)}"]`);
-      if (field) field.value = value;
+      if (field) {
+        field.value = value;
+        if (field.type === 'number') {
+          const range = app.querySelector(`input[type="range"][data-sync-for="${CSS.escape(field.id)}"]`);
+          if (range) range.value = value;
+          const whatIfBox = document.getElementById(`what-if-${CSS.escape(name)}`);
+          if (whatIfBox) {
+            const preview = getPolicyWhatIf(name, value, game);
+            whatIfBox.innerHTML = `
+              <span class="what-if-direct">⚡ ${escapeHTML(preview.direct)}</span>
+              <span class="what-if-side">🔄 ${escapeHTML(preview.sideEffect)}</span>
+              <span class="what-if-risk">⚠️ ${escapeHTML(preview.risk)}</span>
+            `;
+            localizeDocument(whatIfBox, language);
+          }
+        }
+      }
     }
   }
   if (event.target.id === 'chart-metric') {
@@ -1404,7 +1478,14 @@ app.addEventListener('change', event => {
   }
 });
 
-app.addEventListener('keydown', event => {
+document.addEventListener('keydown', event => {
+  if (event.repeat) return;
+  const help = document.getElementById('keyboard-help-dialog');
+  if (help?.open && ['k', '?'].includes(event.key.toLowerCase()) && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    event.preventDefault();
+    help.close();
+    return;
+  }
   // District cards: Enter/Space activate them
   const landmark = event.target.closest('[data-district]');
   if (landmark && ['Enter', ' '].includes(event.key)) {
@@ -1418,7 +1499,7 @@ app.addEventListener('keydown', event => {
 
   // Ignore shortcuts when typing in form fields or dialogs
   const tag = event.target.tagName;
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || event.target.isContentEditable) return;
   if (event.target.closest('dialog')) return;
   if (event.metaKey || event.ctrlKey || event.altKey) return;
 
@@ -1455,36 +1536,43 @@ app.addEventListener('keydown', event => {
     case 'o': {
       event.preventDefault();
       setRoute('overview');
+      render();
       break;
     }
     case 'g': {
       event.preventDefault();
       setRoute('guide');
+      render();
       break;
     }
     case 'd': {
       event.preventDefault();
       setRoute('decisions');
+      render();
       break;
     }
     case 'r': {
       event.preventDefault();
       setRoute('reports');
+      render();
       break;
     }
     case 'j': {
       event.preventDefault();
       setRoute('journal');
+      render();
       break;
     }
     case 'b': {
       event.preventDefault();
       setRoute('debrief');
+      render();
       break;
     }
     case 'm': {
       event.preventDefault();
       setRoute('model');
+      render();
       break;
     }
     default: {
