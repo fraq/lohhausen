@@ -65,5 +65,9 @@ test('AC-5: локализуются термины кабинета бурго�
   assert.equal(translate('Горячие клавиши', 'de'), 'Tastaturkürzel');
   assert.equal(translate('Горячие клавиши', 'fr'), 'Raccourcis clavier');
   assert.equal(translate('Клавиши [K]', 'en'), 'Keys [K]');
+  assert.equal(translate('ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА', 'en'), 'ILLUSTRATIVE ARCHETYPES FROM DÖRNER\'S BOOK');
+  assert.equal(translate('ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА', 'de'), 'ILLUSTRATIVE ARCHETYPEN NACH DÖRNERS BUCH');
+  assert.equal(translate('ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА', 'fr'), 'ARCHÉTYPES DIDACTIQUES SELON LE LIVRE DE DÖRNER');
+  assert.equal(translate('Сравнение с модельными профилями поведения', 'en'), 'Comparison with Model Behavioral Profiles');
 });
 

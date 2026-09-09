@@ -5,7 +5,7 @@ export const SCENARIOS = Object.freeze({
     id: 'sandbox',
     icon: '🏛️',
     title: 'Свободное управление (Песочница)',
-    subtitle: 'Классический эксперимент Лоххаузена 1983 года',
+    subtitle: 'Учебная реконструкция Лоххаузена',
     difficulty: 'Стандартная',
     horizon: 120,
     duration: 120,
@@ -56,7 +56,7 @@ export const SCENARIOS = Object.freeze({
     duration: 60,
     briefing: 'Город вошел в фазу нестабильности: налоги завышены до 24%, рабочие недовольны низкими зарплатами, а инфраструктура запущена. Проявите комплексное мышление, избегая синдрома ремонтника и нетерпеливого перерегулирования.',
     objectives: [
-      { id: 'satisfaction', label: 'Удовлетворенность всех групп ≥ 85%', target: 85, check: (g) => g.satisfaction >= 85 },
+      { id: 'satisfaction_groups', label: 'Удовлетворенность всех групп ≥ 85%', target: 85, check: (g) => Object.values(g.satisfactionGroups || {}).length > 0 && Object.values(g.satisfactionGroups).every((value) => value >= 85) },
       { id: 'population', label: 'Сохранить население города ≥ 3600 чел.', target: 3600, check: (g) => g.population >= 3600 },
       { id: 'equipment', label: 'Оборудование завода ≥ 85%', target: 85, check: (g) => g.equipment >= 85 },
       { id: 'solvency', label: 'Казна с положительным сальдо (долг 0)', target: 0, check: (g) => g.debt === 0 },
@@ -123,6 +123,10 @@ export function applyScenario(baseGame, scenarioId) {
   game.scenarioId = scenario.id;
   game.scenarioTitle = scenario.title;
   game.horizon = scenario.horizon;
+  // The base game's report snapshots precede scenario-specific starting values.
+  // advance() captures the actual starting state before the first calculation.
+  game.reportHistory = [];
+  game.reports = {};
 
   if (scenario.id === 'factory_crisis') {
     game.equipment = 24;
@@ -160,6 +164,10 @@ export function applyScenario(baseGame, scenarioId) {
       housingShortage: game.housingShortage || 0,
       satisfaction: game.satisfaction,
       equipment: game.equipment,
+      housingCapacity: game.housingCapacity,
+      tourismCapacity: game.tourismCapacity,
+      visitors: game.visitors,
+      serviceQuality: game.serviceQuality,
     };
   }
 
@@ -193,6 +201,7 @@ export function evaluateScenario(game) {
     else if (obj.id === 'tourism_capacity') current = game.tourismCapacity;
     else if (obj.id === 'housing') current = game.housingShortage || 0;
     else if (obj.id === 'satisfaction') current = Math.round(game.satisfaction);
+    else if (obj.id === 'satisfaction_groups') current = Math.round(Math.min(...Object.values(game.satisfactionGroups || {})));
     else if (obj.id === 'population') current = Math.round(game.population);
 
     const isMet = Boolean(obj.check(game));
@@ -214,10 +223,10 @@ export function evaluateScenario(game) {
   let status = 'active';
   let reason = '';
 
-  if (game.debt > 25000) {
+  if (game.month >= scenario.horizon && game.debt > 25000) {
     status = 'defeat';
     reason = 'Казна города объявила дефолт из-за критического долга.';
-  } else if (game.population < 1500) {
+  } else if (game.month >= scenario.horizon && game.population < 1500) {
     status = 'defeat';
     reason = 'Массовый исход жителей привел к опустению города.';
   } else if (game.month >= scenario.horizon) {
@@ -227,8 +236,6 @@ export function evaluateScenario(game) {
       status = 'defeat';
       reason = 'Срок управления завершен: не все цели сценария выполнены.';
     }
-  } else if (metCount === totalCount && game.month >= Math.floor(scenario.horizon * 0.75)) {
-    status = 'victory';
   }
 
   return {
@@ -252,10 +259,11 @@ export function getScenarioBenchmark(scenarioId) {
       conrad: {
         name: 'Эталон Конрада (Комплексная модернизация)',
         description: 'Своевременное инвестирование в оборудование, сбалансированные зарплаты, контроль кассовых разрывов.',
-        strategy: 'Опережающее финансирование ремонта (18+ тыс./мес.), запуск проекта модернизации в первом полугодии, взвешенная налоговая политика без резких скачков.',
+        strategy: 'Сверять обслуживание с расчетным износом при текущем выпуске, планировать модернизацию до остановки оборудования и контролировать месячный баланс.',
         verdict: 'Станки восстановлены до 86%, выручка фабрики покрыла долг, город вернулся к устойчивому профициту.',
         equipmentTrajectory: [24, 30, 42, 56, 68, 78, 86],
         finalEquipment: 86,
+        satisfactionTrajectory: [80, 82, 84, 86, 88, 88, 88],
         debtTrajectory: [1800, 1500, 1100, 700, 300, 0, 0],
         finalDebt: 0,
         finalSatisfaction: 88,
@@ -263,10 +271,11 @@ export function getScenarioBenchmark(scenarioId) {
       marcus: {
         name: 'Траектория Маркуса (Синдром ремонтника)',
         description: 'Попытка решить кризис снижением расходов на обслуживание и урезанием зарплат приведшая к поломке станков.',
-        strategy: 'Урезание расходов на обслуживание станков ради сиюминутной экономии казны, хаотичные скачки налогов, запоздалая паника.',
+        strategy: 'Сокращать обслуживание при продолжающемся износе, резко менять налоги и реагировать лишь после ухудшения выпуска и месячного баланса.',
         verdict: 'Станки деградировали до 5%, фабрика остановилась, город погрузился в долговую спираль с долгом свыше 9000 тыс. м.',
         equipmentTrajectory: [24, 21, 18, 14, 11, 8, 5],
         finalEquipment: 5,
+        satisfactionTrajectory: [80, 75, 68, 60, 55, 50, 48],
         debtTrajectory: [1800, 2200, 2900, 3800, 5100, 6800, 9200],
         finalDebt: 9200,
         finalSatisfaction: 48,
@@ -279,10 +288,11 @@ export function getScenarioBenchmark(scenarioId) {
       conrad: {
         name: 'Эталон Конрада (Синхронное развитие туризма)',
         description: 'Синхронизация рекламы туризма со строительством кемпингов и гостиниц; баланс между доходами и спокойствием жителей.',
-        strategy: 'Своевременное расширение номерного фонда (+80 мест) до запуска масштабной рекламной кампании, удержание дефицита жилья около нуля.',
+        strategy: 'Сопоставлять рекламу с фактической вместимостью и доступными работниками, расширять инфраструктуру заранее и проверять месячный баланс.',
         verdict: 'Туристический сектор дал стабильный доход без перегрузки городской инфраструктуры и без раздражения горожан (благополучие 90+).',
         equipmentTrajectory: [48, 55, 62, 70, 78],
         finalEquipment: 78,
+        satisfactionTrajectory: [84, 86, 88, 90, 91],
         tourismCapacityTrajectory: [20, 20, 100, 100, 180],
         finalTourismCapacity: 180,
         debtTrajectory: [0, 0, 0, 0, 0],
@@ -292,10 +302,11 @@ export function getScenarioBenchmark(scenarioId) {
       marcus: {
         name: 'Траектория Маркуса (Рекламный мираж)',
         description: 'Массированные траты на рекламу туризма при полном отсутствии свободных мест и игнорировании дефицита жилья.',
-        strategy: 'Реклама на максимуме (45 тыс./мес.) при вместимости 20 мест; туристы вытесняют жилье постоянных жителей, казна пустеет.',
+        strategy: 'Наращивать рекламу при неизменной вместимости, игнорировать доступных работников и продолжать расходы при ухудшении месячного баланса.',
         verdict: 'Рекламный бюджет сожжен впустую, туристы не смогли приехать, обострился дефицит жилья, благополучие упало ниже 60.',
         equipmentTrajectory: [48, 45, 40, 35, 30],
         finalEquipment: 30,
+        satisfactionTrajectory: [84, 78, 70, 62, 54],
         tourismCapacityTrajectory: [20, 20, 20, 20, 20],
         finalTourismCapacity: 20,
         debtTrajectory: [0, 800, 1800, 3200, 4800],
@@ -310,10 +321,11 @@ export function getScenarioBenchmark(scenarioId) {
       conrad: {
         name: 'Эталон Конрада (Системная интеграция)',
         description: 'Целостное управление всеми 5 сферами города с учетом лагов времени и взаимных резонансов.',
-        strategy: 'Спокойное удержание ключевых параметров (ремонт 16-20, услуги 14-16), запуск строительства жилья с запасом по времени, бескризисный бюджет.',
+        strategy: 'Сверять обслуживание с фактическим износом, услуги — с текущей потребностью населения, а каждое решение — с месячным балансом и сроками проектов.',
         verdict: 'Город преодолел все структурные диспропорции: отсутствие долга, процветающая фабрика, благополучие 93+.',
         equipmentTrajectory: [40, 52, 65, 78, 88, 95],
         finalEquipment: 95,
+        satisfactionTrajectory: [78, 82, 86, 89, 92, 94],
         debtTrajectory: [500, 200, 0, 0, 0, 0],
         finalDebt: 0,
         finalSatisfaction: 94,
@@ -321,10 +333,11 @@ export function getScenarioBenchmark(scenarioId) {
       marcus: {
         name: 'Траектория Маркуса (Хаотическое блуждание)',
         description: 'Бессистемное метание от одной локальной проблемы к другой с пренебрежением долгосрочными последствиями.',
-        strategy: 'Тематические прыжки («Themensprünge»): то налог 40%, то 5%, резкие остановки финансирования, кредиты на затыкание дыр.',
+        strategy: 'Резко переключать налоги и расходы между сферами, прекращать финансирование до проявления эффекта и не проверять рост долга по месячному балансу.',
         verdict: 'Система вошла в фазовый резонанс: долг свыше 8000 тыс. м., износ станков, исход населения, крах доверия к бургомистру.',
         equipmentTrajectory: [40, 32, 25, 20, 15, 10],
         finalEquipment: 10,
+        satisfactionTrajectory: [78, 70, 62, 54, 48, 42],
         debtTrajectory: [500, 1500, 3200, 5100, 7200, 9800],
         finalDebt: 9800,
         finalSatisfaction: 42,
@@ -337,7 +350,7 @@ export function getScenarioBenchmark(scenarioId) {
     conrad: {
       name: 'Эталон Конрада (10-летнее гармоничное развитие)',
       description: 'Устойчивое развитие всех 5 сфер города без перекосов.',
-      strategy: 'Планомерное инвестирование из операционной прибыли, заблаговременное строительство жилья, удержание безработицы ниже 25 человек.',
+      strategy: 'Инвестировать с учетом доступной казны и сроков, заранее следить за запасом жилья и регулярно проверять занятость и месячный баланс.',
       verdict: 'Лоххаузен превратился в самоподдерживающийся цветущий город с максимальным индексом благополучия (96).',
       equipmentTrajectory: [48, 58, 72, 84, 92, 100],
       finalEquipment: 100,
@@ -348,7 +361,7 @@ export function getScenarioBenchmark(scenarioId) {
     marcus: {
       name: 'Траектория Маркуса (Баллистический стиль)',
       description: 'Баллистические импульсивные реакции, раскачка системы.',
-      strategy: 'Принятие решений без последующей проверки эффектов; пренебрежение регулярными отчетами служб; позднее обнаружение скрытых кризисов.',
+      strategy: 'Принимать решения без последующей проверки фактического износа, потребности в услугах и месячного баланса; обнаруживать накопленные проблемы с опозданием.',
       verdict: 'Накопление отложенных дефицитов, резкий износ инфраструктуры и финансовый кризис во второй половине срока.',
       equipmentTrajectory: [48, 42, 35, 28, 20, 15],
       finalEquipment: 15,

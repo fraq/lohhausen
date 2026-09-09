@@ -2,9 +2,28 @@ import en from './locales/en.js';
 import de from './locales/de.js';
 import fr from './locales/fr.js';
 import extra from './locales/extra.js';
+import cockpit from './locales/cockpit.js';
 
 export const supportedLanguages = ['ru', 'en', 'de', 'fr'];
-const dictionaries = { en: { ...en, ...extra.en }, de: { ...de, ...extra.de }, fr: { ...fr, ...extra.fr } };
+const dictionaries = {
+  en: withTextAliases({ ...en, ...extra.en, ...cockpit.en }),
+  de: withTextAliases({ ...de, ...extra.de, ...cockpit.de }),
+  fr: withTextAliases({ ...fr, ...extra.fr, ...cockpit.fr }),
+};
+function withTextAliases(dictionary) {
+  // Decorative icons can live in their own DOM node; the text still needs its translation.
+  const iconPrefix = /^(?:\p{Extended_Pictographic}|\uFE0F)+\s+/u;
+  for (const [key, value] of Object.entries(dictionary)) {
+    if (key.endsWith(':')) {
+      const label = key.slice(0, -1);
+      if (!Object.hasOwn(dictionary, label)) dictionary[label] = value.replace(/\s*:\s*$/, '');
+    }
+    if (!iconPrefix.test(key)) continue;
+    const plainKey = key.replace(iconPrefix, '');
+    if (!Object.hasOwn(dictionary, plainKey)) dictionary[plainKey] = value.replace(iconPrefix, '');
+  }
+  return dictionary;
+}
 const validLanguage = language => supportedLanguages.includes(language) ? language : 'ru';
 const normalize = text => String(text).replace(/\s+/g, ' ').trim();
 const numberPattern = '[+\\-−]?\\d+(?:[.,\\u00a0\\u202f ]\\d+)*';

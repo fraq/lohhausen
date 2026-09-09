@@ -14,6 +14,7 @@ const assets = new Map([
   ['/src/locales/de.js', ['../src/locales/de.js', 'text/javascript; charset=utf-8']],
   ['/src/locales/fr.js', ['../src/locales/fr.js', 'text/javascript; charset=utf-8']],
   ['/src/locales/extra.js', ['../src/locales/extra.js', 'text/javascript; charset=utf-8']],
+  ['/src/locales/cockpit.js', ['../src/locales/cockpit.js', 'text/javascript; charset=utf-8']],
   ['/src/causal.js', ['../src/causal.js', 'text/javascript; charset=utf-8']],
   ['/src/debrief.js', ['../src/debrief.js', 'text/javascript; charset=utf-8']],
   ['/src/scenarios.js', ['../src/scenarios.js', 'text/javascript; charset=utf-8']],
@@ -40,7 +41,7 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, {
       'Content-Type': route[1], 'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     });
     response.end(request.method === 'HEAD' ? undefined : body);
   } catch {

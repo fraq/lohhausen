@@ -144,6 +144,20 @@ export const CAUSAL_LOOPS = Object.freeze([
   },
 ]);
 
+function maintenanceForecast(maintenance, game = {}) {
+  const production = Number.isFinite(game.production) ? game.production : 890;
+  const spending = Number.isFinite(Number(maintenance)) ? Number(maintenance) : 0;
+  const wear = 0.72 + (production / 1300) * 0.18;
+  return {
+    breakEven: wear / 0.044,
+    delta: spending * 0.044 - wear,
+  };
+}
+
+function formatSigned(value) {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+}
+
 /**
  * Generates an intelligent, qualitative memo from the advisor of a specific sphere.
  */
@@ -185,6 +199,9 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
       const inv = game.inventory ?? 120;
       const dem = game.demand ?? 500;
       const profit = budget.factoryProfit ?? ((game.sales || 480) * 0.57 - (game.factoryJobs || 550) * 0.105 * ((p.wage || 100) / 100) - (game.production || 480) * 0.145 - (p.maintenance || 15) - (p.marketing || 10));
+      const maintenance = Number.isFinite(p.maintenance) ? p.maintenance : 14;
+      const maintenanceOutlook = maintenanceForecast(maintenance, game);
+      const maintenanceAdvice = `При текущем выпуске точка компенсации износа — около ${maintenanceOutlook.breakEven.toFixed(1)} тыс. м./мес.; действующий бюджет дает расчетное изменение станков ${formatSigned(maintenanceOutlook.delta)} п.п. за следующий месяц.`;
 
       if (eq < 25) {
         return formatDiag({
@@ -192,7 +209,7 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           tone: 'danger',
           quote: '«Господин бургомистр, станки полностью разбиты! Износ критический. Рабочие простаивают, выпуска едва хватает, фабрика несет убытки. Срочно нужен ремонт или капитальная модернизация!»',
           keyStat: `Станки: ${eq.toFixed(1)}% (Критический износ)`,
-          recommendation: 'Увеличьте обслуживание станков минимум до 25–35 тыс./мес. или начните модернизацию.',
+          recommendation: `${maintenanceAdvice} Увеличьте обслуживание выше точки компенсации или рассмотрите модернизацию.`,
         });
       }
       if (eq < 45) {
@@ -201,7 +218,7 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           tone: 'warning',
           quote: '«Станки заметно изношены. Текущего ремонта не хватает, чтобы перекрыть естественный износ. Если не вложиться в обслуживание, производительность продолжит падать».',
           keyStat: `Станки: ${eq.toFixed(1)}% (Ниже нормы)`,
-          recommendation: 'Для восстановления оборудования расходы на обслуживание должны быть не ниже 18–22 тыс./мес.',
+          recommendation: `${maintenanceAdvice} Для восстановления нужен бюджет выше этой точки.`,
         });
       }
       if (inv > dem * 1.6 && inv > 200) {
@@ -228,7 +245,7 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           tone: 'positive',
           quote: '«Оборудование в прекрасном состоянии! Выпуск часов стабилен, квалификация рабочих позволяет держать высокое качество. Фабрика работает как надежные швейцарские часы».',
           keyStat: `Станки: ${eq.toFixed(1)}% · Выпуск: ${Math.round(game.production || 500)} шт.`,
-          recommendation: 'Поддерживайте текущий уровень обслуживания (около 14–16 тыс./мес.).',
+          recommendation: maintenanceAdvice,
         });
       }
       return formatDiag({
@@ -408,8 +425,8 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
         return formatDiag({
           status: 'good',
           tone: 'positive',
-          quote: `«Гостиницы заполнены на 100%! Мы приняли ${Math.round(visitors)} туристов, это дает казне ${Math.round(visitors * 0.19)} тыс. чистыми и обеспечивает занятость ${jobs} горожан».`,
-          keyStat: `Туристов: ${Math.round(visitors)} · Доход: +${Math.round(visitors * 0.19)} тыс. м.`,
+          quote: `«Гостиницы заполнены на 100%! Мы приняли ${Math.round(visitors)} туристов: это дает ${Math.round(visitors * 0.19)} тыс. поступлений до вычета рекламы и общегородских расходов и обеспечивает занятость ${jobs} горожан».`,
+          keyStat: `Туристов: ${Math.round(visitors)} · Валовые поступления: +${Math.round(visitors * 0.19)} тыс. м.`,
           recommendation: 'Отличный сектор диверсификации. Поддерживайте умеренную рекламу (10–15 тыс./мес.).',
         });
       }
@@ -473,6 +490,7 @@ export function explainStepCauses(current, previous) {
       icon: 'spark',
       headline: `🏗️ Завершен проект: ${projTitle}`,
       explanation: `Временной лаг стройки завершен, мощности введены в эксплуатацию.${noteMsg} Сверьте реальные сдвиги показателей с вашими ожиданиями.`,
+      playerNote: origNote || undefined,
       tone: 'positive',
     });
   }
@@ -573,7 +591,7 @@ export function explainStepCauses(current, previous) {
       icon: 'people',
       headline: `Благополучие жителей: ${Math.round(current.satisfaction)}/100 (${deltaSat >= 0 ? '+' : ''}${deltaSat.toFixed(1)} п.)`,
       explanation: deltaSat > 0
-        ? 'Улучшение условий труда, стабильная занятость и финансирование услуг подняли общий социальный настрой.'
+        ? 'Общая удовлетворенность выросла. Сравните показатели групп и действующие решения в социальном отчете.'
         : 'Снижение вызвано нагрузкой на сферу услуг, налогами или нехваткой доступного жилья.',
       tone: deltaSat > 0 ? 'positive' : 'warning',
     });
@@ -679,7 +697,8 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       const curMaint = game.policies?.maintenance ?? 15;
       const dMaint = patch.maintenance - curMaint;
       delta -= dMaint;
-      notes.push(`Обслуживание ${patch.maintenance} тыс. м.: ${patch.maintenance >= 18 ? 'восстановление станков' : 'риск износа'}.`);
+      const forecast = maintenanceForecast(patch.maintenance, game);
+      notes.push(`Обслуживание ${patch.maintenance} тыс. м.: расчетное изменение станков в следующем месяце ${formatSigned(forecast.delta)} п.п. (компенсация износа около ${forecast.breakEven.toFixed(1)} тыс. м.).`);
     }
     if (patch.services !== undefined) {
       const curServ = game.policies?.services ?? 76;
@@ -732,30 +751,19 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       };
     }
     case 'maintenance': {
-      let direct = '';
-      let side = '';
-      let risk = '';
-      if (num < 14) {
-        direct = `Экономия казны, но станки будут деградировать (естественный износ превышает ремонт).`;
-        side = 'Падение производительности труда и качества часов.';
-        risk = 'Через 4–8 месяцев выпуск резко упадет, фабрика станет убыточной.';
-      } else if (num <= 22) {
-        direct = 'Оптимальный уровень: компенсирует износ оборудования и стабилизирует станки.';
-        side = 'Равномерный темп выпуска без простоев.';
-        risk = 'Нет.';
-      } else {
-        direct = 'Интенсивное восстановление станков до 100% состояния.';
-        side = 'Повышенные ежемесячные затраты фабрики.';
-        risk = 'После достижения 100% станки не станут работать лучше нормы — расходы можно будет снизить.';
-      }
-      return { direct, sideEffect: side, risk };
+      const forecast = maintenanceForecast(num, game);
+      return {
+        direct: `Расчетное изменение состояния станков в следующем месяце: ${formatSigned(forecast.delta)} п.п. при текущем выпуске ${Math.round(Number.isFinite(game.production) ? game.production : 890)} шт.`,
+        sideEffect: `Точка компенсации текущего износа — около ${forecast.breakEven.toFixed(1)} тыс. м./мес.; фактический износ меняется вместе с выпуском.`,
+        risk: forecast.delta < 0 ? 'Состояние станков продолжит снижаться при неизменной нагрузке.' : 'Расходы фабрики вырастут на выбранную сумму обслуживания.',
+      };
     }
     case 'wage': {
       return {
         direct: `Фонд оплаты труда фабрики изменится пропорционально ставке (${num}%).`,
         sideEffect: num >= 100
-          ? 'Повышает удовлетворенность рабочих фабрики и привлекает кадры.'
-          : 'Снижает удовлетворенность рабочих, риск дефицита рабочих рук.',
+          ? 'Повышает удовлетворенность рабочих; через общее благополучие это может позже повлиять на миграцию.'
+          : 'Снижает удовлетворенность рабочих; прямого изменения числа рабочих мест ставка не вызывает.',
         risk: num > 125
           ? 'Фабрика может стать планово-убыточной.'
           : num < 80
@@ -835,7 +843,7 @@ export function getProjectAdvisorEndorsement(projectKey, game = {}) {
       } else if (eq < 70) {
         advice = `Оборудование изношено (${eq.toFixed(1)}%). Проект добавит +12 пунктов оборудования (~${afterEq.toFixed(0)}%) и повысит производительность линии за 9 месяцев.`;
       } else {
-        advice = `Оборудование в хорошем состоянии (${eq.toFixed(1)}%). Модернизация прибавит ещё +12 пунктов оборудования (~${afterEq.toFixed(0)}%) и долгосрочно улучшит квалификацию рабочих. Срок — 9 месяцев.`;
+        advice = `Оборудование в хорошем состоянии (${eq.toFixed(1)}%). Модернизация прибавит ещё +12 пунктов оборудования (~${afterEq.toFixed(0)}%) и повысит производительность. Срок — 9 месяцев.`;
       }
       return {
         advisor: ADVISORS.factory,

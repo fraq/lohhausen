@@ -465,7 +465,7 @@ a.button, a.nav-item, a.report-tab { text-decoration: none; }
 html:not([lang="ru"]) .city-illustration text { font-size: 9px; letter-spacing: .3px; }
 @media (max-width: 780px) {
   .language-control { justify-content: space-between; }
-  .step-controls { display: grid; grid-template-columns: 43px max-content minmax(0, 1fr); }
+  .step-controls { display: grid; grid-template-columns: 43px 43px max-content minmax(0, 1fr); }
   .step-controls .button { width: auto; white-space: normal; min-width: 0; overflow-wrap: normal; }
   .step-controls .button svg { flex-shrink: 0; }
 }
@@ -1073,6 +1073,10 @@ kbd {
 .legend-marker.marker-profile {
   background: #2e7d32;
   box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+.legend-marker.marker-baseline {
+  border: 2px dashed #7d786d;
+  background: rgba(125, 120, 109, 0.12);
 }
 .legend-marker.marker-critical {
   border: 2px dashed #c62828;

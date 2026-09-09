@@ -230,6 +230,7 @@ export function renderBenchmarkComparisonChart({
   playerHistory = [],
   conradTrajectory = [],
   marcusTrajectory = [],
+  previousTrajectory = [],
   metricLabel = 'Показатель',
   unit = '',
   horizon = 120,
@@ -238,7 +239,7 @@ export function renderBenchmarkComparisonChart({
   const height = 260;
   const left = 55;
   const right = 25;
-  const top = 40;
+  const top = 62;
   const bottom = 35;
   const plotW = width - left - right;
   const plotH = height - top - bottom;
@@ -258,10 +259,16 @@ export function renderBenchmarkComparisonChart({
     value: Number(val),
   })).filter(pt => Number.isFinite(pt.value)) : [];
 
+  const previousPoints = Array.isArray(previousTrajectory) ? previousTrajectory.map((pt, i) => ({
+    month: Number.isFinite(Number(pt?.month)) ? Number(pt.month) : Math.round((i / Math.max(1, previousTrajectory.length - 1)) * horizon),
+    value: Number(pt?.value ?? pt),
+  })).filter(pt => Number.isFinite(pt.value)) : [];
+
   const allValues = [
     ...playerPoints.map(p => p.value),
     ...conradPoints.map(p => p.value),
     ...marcusPoints.map(p => p.value),
+    ...previousPoints.map(p => p.value),
   ];
 
   const minVal = allValues.length ? Math.min(...allValues) : 0;
@@ -279,6 +286,7 @@ export function renderBenchmarkComparisonChart({
   const playerPath = toLinePath(playerPoints);
   const conradPath = toLinePath(conradPoints);
   const marcusPath = toLinePath(marcusPoints);
+  const previousPath = toLinePath(previousPoints);
 
   const gridTicks = [0, 0.5, 1].map(r => {
     const val = high - r * ySpan;
@@ -295,38 +303,66 @@ export function renderBenchmarkComparisonChart({
     
     <!-- Marcus (Reactive) Trajectory -->
     ${marcusPath ? `<path d="${marcusPath}" fill="none" stroke="#c62828" stroke-width="2.5" stroke-dasharray="3 3" opacity="0.85"/>` : ''}
+
+    <!-- Previous Attempt Trajectory -->
+    ${previousPath ? `<path d="${previousPath}" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-dasharray="3 3" opacity="0.85"/>` : ''}
     
     <!-- Player Trajectory -->
     ${playerPath ? `<path d="${playerPath}" fill="none" stroke="#1f4e38" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
     ${playerPoints.length ? `<circle cx="${x(playerPoints.at(-1).month).toFixed(1)}" cy="${y(playerPoints.at(-1).value).toFixed(1)}" r="4.5" fill="#1f4e38"/>` : ''}
 
     <!-- Axis Labels -->
-    <text x="${left}" y="${height - 12}" font-size="11" fill="#7d786d">Месяц 0</text>
+    <text x="${left}" y="${height - 12}" font-size="11" fill="#7d786d">Начало управления</text>
     <text x="${width - right}" y="${height - 12}" text-anchor="end" font-size="11" fill="#7d786d">Месяц ${horizon}</text>
 
     <!-- Legend -->
-    <g class="chart-legend" transform="translate(${left}, 22)">
-      <text x="0" y="0" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#273a31">${xmlEscape(metricLabel)}${unit ? ` (${xmlEscape(unit)})` : ''}</text>
-      <g transform="translate(260, -4)">
-        <line x1="0" y1="0" x2="20" y2="0" stroke="#1f4e38" stroke-width="3"/>
-        <text x="26" y="4" font-size="11" font-weight="600" fill="#1f4e38">Игрок (Вы)</text>
-      </g>
-      <g transform="translate(390, -4)">
-        <line x1="0" y1="0" x2="20" y2="0" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="4 2"/>
-        <text x="26" y="4" font-size="11" font-weight="600" fill="#2e7d32">🌟 Конрад (Эталон)</text>
-      </g>
-      <g transform="translate(540, -4)">
-        <line x1="0" y1="0" x2="20" y2="0" stroke="#c62828" stroke-width="2.5" stroke-dasharray="3 3"/>
-        <text x="26" y="4" font-size="11" font-weight="600" fill="#c62828">⚠️ Маркус (Ловушка)</text>
-      </g>
+    <g class="chart-legend" transform="translate(${left}, 44)">
+      <text x="0" y="-22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#273a31">${xmlEscape(metricLabel)}${unit ? ` (${xmlEscape(unit)})` : ''}</text>
+      ${previousPath ? `
+        <g transform="translate(0, -4)">
+          <line x1="0" y1="0" x2="16" y2="0" stroke="#1f4e38" stroke-width="3"/>
+          <text x="20" y="4" font-size="10.5" font-weight="600" fill="#1f4e38">Игрок (Вы)</text>
+        </g>
+        <g transform="translate(160, -4)">
+          <line x1="0" y1="0" x2="16" y2="0" stroke="#6b5b95" stroke-width="2.2" stroke-dasharray="3 3"/>
+          <text x="20" y="4" font-size="10.5" font-weight="600" fill="#6b5b95">↩ Прошлая</text>
+        </g>
+        <g transform="translate(320, -4)">
+          <line x1="0" y1="0" x2="16" y2="0" stroke="#2e7d32" stroke-width="2" stroke-dasharray="4 2"/>
+          <text x="20" y="4" font-size="10.5" font-weight="600" fill="#2e7d32">🌟 Конрад</text>
+        </g>
+        <g transform="translate(480, -4)">
+          <line x1="0" y1="0" x2="16" y2="0" stroke="#c62828" stroke-width="2" stroke-dasharray="3 3"/>
+          <text x="20" y="4" font-size="10.5" font-weight="600" fill="#c62828">⚠️ Маркус</text>
+        </g>
+      ` : `
+        <g transform="translate(0, -4)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#1f4e38" stroke-width="3"/>
+          <text x="26" y="4" font-size="11" font-weight="600" fill="#1f4e38">Игрок (Вы)</text>
+        </g>
+        <g transform="translate(215, -4)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="4 2"/>
+          <text x="26" y="4" font-size="11" font-weight="600" fill="#2e7d32">🌟 Конрад (Эталон)</text>
+        </g>
+        <g transform="translate(430, -4)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#c62828" stroke-width="2.5" stroke-dasharray="3 3"/>
+          <text x="26" y="4" font-size="11" font-weight="600" fill="#c62828">⚠️ Маркус (Ловушка)</text>
+        </g>
+      `}
     </g>
   </svg>`;
 }
 /**
  * Render a five‑axis systemic health radar (spider) chart.
  * Axes: Production, Fiscal Health, Housing, Services/Health, Satisfaction.
- * The chart shows the current values (0‑100) and a red ring at the 40 % critical level.
+ * Scales and the red 40/100 reference ring are illustrative, not crisis thresholds.
  */
+export function hasRadarBaseline(game) {
+  const start = game.history?.[0];
+  return game.history?.length > 1 && start?.month === 0 &&
+    ['production', 'treasury', 'debt', 'housingShortage', 'serviceQuality', 'satisfaction'].every(key => Number.isFinite(start[key]));
+}
+
 export function renderSystemicRadarChart(game, options = {}) {
   const width = options.width || 280;
   const height = options.height || 280;
@@ -359,6 +395,25 @@ export function renderSystemicRadarChart(game, options = {}) {
     return { x, y, value: values[axis.key], label: axis.label };
   });
 
+  const baselineState = options.showBaseline !== false && hasRadarBaseline(game) ? game.history[0] : null;
+  let baselineMarkup = '';
+  if (baselineState) {
+    const baseValues = {
+      production: clamp(Math.round((baselineState.production / 1000) * 100), 0, 100),
+      fiscal: clamp(Math.round(50 + ((baselineState.treasury - baselineState.debt) / 2400) * 50), 0, 100),
+      housing: clamp(Math.round(100 - (baselineState.housingShortage / 250) * 60), 0, 100),
+      services: clamp(Math.round(baselineState.serviceQuality), 0, 100),
+      satisfaction: clamp(Math.round(baselineState.satisfaction), 0, 100),
+    };
+    const basePoints = axes.map((axis, i) => {
+      const r = (baseValues[axis.key] / 100) * radius;
+      const x = cx + r * Math.sin(i * angleStep);
+      const y = cy - r * Math.cos(i * angleStep);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    baselineMarkup = `<polygon points="${basePoints}" fill="none" stroke="#7d786d" stroke-width="1.8" stroke-dasharray="3 3" opacity="0.75"/>`;
+  }
+
   const grid = [20, 40, 60, 80, 100]
     .map(p => {
       const r = (p / 100) * radius;
@@ -372,11 +427,13 @@ export function renderSystemicRadarChart(game, options = {}) {
     const x = cx + radius * Math.sin(i * angleStep);
     const y = cy - radius * Math.cos(i * angleStep);
     const labelDist = radius + 18;
-    const labelX = cx + labelDist * Math.sin(i * angleStep);
+    const side = Math.sin(i * angleStep);
+    const anchor = side < -0.8 ? 'start' : side > 0.8 ? 'end' : 'middle';
+    const labelX = side < -0.8 ? 10 : side > 0.8 ? width - 10 : cx + labelDist * side;
     const labelY = cy - labelDist * Math.cos(i * angleStep) + 4;
     return `
       <line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#cfc9be" stroke-width="1"/>
-      <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="#273a31">${xmlEscape(axis.label)}</text>`;
+      <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="${anchor}" font-size="11" font-weight="600" fill="#273a31">${xmlEscape(axis.label)}</text>`;
   }).join('\n');
 
   const polygonPoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
@@ -388,9 +445,9 @@ export function renderSystemicRadarChart(game, options = {}) {
       <rect width="${width}" height="${height}" rx="12" fill="#faf8f2" stroke="#e3dfd3" stroke-width="1.5"/>
       <g class="radar-grid">${grid}</g>
       ${criticalRing}
+      ${baselineMarkup}
       <g class="radar-axes">${axesMarkup}</g>
       ${polygon}
       <g class="radar-dots">${dots}</g>
     </svg>`;
 }
-

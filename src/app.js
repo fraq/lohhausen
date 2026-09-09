@@ -1,5 +1,5 @@
 import { createGame, setPolicies, startProject, advance, requestReport, serializeGame, deserializeGame, summarize, POLICY_CONFIG, PROJECTS } from './model.js';
-import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart, renderSystemicRadarChart } from './visuals.js';
+import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart, renderSystemicRadarChart, hasRadarBaseline } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf, getProjectAdvisorEndorsement } from './causal.js';
@@ -416,21 +416,30 @@ function systemicHealthPanel() {
         </div>
         <div class="systemic-radar-info">
           <p class="source-note" style="margin-top: 0;">
-            ${translate('По Дёрнеру, крах сложной системы наступает не от одного фактора, а при одновременном проседании нескольких сфер ниже критического порога.', language)}
+            ${translate('Диаграмма помогает сравнить пять сфер города. Шкалы условные и не заменяют исходные показатели в отчетах.', language)}
           </p>
           <div class="systemic-radar-legend-items">
             <div class="legend-item">
               <span class="legend-marker marker-profile"></span>
               <div>
                 <strong>${translate('Профиль города (зелёный многоугольник)', language)}</strong>
-                <p>${translate('Текущий статус 5 ключевых систем. Равномерная форма свидетельствует о сбалансированности управления.', language)}</p>
+                <p>${translate('Форма зависит от выбранных шкал. Для оценки устойчивости проверьте также долг, месячный баланс и изменения показателей.', language)}</p>
               </div>
             </div>
+            ${hasRadarBaseline(game) ? `
+              <div class="legend-item">
+                <span class="legend-marker marker-baseline"></span>
+                <div>
+                  <strong>${translate('Начало управления (серый пунктир)', language)}</strong>
+                  <p>${translate('Исходные показатели города на тех же условных шкалах. Сравните их с текущим состоянием.', language)}</p>
+                </div>
+              </div>
+            ` : ''}
             <div class="legend-item">
               <span class="legend-marker marker-critical"></span>
               <div>
-                <strong>${translate('Критический порог 40% (красный пунктир)', language)}</strong>
-                <p>${translate('Граница необратимого кризиса. Падение показателей внутрь кольца вызывает кумулятивный крах.', language)}</p>
+                <strong>${translate('Условная отметка 40 из 100 (красный пунктир)', language)}</strong>
+                <p>${translate('Визуальный ориентир, а не граница необратимого кризиса. Дальнейший результат зависит от состояния города и решений.', language)}</p>
               </div>
             </div>
           </div>
@@ -550,7 +559,25 @@ function decisionsView() {
       <h2>Не только что. Но и когда.</h2>
       <p>Текущая политика действует каждый месяц. Проекты оплачиваются один раз и дают результат после завершения срока строительства.</p>
     </div>
-    ${complete() ? '<div class="inline-note">Десять лет управления завершены. Решения сохранены для разбора.</div>' : ''}
+    ${complete() ? '<div class="inline-note">Срок управления завершен. Решения сохранены для разбора.</div>' : ''}
+    ${game.projects && game.projects.length > 0 ? `
+      <div class="panel time-lag-banner" style="background: linear-gradient(135deg, rgba(140, 89, 27, 0.08), rgba(39, 58, 49, 0.05)); border-left: 4px solid #8c591b; margin-bottom: 20px; padding: 14px 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <strong style="color: #8c591b; font-size: 14px;">⏳ Временные лаги: в городе реализуются проекты (${game.projects.length})</strong>
+          <span class="badge" style="background: #fdf3dc; color: #8c591b;">Инерция системы</span>
+        </div>
+        <p style="margin: 6px 0 10px; font-size: 13px; color: var(--ink-soft);">
+          Мощности этих проектов появятся в указанный месяц. Учитывайте срок ввода при следующих решениях, продолжайте проверять отчеты и текущий бюджет.
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          ${game.projects.map(p => `
+            <span class="pill" style="font-size: 12px; background: #fff; border: 1px solid var(--line);">
+              🏗️ ${escapeHTML(p.label)}: осталось ${Math.max(0, p.completeMonth - game.month)} мес. (ввод: месяц ${p.completeMonth})
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
     <form id="policy-form" class="panel">
       <div class="panel-heading">
         <div>
@@ -879,7 +906,7 @@ function debriefView() {
       </div>
 
       <div class="panel" style="margin-bottom: 24px; border-left: 4px solid var(--accent); background: var(--surface);">
-        <p class="eyebrow" style="color: var(--accent);">УПРАВЛЕНЧЕСКИЙ АРХЕТИП ПО ДЁРНЕРУ</p>
+        <p class="eyebrow" style="color: var(--accent);">НАБЛЮДЕНИЯ ПО ЖУРНАЛУ РЕШЕНИЙ</p>
         <h3 style="margin: 4px 0 8px; font-size: 20px;">${escapeHTML(analysis.archetype.name)}</h3>
         <p style="margin: 0 0 8px;"><strong>${escapeHTML(analysis.archetype.title)}:</strong> ${escapeHTML(analysis.archetype.description)}</p>
         <p style="margin: 0; font-size: 14px; color: var(--muted); font-style: italic;">${escapeHTML(analysis.summary)}</p>
@@ -916,10 +943,22 @@ function debriefView() {
             const metricTitle = isEquipment ? 'Состояние оборудования фабрики' : 'Индекс благополучия жителей';
             const conradData = isEquipment ? benchmark.conrad.equipmentTrajectory : benchmark.conrad.satisfactionTrajectory;
             const marcusData = isEquipment ? benchmark.marcus.equipmentTrajectory : benchmark.marcus.satisfactionTrajectory;
+            let previousData = [];
+            try {
+              const rawPrev = localStorage.getItem(`lohhausen_prev_run_${game.scenarioId || 'sandbox'}`);
+              if (rawPrev) {
+                const parsed = JSON.parse(rawPrev);
+                if (Array.isArray(parsed?.history) && parsed.history.length > 1) {
+                  previousData = parsed.history.map(h => ({ month: h.month, value: h[metricKey] })).filter(p => Number.isFinite(p.value));
+                }
+              }
+            } catch { /* storage unavailable */ }
+
             return renderBenchmarkComparisonChart({
               playerHistory: game.history.map(h => ({ month: h.month, value: h[metricKey] })),
               conradTrajectory: conradData,
               marcusTrajectory: marcusData,
+              previousTrajectory: previousData,
               metricLabel: metricTitle,
               unit: '%',
               horizon: game.horizon || 120,
@@ -1099,7 +1138,7 @@ function modelView() {
             <li>Процентный долг города (0.8% в месяц) и кассовый баланс.</li>
             <li>Датированная отчетность и система советов подразделений.</li>
           </ul>
-          <p class="source-note">Уравнения оригинального компьютерного симулятора 1970-х годов не опубликованы; мы воссоздали качественную системную динамику, строго следуя описанным в книге закономерностям.</p>
+          <p class="source-note">Полные уравнения исходного эксперимента нам неизвестны. Здесь используются собственные коэффициенты и учебные сценарии по мотивам книги; результаты не являются психологической оценкой игрока.</p>
         </article>
       </div>
     </section>
@@ -1311,15 +1350,15 @@ app.addEventListener('click', event => {
     }
     if (control.dataset.project) {
       const type = control.dataset.project;
-      commit(startProject(game, type, `Ожидаемый ввод: месяц ${game.month + PROJECTS[type].duration}.`), `Проект «${PROJECTS[type].label}» начат. Стоимость списана один раз; ввод через ${PROJECTS[type].duration} мес.`);
+      const expectation = document.getElementById('policy-note')?.value.trim() || '';
+      commit(startProject(game, type, expectation), `Проект «${PROJECTS[type].label}» начат. Стоимость списана один раз; ввод через ${PROJECTS[type].duration} мес.`);
       return;
     }
     switch (control.dataset.action) {
       case 'export-debrief-md': {
-        const scenario = getScenario(game.scenarioId || 'sandbox');
         const evaluation = evaluateScenario(game);
         const analysis = analyzeDebrief(game);
-        const mdText = formatDebriefMarkdown(game, analysis, evaluation);
+        const mdText = formatDebriefMarkdown(game, analysis, evaluation, line => translate(line, language));
         downloadFile(`lohhausen-debrief-month-${game.month}.md`, 'text/markdown;charset=utf-8', mdText);
         notice = 'Аналитический отчет Дёрнера скачан в формате Markdown.';
         render();
@@ -1371,6 +1410,19 @@ app.addEventListener('click', event => {
         document.getElementById('keyboard-help-dialog')?.showModal();
         break;
       case 'confirm-new-game':
+        if (game && game.history && game.history.length > 1) {
+          try {
+            const prevKey = `lohhausen_prev_run_${game.scenarioId || 'sandbox'}`;
+            localStorage.setItem(prevKey, JSON.stringify({
+              scenarioId: game.scenarioId || 'sandbox',
+              month: game.month,
+              satisfaction: game.satisfaction,
+              equipment: game.equipment,
+              debt: game.debt,
+              history: game.history.map(h => ({ month: h.month, satisfaction: h.satisfaction, equipment: h.equipment, debt: h.debt })),
+            }));
+          } catch { /* storage quota or blocked */ }
+        }
         const checkedRadio = document.querySelector('input[name="scenario-choice"]:checked');
         if (checkedRadio) selectedScenarioId = checkedRadio.value;
         game = applyScenario(createGame(), selectedScenarioId);

@@ -77,6 +77,29 @@ test('visuals: renderBenchmarkComparisonChart строит SVG сопостав�
   assert.ok(chart.includes('viewBox="0 0 720 260"'));
 });
 
+test('visuals: renderBenchmarkComparisonChart renders historical comparison when previousTrajectory is provided', () => {
+  const chart = renderBenchmarkComparisonChart({
+    playerHistory: [
+      { month: 0, value: 24 },
+      { month: 12, value: 50 },
+    ],
+    conradTrajectory: [24, 60],
+    marcusTrajectory: [24, 15],
+    previousTrajectory: [
+      { month: 0, value: 24 },
+      { month: 12, value: 30 },
+    ],
+    metricLabel: 'Состояние оборудования',
+    unit: '%',
+    horizon: 12,
+  });
+
+  assert.equal(typeof chart, 'string');
+  assert.ok(chart.includes('Прошлая'));
+  assert.ok(chart.includes('#6b5b95'));
+});
+
+
 test('visuals: renderSystemicRadarChart produces valid SVG and includes critical 40% ring', () => {
   const game = createGame();
   const svg = renderSystemicRadarChart(game);
@@ -109,3 +132,24 @@ test('visuals: renderSystemicRadarChart supports custom translated labels and di
   assert.ok(svg.includes('Zufriedenheit'));
 });
 
+test('visuals: renderSystemicRadarChart renders ghost baseline polygon when history > 1', () => {
+  const game = createGame();
+  const svg0 = renderSystemicRadarChart(game);
+  assert.ok(!svg0.includes('stroke="#7d786d" stroke-width="1.8"'));
+
+  game.month = 1;
+  game.history.push({ ...game.history[0], month: 1, satisfaction: 75 });
+  const svg1 = renderSystemicRadarChart(game);
+  assert.ok(svg1.includes('stroke="#7d786d" stroke-width="1.8"'));
+  assert.ok(svg1.includes('stroke-dasharray="3 3"'));
+});
+
+test('radar never substitutes current service quality for missing historical observations', () => {
+  const game = createGame();
+  game.history.push({ ...game.history[0], month: 1 });
+  const initial = renderSystemicRadarChart(game).match(/<polygon[^>]*stroke="#7d786d"[^>]*>/)?.[0];
+  game.serviceQuality = 5;
+  assert.equal(renderSystemicRadarChart(game).match(/<polygon[^>]*stroke="#7d786d"[^>]*>/)?.[0], initial);
+  delete game.history[0].serviceQuality;
+  assert.doesNotMatch(renderSystemicRadarChart(game), /<polygon[^>]*stroke="#7d786d"/);
+});

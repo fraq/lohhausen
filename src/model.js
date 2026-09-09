@@ -1,4 +1,5 @@
 const HORIZON = 120;
+const SCENARIO_HORIZONS = Object.freeze({ sandbox: 120, factory_crisis: 36, tourism_dilemma: 48, dorner_challenge: 60 });
 const REPORT_KINDS = ['finance', 'factory', 'housing', 'social', 'tourism'];
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const round = (value, digits = 6) => Number(value.toFixed(digits));
@@ -23,7 +24,7 @@ export const PROJECTS = Object.freeze({
 const DEFAULT_POLICIES = Object.freeze({ taxRate: 16, wage: 100, maintenance: 14, services: 68, education: 20, marketing: 20, tourismMarketing: 5 });
 
 function snapshot(game) {
-  return { month: game.month, population: game.population, treasury: game.treasury, debt: game.debt, production: game.production, unemployment: game.unemployment, housingShortage: game.housingShortage, satisfaction: game.satisfaction };
+  return { month: game.month, population: game.population, treasury: game.treasury, debt: game.debt, production: game.production, unemployment: game.unemployment, housingShortage: game.housingShortage, satisfaction: game.satisfaction, equipment: game.equipment, housingCapacity: game.housingCapacity, tourismCapacity: game.tourismCapacity, visitors: game.visitors, serviceQuality: game.serviceQuality };
 }
 
 function makeBudget() {
@@ -274,7 +275,11 @@ const NUMBER_FIELDS = ['version', 'month', 'horizon', 'population', 'treasury', 
 const PERCENT_FIELDS = ['equipment', 'skills', 'serviceQuality', 'health', 'education', 'satisfaction'];
 const NON_NEGATIVE_FIELDS = ['population', 'treasury', 'debt', 'housingCapacity', 'workforce', 'factoryJobs', 'otherJobs', 'tourismJobs', 'unemployment', 'housingShortage', 'production', 'inventory', 'sales', 'demand', 'tourismCapacity', 'tourismDemand', 'visitors', 'modernizationLevel'];
 function isPlainObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
-function validSnapshot(item) { return isPlainObject(item) && ['month', 'population', 'treasury', 'debt', 'production', 'unemployment', 'housingShortage', 'satisfaction'].every((key) => Number.isFinite(item[key])); }
+function validSnapshot(item) {
+  return isPlainObject(item)
+    && ['month', 'population', 'treasury', 'debt', 'production', 'unemployment', 'housingShortage', 'satisfaction'].every((key) => Number.isFinite(item[key]))
+    && ['equipment', 'housingCapacity', 'tourismCapacity', 'visitors', 'serviceQuality'].every(key => !(key in item) || (Number.isFinite(item[key]) && item[key] >= 0));
+}
 function validReportData(kind, data) {
   const numberKeys = {
     finance: ['treasury', 'debt', 'netPosition'],
@@ -299,11 +304,13 @@ function validComparison(kind, report) {
     && validReportData(kind, report.comparison.data));
 }
 function validateGame(value) {
-  if (!isPlainObject(value) || value.version !== 1 || value.horizon !== HORIZON || !NUMBER_FIELDS.every((key) => Number.isFinite(value[key]))) return false;
-  if (!Number.isInteger(value.month) || value.month < 0 || value.month > HORIZON || !NON_NEGATIVE_FIELDS.every((key) => value[key] >= 0) || !PERCENT_FIELDS.every((key) => value[key] >= 0 && value[key] <= 100)) return false;
+  if (!isPlainObject(value) || value.version !== 1 || !NUMBER_FIELDS.every((key) => Number.isFinite(value[key]))) return false;
+  const expectedHorizon = value.scenarioId === undefined ? HORIZON : SCENARIO_HORIZONS[value.scenarioId];
+  if (value.horizon !== expectedHorizon) return false;
+  if (!Number.isInteger(value.month) || value.month < 0 || value.month > value.horizon || !NON_NEGATIVE_FIELDS.every((key) => value[key] >= 0) || !PERCENT_FIELDS.every((key) => value[key] >= 0 && value[key] <= 100)) return false;
   if (!isPlainObject(value.satisfactionGroups) || !['workers', 'families', 'seniors'].every((key) => Number.isFinite(value.satisfactionGroups[key]) && value.satisfactionGroups[key] >= 0 && value.satisfactionGroups[key] <= 100)) return false;
   if (!isPlainObject(value.policies) || !Object.keys(POLICY_CONFIG).every((key) => Number.isFinite(value.policies[key]) && value.policies[key] >= POLICY_CONFIG[key].min && value.policies[key] <= POLICY_CONFIG[key].max)) return false;
-  if (!Array.isArray(value.projects) || !value.projects.every((project) => isPlainObject(project) && typeof project.id === 'string' && typeof project.label === 'string' && PROJECTS[project.type] && Number.isFinite(project.cost) && project.cost >= 0 && Number.isInteger(project.startMonth) && Number.isInteger(project.completeMonth) && project.startMonth >= 0 && project.completeMonth > project.startMonth && project.completeMonth <= HORIZON)) return false;
+  if (!Array.isArray(value.projects) || !value.projects.every((project) => isPlainObject(project) && typeof project.id === 'string' && typeof project.label === 'string' && PROJECTS[project.type] && Number.isFinite(project.cost) && project.cost >= 0 && Number.isInteger(project.startMonth) && Number.isInteger(project.completeMonth) && project.startMonth >= 0 && project.completeMonth > project.startMonth && project.completeMonth <= value.horizon)) return false;
   if (!isPlainObject(value.reports) || !Object.entries(value.reports).every(([kind, report]) => REPORT_KINDS.includes(kind) && isPlainObject(report) && Number.isInteger(report.month) && report.month >= 0 && report.month <= value.month && validReportData(kind, report.data) && Array.isArray(report.observations) && report.observations.every((item) => typeof item === 'string') && validComparison(kind, report))) return false;
   if (!validReportHistory(value.reportHistory, value.month)) return false;
   if (!Array.isArray(value.history) || value.history.length === 0 || !value.history.every(validSnapshot) || value.history[0].month !== 0 || value.history.at(-1).month !== value.month || !value.history.every((item, index) => item.month === index)) return false;

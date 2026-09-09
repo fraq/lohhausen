@@ -29,42 +29,52 @@ export function analyzeDebrief(gameOrHistory, maybeJournal, maybeState) {
 
   const highSeverityTraps = traps.filter(t => t.detected && t.severity === 'high');
   const anyTraps = traps.filter(t => t.detected);
+  const observedActions = journal.filter(entry => entry.type === 'policy' || entry.type === 'policies' || entry.type === 'project').length;
+  const observedReports = journal.filter(entry => entry.type === 'report').length;
+  const evidenceSufficient = observedActions > 0 && (game.month ?? 0) > 0 && observedReports > 0;
 
   let archetype;
-  if (highSeverityTraps.length === 0 && anyTraps.length === 0) {
+  if (!evidenceSufficient && anyTraps.length === 0) {
+    archetype = {
+      id: 'insufficient_evidence',
+      name: 'Недостаточно данных',
+      title: 'Нейтральный предварительный разбор',
+      description: 'В журнале пока недостаточно решений, времени наблюдения и обратной связи, чтобы обоснованно характеризовать стиль управления.',
+    };
+  } else if (highSeverityTraps.length === 0 && anyTraps.length === 0) {
     archetype = {
       id: 'conrad',
-      name: 'Конрад (Системный мыслитель)',
-      title: 'Вдумчивое системное управление',
-      description: 'Вы проявили терпение, учитывали временные лаги и контролировали последствия решений через доклады подразделений.',
+      name: 'Профиль Конрада',
+      title: 'Признаки последовательного управления',
+      description: 'В доступном журнале решения разнесены во времени и сопровождаются запросами отчетов. Это наблюдаемый паттерн партии, а не оценка личности игрока.',
     };
   } else if (traps.find(t => t.id === 'encapsulation' && t.detected)) {
     archetype = {
       id: 'encapsulator',
       name: 'Инкапсулятор',
       title: 'Уход в комфортную частную сферу',
-      description: 'Склонность концентрироваться на второстепенных понятных вопросах (например, туризме) в моменты, когда базис города требовал срочного внимания.',
+      description: 'В партии есть решения о туризме и признаки проблем фабрики или казны. Этот индикатор не устанавливает их последовательность или мотивы игрока.',
     };
   } else if (traps.find(t => t.id === 'thematic_vagabonding' && t.detected)) {
     archetype = {
       id: 'vagabond',
       name: 'Тематический бродяга',
       title: 'Хаотичное переключение фокуса',
-      description: 'Постоянные скачки между несвязанными проблемами без доведения начатых реформ до устойчивого результата.',
+      description: 'В журнале найдено много быстрых переключений между сферами. Этот индикатор не устанавливает причины поведения игрока.',
     };
   } else if (traps.find(t => t.id === 'ballistic_action' && t.detected)) {
     archetype = {
       id: 'ballistic',
       name: 'Баллистический стрелок',
       title: 'Действие вслепую без обратной связи',
-      description: 'Запуск масштабных мер без последующей проверки фактического положения дел по отчетам служб.',
+      description: 'После завершения крупных мер в журнале отсутствуют профильные отчеты. Этот индикатор описывает только доступные записи партии.',
     };
   } else {
     archetype = {
       id: 'oversteerer',
       name: 'Нетерпеливый регулятор',
-      title: 'Раскачка системы из-за игнорирования задержек',
-      description: 'Частая коррекция параметров до того, как успели проявиться отложенные эффекты предыдущих шагов.',
+      title: 'Быстрые развороты налоговой ставки',
+      description: 'В журнале есть частые коррекции параметров до истечения возможного периода отклика. Этот индикатор не доказывает мотивы игрока.',
     };
   }
 
@@ -102,10 +112,10 @@ function detectThematicVagabonding(journal) {
     detected,
     severity: detected ? (switchesCount >= 7 ? 'high' : 'medium') : 'none',
     description: detected
-      ? `Зафиксировано ${switchesCount} импульсивных переключений между разными сферами. Игрок скачет от одной темы к другой, не давая системе стабилизироваться.`
-      : 'Фокус управления оставался последовательным.',
+      ? `В журнале зафиксировано переключений между сферами: ${switchesCount}. Сопоставьте их сроки с вашим планом; само число переключений не доказывает хаотичность управления.`
+      : 'Порог частых переключений не достигнут в доступном журнале.',
     evidence: { switchesCount },
-    dornerQuote: '«Участники переходили от одной проблемы к другой, бросая начатое дело сразу, как только на горизонте появлялась новая трудность» (Глава 3).',
+    learningPrompt: 'Проверьте, завершали ли вы начатую линию действий перед переключением на новую проблему.',
   };
 }
 
@@ -135,28 +145,48 @@ function detectEncapsulation(journal, history, game) {
     detected,
     severity: detected ? 'high' : 'none',
     description: detected
-      ? 'Обнаружен уход во второстепенную сферу (туризм) при наличии глубокого системного кризиса на фабрике или в казне. Бургомистр укрывается в решении второстепенных задач, избегая сложных структурных проблем.'
-      : 'Признаков инкапсуляции и бегства от ключевых проблем не выявлено.',
+      ? 'В партии есть решения о туризме и признаки проблем фабрики или казны. Этот индикатор не устанавливает их последовательность или мотивы игрока.'
+      : 'Сочетание туристического фокуса и кризиса ядра не найдено в доступных данных.',
     evidence: { equipment: eq, debt, tourismMarketing: p.tourismMarketing },
-    dornerQuote: '«Испытуемые замыкались в маленькой, уютной области, где они чувствовали себя компетентными, полностью игнорируя катастрофу в масштабах всей системы» (Глава 4).',
+    learningPrompt: 'Сравните внимание к удобным частным задачам с состоянием основных ресурсов города.',
   };
 }
 
 function detectBallisticAction(journal, history, game) {
-  const majorInterventions = journal.filter(j => 
-    j.type === 'project' || 
-    ((j.type === 'policy' || j.type === 'policies') && (
-      (j.changes?.taxRate ?? j.patch?.taxRate ?? 15) > 25 || 
-      (j.changes?.taxRate ?? j.patch?.taxRate ?? 15) < 12
-    ))
+  const reportKind = (entry) => {
+    const explicit = entry.kind || entry.reportKind || entry.request || entry.report?.kind;
+    if (explicit) return explicit;
+    const title = String(entry.title || '').toLowerCase();
+    if (title.includes('жиль')) return 'housing';
+    if (title.includes('фабрик')) return 'factory';
+    if (title.includes('туризм')) return 'tourism';
+    if (title.includes('финанс')) return 'finance';
+    if (title.includes('социал')) return 'social';
+    return null;
+  };
+  const expectedReport = { housing: 'housing', modernization: 'factory', tourism: 'tourism' };
+  const completedProjects = journal.filter(entry =>
+    entry.type === 'project' && entry.project && Number.isFinite(entry.project.completeMonth) &&
+    (game.month ?? 0) >= entry.project.completeMonth
   );
-
-  const reportRequests = journal.filter(j => j.type === 'report');
-
-  let unmonitoredInterventions = 0;
-  if (majorInterventions.length > 0 && reportRequests.length === 0) {
-    unmonitoredInterventions = majorInterventions.length;
-  }
+  const reportRequests = journal.filter(entry => entry.type === 'report');
+  const unmonitoredProjects = completedProjects.filter(entry => {
+    const expected = expectedReport[entry.project.type];
+    const completionIndex = journal.findIndex(item =>
+      item.type === 'completion' && item.month === entry.project.completeMonth &&
+      String(item.title || '').includes(entry.project.label || entry.project.type)
+    );
+    return !expected || !reportRequests.some(report => {
+      if (reportKind(report) !== expected || report.month < entry.project.completeMonth) return false;
+      if (report.month > entry.project.completeMonth) return true;
+      return completionIndex >= 0 && journal.indexOf(report) > completionIndex;
+    });
+  }).map(entry => ({
+    projectType: entry.project.type,
+    completeMonth: entry.project.completeMonth,
+    expectedReport: expectedReport[entry.project.type] || null,
+  }));
+  const unmonitoredInterventions = unmonitoredProjects.length;
 
   const detected = unmonitoredInterventions > 0;
   return {
@@ -165,10 +195,12 @@ function detectBallisticAction(journal, history, game) {
     detected,
     severity: detected ? 'high' : 'none',
     description: detected
-      ? `Зафиксировано ${unmonitoredInterventions} масштабных вмешательств (проекты, резкие налоговые реформы), после которых игрок ни разу не запросил отчеты подразделений для контроля последствий.`
-      : 'Ключевые решения сопровождались контролем через отчеты профильных служб.',
-    evidence: { unmonitoredInterventions, totalProjects: majorInterventions.length, totalReports: reportRequests.length },
-    dornerQuote: '«Подобно пушечному ядру, выпущенному из жерла, решение отправлялось в путь, а бургомистр больше никогда не интересовался тем, куда оно попало» (Глава 5).',
+      ? `После ${unmonitoredInterventions} завершенных проектов не найден последующий профильный отчет для проверки наблюдаемого результата.`
+      : completedProjects.length > 0
+        ? 'После завершенных проектов были запрошены профильные отчеты.'
+        : 'Завершенных проектов для проверки этого паттерна пока нет.',
+    evidence: { unmonitoredInterventions, unmonitoredProjects, totalProjects: completedProjects.length, totalReports: reportRequests.length },
+    learningPrompt: 'После завершения крупной меры запросите профильный отчет и сравните наблюдения с исходным ожиданием.',
   };
 }
 
@@ -177,27 +209,33 @@ function detectLagIgnorance(journal) {
     typeof (j.changes?.taxRate ?? j.patch?.taxRate) === 'number');
 
   let rapidReversals = 0;
-  for (let i = 1; i < taxChanges.length; i++) {
+  for (let i = 2; i < taxChanges.length; i++) {
+    const earlier = taxChanges[i - 2];
     const prev = taxChanges[i - 1];
     const curr = taxChanges[i];
+    const earlierRate = earlier.changes?.taxRate ?? earlier.patch?.taxRate;
     const prevRate = prev.changes?.taxRate ?? prev.patch?.taxRate;
     const currRate = curr.changes?.taxRate ?? curr.patch?.taxRate;
-    if (curr.month - prev.month <= 2 && Math.abs(currRate - prevRate) >= 5) {
+    const previousDelta = prevRate - earlierRate;
+    const currentDelta = currRate - prevRate;
+    if (prev.month >= earlier.month && prev.month - earlier.month <= 2 &&
+        curr.month >= prev.month && curr.month - prev.month <= 2 &&
+        Math.abs(previousDelta) >= 5 && Math.abs(currentDelta) >= 5 && previousDelta * currentDelta < 0) {
       rapidReversals++;
     }
   }
 
-  const detected = rapidReversals >= 2;
+  const detected = rapidReversals >= 1;
   return {
     id: 'lag_ignorance',
     title: 'Недооценка временных задержек (Lag Ignorance)',
     detected,
     severity: detected ? 'high' : 'none',
     description: detected
-      ? 'Многократное нервное изменение параметров регулятора (налоговой ставки) без выдержки паузы на проявление эффекта. Это приводит к искусственной раскачке колебаний в городской системе.'
-      : 'Регуляторы изменялись с достаточной паузой для стабилизации системы.',
+      ? 'В журнале найдены быстрые развороты налоговой ставки: изменения не менее 5 пунктов в противоположных направлениях с интервалами до 2 месяцев. Проверьте причины коррекций; журнал сам по себе не доказывает колебаний городской системы.'
+      : 'Порог быстрых повторных изменений налоговой ставки не достигнут в доступном журнале.',
     evidence: { rapidReversals },
-    dornerQuote: '«Система с запаздыванием отклика неизбежно входит в резонанс и раскачивается, если управляющий не имеет терпения дождаться реакции на предыдущее действие» (Глава 6).',
+    learningPrompt: 'Перед новой коррекцией проверьте, успел ли проявиться отложенный эффект предыдущего решения.',
   };
 }
 
@@ -222,21 +260,24 @@ function generateReflectionQuestions(traps, game) {
 }
 
 function generateSummary(archetype, traps, game) {
+  if (archetype.id === 'insufficient_evidence') {
+    return 'Недостаточно данных для вывода о стиле управления или наличии психологических закономерностей. Продолжите игру и фиксируйте решения вместе с последующими проверками.';
+  }
   const activeTraps = traps.filter(t => t.detected);
   if (activeTraps.length === 0) {
-    return 'Ваш стиль управления Лоххаузеном отличается высокой системной дисциплиной. Вы избежали типичных психологических ловушек, описанных Дёрнером, и продемонстрировали способность мыслить контурами обратной связи.';
+    return 'В доступном журнале пороги выбранных индикаторов не достигнуты. Это не доказывает отсутствие когнитивных ловушек и не является оценкой личности игрока.';
   }
-  return `В ходе управления выявлено ${activeTraps.length} характерных системных ловушек мышления. Ваш преобладающий паттерн — «${archetype.name}». Симулятор наглядно показал, как естественные психологические реакции человека могут непреднамеренно приводить к дестабилизации сложной среды.`;
+  return `В доступном журнале сработало индикаторов: ${activeTraps.length}. Профиль «${archetype.name}» описывает наблюдаемые решения этой партии и не является психологическим заключением.`;
 }
 
-export function formatDebriefMarkdown(game, analysis, evaluation = {}) {
+export function formatDebriefMarkdown(game, analysis, evaluation = {}, localize = text => text) {
   const scenarioTitle = game.scenarioId ? String(game.scenarioId) : 'sandbox';
   const lines = [
     `# Итоговый разбор управления городом Лоххаузен`,
     `**Сценарий:** ${scenarioTitle} | **Месяц:** ${game.month} из ${game.horizon || 120}`,
-    `**Статус сценария:** ${evaluation.status === 'victory' ? 'Победа' : evaluation.status === 'defeat' ? 'Поражение' : 'Завершено'}`,
+    `**Статус сценария:** ${evaluation.status === 'victory' ? 'Победа' : evaluation.status === 'defeat' ? 'Поражение' : game.month < game.horizon ? 'Продолжается' : 'Завершено'}`,
     '',
-    `## 1. Управленческий архетип по Дёрнеру`,
+    `## 1. Наблюдения по журналу решений`,
     `### ${analysis.archetype.name} — ${analysis.archetype.title}`,
     `${analysis.archetype.description}`,
     `*${analysis.summary}*`,
@@ -246,13 +287,15 @@ export function formatDebriefMarkdown(game, analysis, evaluation = {}) {
 
   const detected = analysis.traps.filter(t => t.detected);
   if (detected.length === 0) {
-    lines.push(`- Ловушек мышления не зафиксировано: действия были последовательными и выдержанными.`);
+    lines.push(analysis.archetype.id === 'insufficient_evidence'
+      ? '- Недостаточно данных для оценки: продолжите игру и сопоставляйте решения с последующей обратной связью.'
+      : '- Пороги выбранных индикаторов не достигнуты в доступном журнале; это не доказывает отсутствие ловушек.');
   } else {
     for (const trap of detected) {
       lines.push(`### ⚠️ ${trap.title || trap.name}`);
       lines.push(`${trap.description}`);
-      if (trap.dornerQuote || trap.quote) {
-        lines.push(`> ${trap.dornerQuote || trap.quote}`);
+      if (trap.learningPrompt) {
+        lines.push(`Учебный вопрос: ${trap.learningPrompt}`);
       }
       lines.push('');
     }
@@ -271,7 +314,7 @@ export function formatDebriefMarkdown(game, analysis, evaluation = {}) {
     lines.push(`- ${q}`);
   }
 
-  return lines.join('\n');
+  return lines.map(localize).join('\n');
 }
 
 export function formatDebriefJSON(game, analysis, evaluation = {}) {
@@ -279,7 +322,8 @@ export function formatDebriefJSON(game, analysis, evaluation = {}) {
     scenario: game.scenarioId || 'sandbox',
     month: game.month,
     horizon: game.horizon || 120,
-    status: evaluation.status || 'complete',
+    status: evaluation.status || (game.month >= game.horizon ? 'complete' : 'active'),
+    game: structuredClone(game),
     archetype: analysis.archetype,
     summary: analysis.summary,
     traps: analysis.traps,
@@ -304,37 +348,42 @@ export function verifyHypotheses(game) {
     if (entry.type === 'project' && entry.project) {
       const proj = entry.project;
       if (game.month >= proj.completeMonth) {
-        let outcomeSummary = '';
-        let hindsightLesson = '';
+        const snapshot = Array.isArray(game.history)
+          ? game.history.find(item => item && item.month === proj.completeMonth)
+          : null;
+        const requiredFields = {
+          housing: ['housingCapacity', 'housingShortage'],
+          modernization: ['equipment', 'production'],
+          tourism: ['tourismCapacity', 'visitors'],
+        }[proj.type] || [];
+        const evidenceAvailable = Boolean(snapshot && requiredFields.length > 0 && requiredFields.every(field => Number.isFinite(snapshot[field])));
+        let outcomeSummary;
 
-        if (proj.type === 'housing') {
-          outcomeSummary = `Вместимость жилья увеличена на 60 мест (до ${game.housingCapacity} мест). Текущий дефицит: ${Math.max(0, Math.round(game.housingShortage || 0))} мест.`;
-          hindsightLesson = entry.note && entry.note.trim()
-            ? `Сверка ожидания: «${entry.note}». Проект завершен через 12 месяцев задержки. В сложных системах результат наступает с отсрочкой, требуя терпения и невмешательства в ход строительства.`
-            : `Проект начат без предварительной записи ожиданий. Дёрнер подчеркивал, что отсутствие четко сформулированной гипотезы лишает руководителя объективного критерия оценки успеха.`;
+        if (!evidenceAvailable) {
+          outcomeSummary = `Наблюдения за месяц завершения (${proj.completeMonth}) недоступны: в истории нет полного профильного снимка.`;
+        } else if (proj.type === 'housing') {
+          outcomeSummary = `В месяце завершения зафиксированы вместимость жилья ${Math.round(snapshot.housingCapacity)} мест и дефицит ${Math.max(0, Math.round(snapshot.housingShortage))} мест.`;
         } else if (proj.type === 'modernization') {
-          outcomeSummary = `Модернизация станков фабрики завершена (+30% к ресурсу). Состояние оборудования: ${Math.round(game.equipment)}%.`;
-          hindsightLesson = entry.note && entry.note.trim()
-            ? `Сверка ожидания: «${entry.note}». Разовая модернизация компенсирует накопленный износ, но без ежемесячного бюджета на ремонт станки быстро вернутся к деградации.`
-            : `Модернизация фабрики завершена. Помните: капитальное вложение требует поддержки текущим обслуживанием, иначе инвестиция сгорает.`;
-        } else if (proj.type === 'tourism') {
-          outcomeSummary = `Туристическая инфраструктура введена в строй (+80 мест). Вместимость: ${game.tourismCapacity} мест.`;
-          hindsightLesson = entry.note && entry.note.trim()
-            ? `Сверка ожидания: «${entry.note}». Номерной фонд расширен. Дёрнер предостерегал от расхождения между пропускной способностью гостиниц и маркетинговым бюджетом.`
-            : `Гостиницы построены. Для окупаемости инвестиций требуется синхронизировать туристический маркетинг с реальной вместимостью.`;
+          outcomeSummary = `В месяце завершения зафиксированы состояние оборудования ${Math.round(snapshot.equipment)}% и производство ${Math.round(snapshot.production)}.`;
         } else {
-          outcomeSummary = `Проект «${proj.label || proj.type}» успешно завершен в месяце ${proj.completeMonth}.`;
-          hindsightLesson = `Реализация проекта подтвердила завершение строительного цикла.`;
+          outcomeSummary = `В месяце завершения зафиксированы туристическая вместимость ${Math.round(snapshot.tourismCapacity)} мест и ${Math.round(snapshot.visitors)} посетителей.`;
         }
+
+        const playerNote = entry.note ? entry.note.trim() : '';
+        const hindsightLesson = playerNote
+          ? 'Автоматическая сверка показывает только наблюдаемые значения и не доказывает, что записанная гипотеза верна или что проект был их единственной причиной.'
+          : 'Исходное ожидание не записано. Автоматическая сверка показывает только наблюдаемые значения и не устанавливает причинную связь.';
 
         completedProjects.push({
           projectType: proj.type,
           projectLabel: proj.label || proj.type,
           startMonth: proj.startMonth,
           completeMonth: proj.completeMonth,
-          playerNote: entry.note || '',
+          playerNote,
           outcomeSummary,
           hindsightLesson,
+          evidenceStatus: evidenceAvailable ? 'observed' : 'unavailable',
+          completionSnapshot: snapshot ? structuredClone(snapshot) : null,
         });
       }
     }
@@ -342,6 +391,3 @@ export function verifyHypotheses(game) {
 
   return completedProjects;
 }
-
-
-
