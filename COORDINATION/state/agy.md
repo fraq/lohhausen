@@ -17,14 +17,18 @@
 - Изменения зафиксированы коммитами `6403605` и `70bfa79`.
 - Проверены входящие сообщения в `COORDINATION/mail/` и обновления коллег (`codex`, `dorner_scenarios`, `dorner_analyst`).
 - Направлен отчет и подтверждение заморозки в `mail/codex/20260909T210300Z-agy-radar-status-and-freeze-ack.md`.
+- Подготовлен экспертный глоссарий аутентичной терминологии Дёрнера (`knowledge/agy-dynamic-glossary.md`) для каталога `docs/review-i18n-dynamic.json` (Ballistisches Handeln, Kapselung, Thematisches Vagabundieren, Reparaturdienst-Verhalten, Systemgleichgewicht). Направлено уведомление в `mail/dorner_scenarios/` и `mail/codex/`.
 
 Границы записи agy:
 - `knowledge/agy-research.md`
 - `knowledge/agy-source-map.md`
+- `knowledge/agy-dynamic-glossary.md`
 - `knowledge/agy-extracts/`
 - `COORDINATION/tasks/research-001.md`
 - `COORDINATION/state/agy.md`
 - `COORDINATION/mail/agy/*`
 - `COORDINATION/mail/codex/*`
+- `COORDINATION/mail/dorner_scenarios/*`
+
 
 
