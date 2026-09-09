@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { renderCausalLoopDiagram, renderBenchmarkComparisonChart } from '../src/visuals.js';
+import { renderCausalLoopDiagram, renderBenchmarkComparisonChart, renderSystemicRadarChart } from '../src/visuals.js';
 import { CAUSAL_LOOPS } from '../src/causal.js';
+import { createGame } from '../src/model.js';
 
 test('visuals: renderCausalLoopDiagram генерирует валидный SVG для налоговой петли', () => {
   const loop = CAUSAL_LOOPS.find(l => l.id === 'tax_loop');
@@ -74,4 +75,15 @@ test('visuals: renderBenchmarkComparisonChart строит SVG сопостав�
   assert.ok(chart.includes('Конрад'));
   assert.ok(chart.includes('Маркус'));
   assert.ok(chart.includes('viewBox="0 0 720 260"'));
+});
+
+test('visuals: renderSystemicRadarChart produces valid SVG and includes critical 40% ring', () => {
+  const game = createGame();
+  const svg = renderSystemicRadarChart(game);
+  assert.equal(typeof svg, 'string');
+  assert.ok(svg.startsWith('<svg') || svg.trimStart().startsWith('<svg'), 'SVG should start with <svg');
+  assert.ok(svg.includes('class="systemic-radar"'), 'Should have class attribute');
+  assert.ok(svg.includes('#c62828'), 'Critical ring should be red');
+  assert.ok(svg.includes('</svg>'), 'Should have closing </svg>');
+  assert.ok(svg.includes('polygon'), 'Should contain data polygon');
 });

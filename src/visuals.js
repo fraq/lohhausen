@@ -43,6 +43,8 @@ const finiteValues = (values) => (Array.isArray(values) ? values : [values])
   .map(Number)
   .filter(Number.isFinite);
 
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
 /** Return a line icon with a stable, accessible viewBox. */
 export function icon(name, size = 20) {
   const content = ICON_PATHS[name] ?? '<circle cx="12" cy="12" r="7.5"/><path d="M12 8v5M12 16v.1"/>';

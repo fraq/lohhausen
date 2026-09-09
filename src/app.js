@@ -1,5 +1,5 @@
 import { createGame, setPolicies, startProject, advance, requestReport, serializeGame, deserializeGame, summarize, POLICY_CONFIG, PROJECTS } from './model.js';
-import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart } from './visuals.js';
+import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram, renderBenchmarkComparisonChart, renderSystemicRadarChart } from './visuals.js';
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf, getProjectAdvisorEndorsement } from './causal.js';
@@ -450,6 +450,7 @@ function overviewView() {
     </div>
 
     ${metricCards()}
+    ${renderSystemicRadarChart(game)}
     ${causalDigestSection()}
     ${mayoralSpheresSection()}
     ${causalLoopExplorerSection()}
@@ -829,8 +830,11 @@ function debriefView() {
       </div>
 
       <div class="panel" style="margin-bottom: 24px;">
-        <p class="eyebrow">ЭТАЛОННЫЕ СРАВНЕНИЯ ПО КНИГЕ ДЁРНЕРА</p>
-        <h3 style="margin: 4px 0 12px;">Как с этим сценарием справлялись участники эксперимента?</h3>
+        <p class="eyebrow">ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА</p>
+        <h3 style="margin: 4px 0 6px;">Сравнение с модельными профилями поведения</h3>
+        <p class="source-note" style="margin: 0 0 14px;">
+          Траектории Конрада (системный эталон) и Маркуса (реактивная ловушка) построены на основе описаний из глав 2 и 7 книги «Логика неудачи» как дидактические ориентиры для самоанализа.
+        </p>
         <div class="grid-two" style="gap: 16px;">
           <div style="padding: 14px; background: rgba(58, 125, 68, 0.05); border-radius: 8px; border: 1px solid rgba(58, 125, 68, 0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
@@ -850,14 +854,21 @@ function debriefView() {
           </div>
         </div>
         <div style="margin-top: 18px;">
-          ${renderBenchmarkComparisonChart({
-            playerHistory: game.history.map(h => ({ month: h.month, value: game.scenarioId === 'factory_crisis' ? h.equipment : h.satisfaction })),
-            conradTrajectory: game.scenarioId === 'factory_crisis' ? benchmark.conrad.equipmentTrajectory : (benchmark.conrad.satisfactionTrajectory || benchmark.conrad.equipmentTrajectory),
-            marcusTrajectory: game.scenarioId === 'factory_crisis' ? benchmark.marcus.equipmentTrajectory : (benchmark.marcus.satisfactionTrajectory || benchmark.marcus.equipmentTrajectory),
-            metricLabel: game.scenarioId === 'factory_crisis' ? 'Состояние оборудования фабрики' : 'Индекс благополучия жителей',
-            unit: '%',
-            horizon: game.horizon || 120,
-          })}
+          ${(() => {
+            const isEquipment = game.scenarioId === 'factory_crisis';
+            const metricKey = isEquipment ? 'equipment' : 'satisfaction';
+            const metricTitle = isEquipment ? 'Состояние оборудования фабрики' : 'Индекс благополучия жителей';
+            const conradData = isEquipment ? benchmark.conrad.equipmentTrajectory : benchmark.conrad.satisfactionTrajectory;
+            const marcusData = isEquipment ? benchmark.marcus.equipmentTrajectory : benchmark.marcus.satisfactionTrajectory;
+            return renderBenchmarkComparisonChart({
+              playerHistory: game.history.map(h => ({ month: h.month, value: h[metricKey] })),
+              conradTrajectory: conradData,
+              marcusTrajectory: marcusData,
+              metricLabel: metricTitle,
+              unit: '%',
+              horizon: game.horizon || 120,
+            });
+          })()}
         </div>
       </div>
 
@@ -1176,7 +1187,7 @@ function render() {
       <h2 id="kb-help-title">${icon('keyboard', 22)} ${translate('Горячие клавиши', language)}</h2>
       <p style="margin: 6px 0 16px; color: var(--muted); font-size: 13px;">${translate('Быстрое управление Лоххаузеном без мыши (действует, когда фокус не в поле ввода):', language)}</p>
       <div style="display: grid; gap: 6px;">
-        <div class="hotkeys-row"><span>${translate('Следующий месяц', language)}</span><span><kbd>Пробел</kbd> / <kbd>Enter</kbd></span></div>
+        <div class="hotkeys-row"><span>${translate('Следующий месяц', language)}</span><span><kbd>Пробел</kbd></span></div>
         <div class="hotkeys-row"><span>${escapeHTML(navigation[0][1])}</span><span><kbd>1</kbd> / <kbd>O</kbd></span></div>
         <div class="hotkeys-row"><span>${escapeHTML(navigation[1][1])}</span><span><kbd>2</kbd> / <kbd>G</kbd></span></div>
         <div class="hotkeys-row"><span>${escapeHTML(navigation[2][1])}</span><span><kbd>3</kbd> / <kbd>D</kbd></span></div>
@@ -1402,24 +1413,25 @@ app.addEventListener('keydown', event => {
     return;
   }
 
+  // Ignore repeated keypresses to prevent runaway auto-advancing
+  if (event.repeat) return;
+
   // Ignore shortcuts when typing in form fields or dialogs
   const tag = event.target.tagName;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
   if (event.target.closest('dialog')) return;
   if (event.metaKey || event.ctrlKey || event.altKey) return;
 
+  // Never hijack Space or Enter if user is focusing on interactive elements (buttons, links, etc.)
+  const interactive = ['BUTTON', 'A', 'SUMMARY', 'LABEL'];
+  if (interactive.includes(tag)) return;
+
   const viewKeys = ['1', '2', '3', '4', '5', '6', '7'];
   const viewNames = ['overview', 'guide', 'decisions', 'reports', 'journal', 'debrief', 'model'];
 
   const keyLower = event.key.toLowerCase();
   switch (keyLower) {
-    case ' ':
-    case 'enter': {
-      // Skip Enter if a focusable interactive element is targeted (button, a, summary, etc.)
-      // Space is generally safe for advancing when body/app is focused.
-      const interactive = ['BUTTON', 'A', 'SUMMARY', 'LABEL'];
-      if (event.key === 'Enter' && interactive.includes(event.target.tagName)) return;
-      if (event.repeat) return; // No auto-fire on held key
+    case ' ': {
       if (!locked()) {
         event.preventDefault();
         const next = advance(game, 1);
