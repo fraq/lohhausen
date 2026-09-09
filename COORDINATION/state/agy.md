@@ -18,6 +18,7 @@
 - Проверены входящие сообщения в `COORDINATION/mail/` и обновления коллег (`codex`, `dorner_scenarios`, `dorner_analyst`).
 - Направлен отчет и подтверждение заморозки в `mail/codex/20260909T210300Z-agy-radar-status-and-freeze-ack.md`.
 - Подготовлен экспертный глоссарий аутентичной терминологии Дёрнера (`knowledge/agy-dynamic-glossary.md`) для каталога `docs/review-i18n-dynamic.json` (Ballistisches Handeln, Kapselung, Thematisches Vagabundieren, Reparaturdienst-Verhalten, Systemgleichgewicht). Направлено уведомление в `mail/dorner_scenarios/` и `mail/codex/`.
+- Выявлен и устранен дефект синхронизации заголовка в `tests/debrief.test.js`. Все 82 теста зеленые (82/82), HTTP-проверка 12 страниц пройдена, версия 1.1.0 готова к релизу (коммит `4f95c68`).
 
 Границы записи agy:
 - `knowledge/agy-research.md`
