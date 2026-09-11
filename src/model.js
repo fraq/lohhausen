@@ -260,8 +260,10 @@ export function summarize(game) {
   const definitions = [['finance', 'Чистая финансовая позиция', 'тыс. марок', (item) => item.treasury - item.debt], ['production', 'Выпуск фабрики', 'часов/мес.', (item) => item.production], ['unemployment', 'Безработица', 'человек', (item) => item.unemployment], ['housing', 'Дефицит мест жилья', 'человек', (item) => item.housingShortage], ['satisfaction', 'Удовлетворённость', 'баллов из 100', (item) => item.satisfaction]];
   const metrics = definitions.map(([key, label, unit, get]) => { const initial = get(first); const final = get(last); return { key, label, initial, final, change: final - initial, unit }; });
   const lessons = [];
+  if (last.treasury - last.debt > first.treasury - first.debt) lessons.push('Чистая финансовая позиция улучшилась. Сопоставьте запас средств с месячным балансом и будущими расходами.');
   if (last.debt > first.debt) lessons.push('Рост долга совпал с месяцами, когда текущие доходы не покрывали расходы.');
-  if (last.production < first.production) lessons.push('Снижение выпуска совпало с изменением состояния оборудования и квалификации.');
+  if (last.unemployment > first.unemployment) lessons.push('Число безработных выросло. Сопоставьте изменение рабочей силы с количеством рабочих мест; высокая общая удовлетворенность не отменяет проблемы занятости.');
+  if (last.production < first.production) lessons.push('Выпуск ниже стартового уровня. Стартовая величина задана отдельно от месячного расчета, поэтому это сравнение само по себе не показывает эффект ваших решений. Проверьте также динамику от первого рассчитанного месяца.');
   if (last.housingShortage > 0) lessons.push('Приток или сохранение населения создали дефицит мест жилья; эффект строительства проявляется с задержкой.');
   if (last.satisfaction < first.satisfaction) lessons.push('Низкие базовые условия нескольких групп усилили снижение общей удовлетворённости.');
   if (game.journal.some((entry) => entry.type === 'policy' || entry.type === 'project')) lessons.push('Сопоставьте эти изменения с датами собственных решений в журнале: совпадение не доказывает единственную причину.');

@@ -44,9 +44,9 @@ export function analyzeDebrief(gameOrHistory, maybeJournal, maybeState) {
   } else if (highSeverityTraps.length === 0 && anyTraps.length === 0) {
     archetype = {
       id: 'conrad',
-      name: 'Профиль Конрада',
-      title: 'Признаки последовательного управления',
-      description: 'В доступном журнале решения разнесены во времени и сопровождаются запросами отчетов. Это наблюдаемый паттерн партии, а не оценка личности игрока.',
+      name: 'Нет сработавших индикаторов',
+      title: 'Проверка журнала',
+      description: 'Проверены переключения между сферами, развороты налоговой ставки, внимание к туризму и запросы отчетов после завершения проектов.',
     };
   } else if (traps.find(t => t.id === 'encapsulation' && t.detected)) {
     archetype = {

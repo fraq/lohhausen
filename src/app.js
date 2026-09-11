@@ -1021,7 +1021,7 @@ function debriefView() {
       <div class="grid-two">
         <section class="panel">
           <p class="eyebrow">СИСТЕМНЫЕ НАБЛЮДЕНИЯ ПО ВАШЕЙ ПАРТИИ</p>
-          <h3>Поводы пересмотреть гипотезы</h3>
+          <h3>Что изменилось и что требует внимания</h3>
           <div class="lesson-list">
             ${summary.lessons.map(lesson => `<p>${escapeHTML(lesson)}</p>`).join('')}
           </div>
