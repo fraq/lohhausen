@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advance, startProject, deserializeGame } from '../src/model.js';
+import { advance, setPolicies, requestReport, startProject, deserializeGame } from '../src/model.js';
 import { createScenarioGame, evaluateScenario } from '../src/scenarios.js';
 import { analyzeDebrief, formatDebriefJSON, formatDebriefMarkdown } from '../src/debrief.js';
 import { translate } from '../src/i18n.js';
@@ -17,6 +17,16 @@ test('intermediate exports do not claim that the term has completed', () => {
   const analysis = analyzeDebrief(game);
   assert.equal(JSON.parse(formatDebriefJSON(game, analysis)).status, 'active');
   assert.match(formatDebriefMarkdown(game, analysis, evaluateScenario(game)), /Статус сценария:\*\* Продолжается/);
+});
+
+test('JSON does not turn the absence of detected indicators into a Conrad classification', () => {
+  const game = advance(requestReport(setPolicies(createScenarioGame('sandbox'), { maintenance: 25 }), 'finance'), 1);
+  const analysis = analyzeDebrief(game);
+  assert.ok(analysis.traps.every(trap => !trap.detected));
+  const exported = JSON.parse(formatDebriefJSON(game, analysis, evaluateScenario(game)));
+  assert.equal(exported.archetype.id, 'no_indicators_detected');
+  assert.match(exported.summary, /не доказывает отсутствие/);
+  assert.deepEqual(deserializeGame(JSON.stringify(exported.game)), game);
 });
 
 test('the Markdown export uses the selected interface language and preserves Markdown structure', () => {

@@ -43,7 +43,7 @@ export function analyzeDebrief(gameOrHistory, maybeJournal, maybeState) {
     };
   } else if (highSeverityTraps.length === 0 && anyTraps.length === 0) {
     archetype = {
-      id: 'conrad',
+      id: 'no_indicators_detected',
       name: 'Нет сработавших индикаторов',
       title: 'Проверка журнала',
       description: 'Проверены переключения между сферами, развороты налоговой ставки, внимание к туризму и запросы отчетов после завершения проектов.',

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from '../src/debrief.js';
 import { createGame, setPolicies, startProject, advance, requestReport } from '../src/model.js';
 
-test('debrief: сбалансированная игра без грубых ловушек получает системный профиль Конрада', () => {
+test('debrief: отсутствие сработавших индикаторов дает нейтральный результат проверки', () => {
   let game = createGame();
   // Постепенное системное управление с контролем отчетов
   game = requestReport(game, 'factory');
@@ -17,7 +17,7 @@ test('debrief: сбалансированная игра без грубых л�
 
   assert.ok(analysis, 'Анализ должен возвращать объект');
   assert.equal(typeof analysis.summary, 'string');
-  assert.equal(analysis.archetype.id, 'conrad');
+  assert.equal(analysis.archetype.id, 'no_indicators_detected');
   assert.equal(analysis.traps.filter(t => t.severity === 'high').length, 0);
   assert.ok(Array.isArray(analysis.reflectionQuestions));
   assert.ok(analysis.reflectionQuestions.length >= 3);
@@ -152,4 +152,3 @@ test('debrief: verifyHypotheses сопоставляет прогнозы из �
   assert.ok(ref.outcomeSummary);
   assert.ok(ref.hindsightLesson);
 });
-
