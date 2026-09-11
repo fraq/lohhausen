@@ -1,6 +1,9 @@
 // Messages with dynamic details that are not present in the static page catalog.
 export default {
   en: {
+    'Рассчитан месяц {n0}.': 'Month {n0} calculated.',
+    "Открыть хронику месяца {n0}": "Open the month {n0} chronicle",
+    "ХРОНИКА ХОДА": "TURN CHRONICLE",
     "Общая удовлетворенность выросла. Сравните показатели групп и действующие решения в социальном отчете.": "Overall satisfaction increased. Compare group indicators and current policies in the social report.",
     "Благополучие жителей: {n0}/{n1} ({n2} п.)": "Residents’ well-being: {n0}/{n1} ({n2} pts)",
     "«Строительство муниципального жилья идет по плану. В работе {n0} объект(а). Город планомерно расширяет жилой фонд».": "“Municipal housing construction is on schedule. Projects underway: {n0}. The city is expanding its housing stock.”",
@@ -134,6 +137,9 @@ export default {
     'Клавиши [K]': 'Keys [K]',
   },
   de: {
+    'Рассчитан месяц {n0}.': 'Monat {n0} berechnet.',
+    "Открыть хронику месяца {n0}": "Monatschronik {n0} öffnen",
+    "ХРОНИКА ХОДА": "CHRONIK DES SPIELZUGS",
     "Общая удовлетворенность выросла. Сравните показатели групп и действующие решения в социальном отчете.": "Die Gesamtzufriedenheit ist gestiegen. Vergleichen Sie die Gruppenwerte und die aktuellen Maßnahmen im Sozialbericht.",
     "Благополучие жителей: {n0}/{n1} ({n2} п.)": "Wohlbefinden der Einwohner: {n0}/{n1} ({n2} Pkt.)",
     "«Строительство муниципального жилья идет по плану. В работе {n0} объект(а). Город планомерно расширяет жилой фонд».": "„Der kommunale Wohnungsbau läuft planmäßig. Laufende Projekte: {n0}. Die Stadt erweitert ihren Wohnungsbestand.“",
@@ -269,6 +275,9 @@ export default {
     'Клавиши [K]': 'Tasten [K]',
   },
   fr: {
+    'Рассчитан месяц {n0}.': 'Mois {n0} calculé.',
+    "Открыть хронику месяца {n0}": "Ouvrir la chronique du mois {n0}",
+    "ХРОНИКА ХОДА": "CHRONIQUE DU TOUR",
     "Общая удовлетворенность выросла. Сравните показатели групп и действующие решения в социальном отчете.": "La satisfaction globale a augmenté. Comparez les indicateurs des groupes et les décisions en vigueur dans le rapport social.",
     "Благополучие жителей: {n0}/{n1} ({n2} п.)": "Bien-être des habitants : {n0}/{n1} ({n2} pt)",
     "«Строительство муниципального жилья идет по плану. В работе {n0} объект(а). Город планомерно расширяет жилой фонд».": "« La construction de logements municipaux suit le calendrier. Projets en cours : {n0}. La ville développe son parc de logements. »",

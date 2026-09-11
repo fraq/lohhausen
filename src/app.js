@@ -66,13 +66,22 @@ const reports = {
   tourism: 'Туризм',
 };
 
-const navigationPath = (nextView, nextReport) => localizedPath(`${pathFor(nextView, nextReport)}${location.search}${location.hash}`, language);
+const navigationPath = (nextView, nextReport, anchor = '') => localizedPath(`${pathFor(nextView, nextReport)}${location.search}${anchor ? `#${anchor}` : ''}`, language);
 
-function setRoute(nextView, nextReport) {
-  const path = navigationPath(nextView, nextReport);
+function setRoute(nextView, nextReport, anchor = '') {
+  const path = navigationPath(nextView, nextReport, anchor);
   view = nextView;
   if (nextView === 'reports') reportKind = nextReport || 'factory';
   if (`${location.pathname}${location.search}${location.hash}` !== path) window.history.pushState(null, '', path);
+}
+
+function focusChronicle() {
+  if (view !== 'overview' || location.hash !== '#turn-digest') return false;
+  const section = document.getElementById('turn-digest');
+  if (!section) return false;
+  section.scrollIntoView({ block: 'start' });
+  section.focus({ preventScroll: true });
+  return true;
 }
 
 function renderNavigationLinks() {
@@ -189,11 +198,11 @@ function causalDigestSection() {
 
   return `
     ${trapMarkup}
-    <section class="causal-digest" aria-label="Хроника последнего хода">
+    <section class="causal-digest" id="turn-digest" tabindex="-1" aria-labelledby="turn-digest-title">
       <div class="causal-digest-header">
         <div>
-          <p class="eyebrow">ПРИЧИННО-СЛЕДСТВЕННЫЙ АНАЛИЗ</p>
-          <h3>${game.month === 0 ? 'Стартовая диспозиция Лоххаузена' : `Что произошло за месяц ${game.month}?`}</h3>
+          <p class="eyebrow">ХРОНИКА ХОДА</p>
+          <h3 id="turn-digest-title">${game.month === 0 ? 'Стартовая диспозиция Лоххаузена' : `Что произошло за месяц ${game.month}?`}</h3>
         </div>
         <span class="badge">${game.month ? `Месяц ${game.month}` : 'Начало'}</span>
       </div>
@@ -1242,7 +1251,9 @@ function render() {
         </div>
         ${errorMessage ? `<div class="alert" role="alert" data-testid="error">${escapeHTML(errorMessage)}${storageBlocked ? '<button class="button secondary" data-action="new-game">Начать новую игру</button>' : ''}</div>` : ''}
         <div class="notice-region" role="status" aria-live="polite">
-          ${notice ? `<p class="toast">${icon('check', 16)} ${escapeHTML(notice)}</p>` : ''}
+          ${notice ? `<p class="toast">${icon('check', 16)} <span>${escapeHTML(typeof notice === 'string' ? notice : notice.text)}</span>
+            ${notice.chronicle ? `<a class="chronicle-link" href="${escapeHTML(navigationPath('overview', undefined, 'turn-digest'))}" data-view="overview" data-anchor="turn-digest" data-testid="open-chronicle">Открыть хронику месяца ${game.month}</a>` : ''}
+          </p>` : ''}
         </div>
         <div class="view active" id="current-view">${views[view]()}</div>
         <footer class="main-footer">
@@ -1329,10 +1340,10 @@ app.addEventListener('click', event => {
   event.preventDefault();
   try {
     if (control.dataset.view) {
-      setRoute(control.dataset.view);
+      setRoute(control.dataset.view, undefined, control.dataset.anchor);
       notice = '';
       render();
-      window.scrollTo(0, 0);
+      if (!focusChronicle()) window.scrollTo(0, 0);
       return;
     }
     const selectedReport = control.dataset.report || control.dataset.openReport || control.dataset.district;
@@ -1379,7 +1390,7 @@ app.addEventListener('click', event => {
         const next = advance(game, months);
         const reachedEnd = next.month >= (next.horizon || 120);
         if (reachedEnd) setRoute('debrief');
-        commit(next, reachedEnd ? (next.horizon && next.horizon < 120 ? 'Срок сценария завершен. Итоги вашей партии готовы.' : 'Десять лет завершены. Итоги вашей партии готовы.') : `Рассчитан месяц ${next.month}. Ознакомьтесь с хроникой хода.`);
+        commit(next, reachedEnd ? (next.horizon && next.horizon < 120 ? 'Срок сценария завершен. Итоги вашей партии готовы.' : 'Десять лет завершены. Итоги вашей партии готовы.') : { text: `Рассчитан месяц ${next.month}.`, chronicle: true });
         break;
       }
       case 'request-report':
@@ -1570,7 +1581,7 @@ document.addEventListener('keydown', event => {
         const next = advance(game, 1);
         const reachedEnd = next.month >= (next.horizon || 120);
         if (reachedEnd) setRoute('debrief');
-        commit(next, reachedEnd ? 'Срок завершен. Итоги партии готовы.' : `Рассчитан месяц ${next.month}.`);
+        commit(next, reachedEnd ? 'Срок завершен. Итоги партии готовы.' : { text: `Рассчитан месяц ${next.month}.`, chronicle: true });
       }
       break;
     }
@@ -1653,7 +1664,9 @@ window.addEventListener('popstate', () => {
   reportKind = route.reportKind || 'factory';
   notice = '';
   render();
-  window.scrollTo(0, 0);
+  if (!focusChronicle()) window.scrollTo(0, 0);
 });
 
+window.addEventListener('hashchange', focusChronicle);
 render();
+focusChronicle();

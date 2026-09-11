@@ -428,7 +428,9 @@ kbd {
 }
 
 /* Status messages stay in the flow so they never cover reports or controls. */
-.toast { position: static; max-width: none; margin: 0 0 18px; }
+.toast { position: static; max-width: none; margin: 0 0 18px; flex-wrap: wrap; }
+.toast > svg { flex-shrink: 0; }
+.toast .chronicle-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; font-weight: 600; padding: 4px 0; }
 
 .game-guide { display: block; }
 .game-guide > * + * { margin-top: 20px; }
@@ -476,6 +478,7 @@ html:not([lang="ru"]) .city-illustration text { font-size: 9px; letter-spacing: 
 
 /* Causal Digest & Turn Chronicles */
 .causal-digest {
+  scroll-margin-top: 20px;
   margin-bottom: 22px;
   background: var(--card);
   border: 1px solid var(--line);
