@@ -17,6 +17,7 @@ const assets = new Map([
   ['/src/locales/cockpit.js', ['../src/locales/cockpit.js', 'text/javascript; charset=utf-8']],
   ['/src/causal.js', ['../src/causal.js', 'text/javascript; charset=utf-8']],
   ['/src/debrief.js', ['../src/debrief.js', 'text/javascript; charset=utf-8']],
+  ['/src/counterfactual.js', ['../src/counterfactual.js', 'text/javascript; charset=utf-8']],
   ['/src/scenarios.js', ['../src/scenarios.js', 'text/javascript; charset=utf-8']],
   ['/src/visuals.js', ['../src/visuals.js', 'text/javascript; charset=utf-8']],
   ['/tests/browser-checks.js', ['../tests/browser-checks.js', 'text/javascript; charset=utf-8']],

@@ -4,6 +4,7 @@ import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf, getProjectAdvisorEndorsement } from './causal.js';
 import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from './debrief.js';
+import { listProjectChoices, compareWithoutProject } from './counterfactual.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
@@ -34,6 +35,9 @@ let errorMessage = '';
 let storageBlocked = false;
 let saved = false;
 let selectedScenarioId = 'sandbox';
+let comparisonGame = null;
+let comparisonChoice = null;
+let projectComparison = null;
 
 try {
   const raw = localStorage.getItem(SAVE_KEY);
@@ -869,6 +873,69 @@ function journalView() {
   `;
 }
 
+function projectComparisonView() {
+  if (comparisonGame !== game) {
+    comparisonGame = game;
+    comparisonChoice = null;
+    projectComparison = null;
+  }
+  const choices = listProjectChoices(game);
+  const selected = choices.find(choice => choice.journalIndex === comparisonChoice) || choices.at(-1);
+  comparisonChoice = selected?.journalIndex ?? null;
+  const metricDefinitions = [
+    ['treasury', 'Свободные средства', 'тыс. марок'],
+    ['debt', 'Долг города', 'тыс. марок'],
+    ['production', 'Выпуск фабрики', 'часов/мес.'],
+    ['unemployment', 'Безработица', 'человек'],
+    ['satisfaction', 'Удовлетворённость', 'баллов из 100'],
+    ['equipment', 'Состояние оборудования', 'баллов из 100'],
+    ['housingCapacity', 'Мест жилья', 'мест'],
+    ['housingShortage', 'Дефицит мест жилья', 'человек'],
+  ];
+  let result = '';
+  if (projectComparison?.status === 'available') {
+    const { actual, alternative, month } = projectComparison;
+    const originalGoals = evaluateScenario(actual);
+    const alternativeGoals = evaluateScenario(alternative);
+    result = `<section id="counterfactual-result" tabindex="-1" aria-labelledby="comparison-result-title" data-testid="counterfactual-result">
+      <h4 id="comparison-result-title">Результаты к месяцу ${month}</h4>
+      <p class="comparison-scope">Все остальные решения и даты их принятия сохранены. Это один проверенный вариант, а не поиск лучшей стратегии.</p>
+      <div class="comparison-metrics">
+        ${metricDefinitions.map(([key, label, unit]) => `<article class="comparison-metric" data-comparison-metric="${key}">
+          <h5>${escapeHTML(label)} <small>${escapeHTML(unit)}</small></h5>
+          <dl>
+            <div><dt>В вашей партии</dt><dd>${fmt(actual[key])}</dd></div>
+            <div><dt>Без проекта</dt><dd>${fmt(alternative[key])}</dd></div>
+            <div><dt>Разница</dt><dd>${signed(alternative[key] - actual[key])}</dd></div>
+          </dl>
+        </article>`).join('')}
+      </div>
+      <div class="comparison-goals"><strong>Выполнено целей сейчас</strong><span>В вашей партии: ${originalGoals.metCount} / ${originalGoals.totalCount}</span><span>Без проекта: ${alternativeGoals.metCount} / ${alternativeGoals.totalCount}</span></div>
+      <p class="comparison-question">Какой показатель для вас важнее в этом сравнении?</p>
+    </section>`;
+  } else if (projectComparison) {
+    const explanation = projectComparison.reason === 'infeasible'
+      ? `<p>При сохранении остальных решений в месяце ${projectComparison.month} не удаётся запустить следующий проект.</p><p><strong>${escapeHTML(PROJECTS[projectComparison.projectType]?.label || 'Инвестиционный проект')}</strong></p><p>Для продолжения пришлось бы изменить ещё одно решение. Его эффект здесь не рассчитан.</p>`
+      : projectComparison.reason === 'invalid_selection'
+        ? '<p>Выберите завершённый проект из журнала.</p>'
+        : '<p>Журнал не позволяет точно восстановить исходную партию текущей моделью. Надёжное сравнение недоступно.</p>';
+    result = `<section id="counterfactual-result" tabindex="-1" aria-labelledby="comparison-result-title" class="comparison-unavailable" data-testid="counterfactual-result"><h4 id="comparison-result-title">Сравнение недоступно</h4>${explanation}</section>`;
+  }
+  return `<section class="panel project-comparison" aria-labelledby="comparison-title" data-testid="project-comparison">
+    <p class="eyebrow">ПРОВЕРКА СВОЕГО РЕШЕНИЯ</p>
+    <h3 id="comparison-title">Что было бы без этого проекта?</h3>
+    <p>Уберём один проект и повторим остальные решения в те же месяцы. Сравнение не меняет вашу партию.</p>
+    ${selected ? `<div class="comparison-controls">
+      <label for="counterfactual-project">Проект для проверки</label>
+      <select id="counterfactual-project" data-testid="counterfactual-project">${choices.map((choice, index) => `<option value="${choice.journalIndex}" ${choice.journalIndex === comparisonChoice ? 'selected' : ''}>${index + 1}. ${escapeHTML(choice.label)} · ${monthLabel(choice.startMonth)}</option>`).join('')}</select>
+      <button class="button primary" data-action="compare-project" data-testid="compare-project">Сравнить без этого проекта</button>
+    </div>
+    <p class="comparison-scope">Проект введён в месяце ${selected.completeMonth}. После ввода прошло ${game.month - selected.completeMonth} мес. Дальнейшие последствия могут отличаться от текущего результата.</p>
+    <div class="comparison-expectation"><strong>Ваше ожидание перед запуском</strong>${selected.note.trim() ? `<blockquote translate="no">${escapeHTML(selected.note)}</blockquote>` : '<p>Ожидание перед запуском не записано.</p>'}</div>
+    ${result}` : '<p class="source-note">Здесь можно проверить завершённые проекты. Вернитесь после ввода первой стройки.</p>'}
+  </section>`;
+}
+
 function debriefView() {
   const summary = summarize(game);
   const analysis = analyzeDebrief(game);
@@ -913,6 +980,8 @@ function debriefView() {
           `).join('')}
         </div>
       </div>
+
+      ${projectComparisonView()}
 
       <div class="panel" style="margin-bottom: 24px; border-left: 4px solid var(--accent); background: var(--surface);">
         <p class="eyebrow" style="color: var(--accent);">НАБЛЮДЕНИЯ ПО ЖУРНАЛУ РЕШЕНИЙ</p>
@@ -1366,6 +1435,15 @@ app.addEventListener('click', event => {
       return;
     }
     switch (control.dataset.action) {
+      case 'compare-project': {
+        comparisonChoice = Number(document.getElementById('counterfactual-project').value);
+        projectComparison = compareWithoutProject(game, comparisonChoice);
+        render();
+        const result = document.getElementById('counterfactual-result');
+        result?.focus({ preventScroll: true });
+        result?.scrollIntoView({ block: 'start' });
+        break;
+      }
       case 'export-debrief-md': {
         const evaluation = evaluateScenario(game);
         const analysis = analyzeDebrief(game);
@@ -1505,6 +1583,11 @@ app.addEventListener('submit', event => {
 });
 
 app.addEventListener('change', event => {
+  if (event.target.id === 'counterfactual-project') {
+    comparisonChoice = Number(event.target.value);
+    projectComparison = null;
+    render();
+  }
   if (event.target.id === 'language-select') {
     const draft = [...app.querySelectorAll('#policy-form input, #policy-form textarea')].map(field => [field.name, field.value]);
     language = event.target.value;

@@ -484,7 +484,7 @@ export function explainStepCauses(current, previous) {
       j.type === 'project' && j.project && (comp.title.includes(j.project.label) || j.project.label.includes(projTitle))
     );
     const origNote = origProj?.note ? origProj.note.trim() : '';
-    const noteMsg = origNote ? ` Изначальная гипотеза бургомистра: «${origNote}».` : ' Проект реализовывался без предварительной формулировки гипотезы.';
+    const noteMsg = origNote ? ` Изначальная гипотеза бургомистра: «${origNote}».` : ' Ожидание перед запуском не записано.';
     items.push({
       sphere: 'project',
       icon: 'spark',
@@ -496,17 +496,30 @@ export function explainStepCauses(current, previous) {
   }
 
   // 1. Factory & Production Causal Flow
+  const monthsElapsed = Math.max(1, current.month - previous.month);
   const deltaEq = current.equipment - previous.equipment;
   const deltaProd = current.production - previous.production;
   const deltaInv = current.inventory - previous.inventory;
+  const maintenanceVal = p.maintenance ?? 0;
 
-  let factoryExplain = '';
-  if (deltaEq > 0.5) {
-    factoryExplain = `Обслуживание (${p.maintenance} тыс. м.) превысило износ: станки восстановились на +${deltaEq.toFixed(1)}%.`;
-  } else if (deltaEq < -0.5) {
-    factoryExplain = `Расходов на обслуживание (${p.maintenance} тыс. м.) не хватило против естественного износа и нагрузки: станки износились на ${deltaEq.toFixed(1)}%.`;
-  } else {
-    factoryExplain = `Текущее обслуживание (${p.maintenance} тыс. м.) компенсирует естественный износ станков.`;
+  const modernizationCount = completions.filter(entry =>
+    entry.project?.type === 'modernization' || /модернизаци/i.test(entry.title || '')
+  ).length;
+
+  // Report the observed interval separately from its contributing mechanisms.
+  // Monthly snapshots do not retain modernizationLevel or past policy values.
+  let factoryExplain = !Number.isFinite(deltaEq)
+    ? 'В истории нет сопоставимых данных о состоянии оборудования. Изменение за этот интервал неизвестно.'
+    : deltaEq < -0.005
+    ? `За ${monthsElapsed} мес. станки потеряли ${Math.abs(deltaEq).toFixed(2)} п. состояния.`
+    : deltaEq > 0.005
+      ? `За ${monthsElapsed} мес. станки восстановились на ${deltaEq.toFixed(2)} п. состояния.`
+      : `За ${monthsElapsed} мес. состояние оборудования изменилось менее чем на 0.01 п.`;
+  if (current.equipment === 0) factoryExplain += ' Станки полностью изношены (0%).';
+  if (current.equipment === 100) factoryExplain += ' Состояние станков на максимуме (100%).';
+  factoryExplain += ` Текущее обслуживание: ${maintenanceVal} тыс. марок/мес.`;
+  if (modernizationCount) {
+    factoryExplain += ` Завершено модернизаций за этот интервал: ${modernizationCount}. Изменение состояния учитывает их ввод, обслуживание, износ и предел 100%.`;
   }
 
   if (current.sales < current.production) {
@@ -520,7 +533,7 @@ export function explainStepCauses(current, previous) {
     icon: 'factory',
     headline: `Фабрика: выпуск ${Math.round(current.production)} шт. (${deltaProd >= 0 ? '+' : ''}${Math.round(deltaProd)})`,
     explanation: factoryExplain,
-    tone: deltaEq < -1 || current.equipment < 30 ? 'warning' : deltaEq > 0.5 ? 'positive' : 'neutral',
+    tone: deltaEq < -0.05 * monthsElapsed || current.equipment < 30 ? 'warning' : deltaEq > 0.05 * monthsElapsed ? 'positive' : 'neutral',
   });
 
   // 2. Budget & Treasury Causal Flow
