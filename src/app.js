@@ -3,7 +3,7 @@ import { icon, cityIllustration, sparkline, trendChart, renderCausalLoopDiagram,
 import { resolveRoute, pathFor } from './routes.js';
 import { languageFrom, localizedPath, translate, localizeDocument, wikiFor } from './i18n.js';
 import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectCognitiveTraps, getPolicyWhatIf, getProjectAdvisorEndorsement } from './causal.js';
-import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from './debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, formatDebriefAIPrompt, formatDebriefLMN, verifyHypotheses } from './debrief.js';
 import { listProjectChoices, compareWithoutProject } from './counterfactual.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
 
@@ -954,6 +954,12 @@ function debriefView() {
         <h2>${complete() ? 'Как изменился ваш Лоххаузен?' : 'Остановиться и посмотреть на целое.'}</h2>
         <p>${complete() ? 'Управление завершено. Рассмотрите не только конечные цифры, но и путь, который к ним привел.' : `Прошло ${game.month} из ${horizon} месяцев. Сверьте намерения с результатами, прежде чем принимать новые решения.`}</p>
         <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="button primary" data-action="copy-ai-prompt" data-testid="copy-ai-prompt" title="Скопировать готовый промпт с данными партии для вставки в Claude, Gemini или Codex">
+            📋 Скопировать промпт для ИИ
+          </button>
+          <button class="button secondary" data-action="export-debrief-ai-md" data-testid="export-debrief-ai-md" title="Скачать файл с системным промптом и хроникой решений для ИИ">
+            🤖 Скачать для ИИ (Markdown)
+          </button>
           <button class="button secondary" data-action="export-debrief-md" title="Скачать подробный аналитический отчет">
             📥 Скачать отчет (Markdown)
           </button>
@@ -1124,7 +1130,16 @@ function debriefView() {
           ` : ''}
 
           <div class="debrief-export-actions">
-            <button class="button primary" data-action="export-debrief-md" data-testid="export-debrief-md">
+            <button class="button primary" data-action="copy-ai-prompt" data-testid="copy-ai-prompt" title="Скопировать готовый системный промпт с данными партии для вставки в Claude, Gemini или Codex">
+              📋 Скопировать промпт для ИИ
+            </button>
+            <button class="button secondary" data-action="export-debrief-ai-md" data-testid="export-debrief-ai-md">
+              🤖 Скачать для ИИ (Markdown + Промпт)
+            </button>
+            <button class="button secondary" data-action="export-debrief-lmn" data-testid="export-debrief-lmn" title="Шахматная нотация ходов LMN с системным промптом в JSON">
+              🧠 LMN (JSON для ИИ)
+            </button>
+            <button class="button secondary" data-action="export-debrief-md" data-testid="export-debrief-md">
               📥 Скачать разбор (Markdown)
             </button>
             <button class="button secondary" data-action="export-debrief-json" data-testid="export-debrief-json">
@@ -1442,6 +1457,44 @@ app.addEventListener('click', event => {
         const result = document.getElementById('counterfactual-result');
         result?.focus({ preventScroll: true });
         result?.scrollIntoView({ block: 'start' });
+        break;
+      }
+      case 'copy-ai-prompt': {
+        const evaluation = evaluateScenario(game);
+        const analysis = analyzeDebrief(game);
+        const promptText = formatDebriefAIPrompt(game, analysis, evaluation, line => translate(line, language));
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(promptText).then(() => {
+            notice = 'Промпт с данными партии скопирован в буфер обмена! Вставьте его в Claude, Gemini или Codex.';
+            render();
+          }).catch(() => {
+            downloadFile(`lohhausen-ai-prompt-month-${game.month}.md`, 'text/markdown;charset=utf-8', promptText);
+            notice = 'Промпт для ИИ (Claude / Gemini / Codex) скачан в формате Markdown.';
+            render();
+          });
+        } else {
+          downloadFile(`lohhausen-ai-prompt-month-${game.month}.md`, 'text/markdown;charset=utf-8', promptText);
+          notice = 'Промпт для ИИ (Claude / Gemini / Codex) скачан в формате Markdown.';
+          render();
+        }
+        break;
+      }
+      case 'export-debrief-ai-md': {
+        const evaluation = evaluateScenario(game);
+        const analysis = analyzeDebrief(game);
+        const promptText = formatDebriefAIPrompt(game, analysis, evaluation, line => translate(line, language));
+        downloadFile(`lohhausen-ai-prompt-month-${game.month}.md`, 'text/markdown;charset=utf-8', promptText);
+        notice = 'Промпт для ИИ (Claude / Gemini / Codex) скачан в формате Markdown.';
+        render();
+        break;
+      }
+      case 'export-debrief-lmn': {
+        const evaluation = evaluateScenario(game);
+        const analysis = analyzeDebrief(game);
+        const lmnRecord = formatDebriefLMN(game, analysis, evaluation);
+        downloadFile(`lohhausen-lmn-month-${game.month}.json`, 'application/json;charset=utf-8', JSON.stringify(lmnRecord, null, 2));
+        notice = 'Шахматная нотация LMN с промптом для ИИ экспортирована в формате JSON.';
+        render();
         break;
       }
       case 'export-debrief-md': {

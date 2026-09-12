@@ -16,31 +16,116 @@
 ## 🚀 In Progress
 *Активные задачи.*
 
-*(На текущий момент активных задач в разработке нет. Все этапы завершены, тесты 53/53 зеленые).*
+*(В настоящий момент активных задач в разработке нет; ожидается согласование следующей итерации с Senior Integrator).*
 
 ---
 
-## 🔍 Review
-*Задачи на проверке.*
 
-*(Активных задач на проверке нет).*
+### 🔍 Review & Proposed
+*Задачи на согласовании и проверке.*
+
+- [ ] **chess-export-ai-001**: Внедрение экспорта шахматной записи партии (LMN v1.2) со встроенной алгоритмической классификацией ходов (`!!`, `!`, `—`, `?!`, `?`, `??`) и доказательным промптом для системного разбора в Claude/ChatGPT/Gemini.
+  - **Инициатор**: `dorner_scenarios` (по поручению пользователя)
+  - **Спецификация**: [`knowledge/dorner-chess-export-spec.md`](./knowledge/dorner-chess-export-spec.md), [`knowledge/dorner-move-evaluation-engine.md`](./knowledge/dorner-move-evaluation-engine.md)
+  - **Прототип**: [`scratch/chess-export.mjs`](./scratch/chess-export.mjs)
+  - **Верификатор**: [`scripts/verify-chess-export.mjs`](./scripts/verify-chess-export.mjs)
+  - **Статус**: verified_ready (все 4 сценария успешно протестированы, соответствие всем критериям подтверждено).
 
 ---
 
-## 🗄️ Backlog
-*Идеи и планы от команды.*
+## 🗄️ Backlog (Дидактические инициативы и системные улучшения)
+*Стратегические предложения по системному обучению (спецификация: [`knowledge/dorner-v1.2-didactic-roadmap.md`](./knowledge/dorner-v1.2-didactic-roadmap.md), атлас отказов: [`knowledge/dorner-scenario-failure-atlas.md`](./knowledge/dorner-scenario-failure-atlas.md), гроссмейстерский кейс: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).*
 
-*(На текущий момент все запланированные задачи бэклога успешно закрыты).*
+- [ ] **fiscal-squeeze-diagnostics**: Предостережение от фискальной ловушки завышения налогов: нелинейный порог $20\%$, асимметрия миграционных потоков ($[-15, +2]$ чел./мес.) и разрушение налогооблагаемой базы в `/debrief` и подсказках кабинета (исследование: [`knowledge/agy-fiscal-squeeze-and-laffer-trap.md`](./knowledge/agy-fiscal-squeeze-and-laffer-trap.md)).
+- [ ] **skills-lag-diagnostics**: Предостережение от когнитивной ловушки «бесплатной экономии на обучении»: расчет инерционного лага человеческого капитала ($\tau = 13.3$ мес., $t_{1/2} = 8.89$ мес.), падения мультипликатора качества спроса (`qualityDemand`) и необратимой эрозии благополучия семей в `/debrief` и подсказках кабинета (исследование: [`knowledge/agy-education-skills-lag-analysis.md`](./knowledge/agy-education-skills-lag-analysis.md)).
+- [ ] **competing-hypotheses-journal**: Внедрение в журнал решений обязательной фиксации конкурирующих гипотез ($H_1$: целевой выигрыш vs $H_2$: побочная цена/потеря занятости) перед запуском проектов для исключения игры «вслепую» с пустыми заметками (спецификация: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).
+- [ ] **binding-constraint-evaluator**: Автоматический аудит эффективности капитальных вложений по связывающим ограничениям (Binding Constraints) в `/debrief`: выявление преждевременного омертвления ликвидности в неизбыточных фондах (кейс муниципального жилья) vs своевременного расширения узких мест (станки, туризм) (руководство: [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)).
+- [ ] **ai-debrief-methodology**: Методология системного аудита и оценки партий в ИИ (Claude, Gemini, Codex) по канонам Дёрнера и Стермана: 6-фазный протокол, чек-лист анти-галлюцинаций для LLM (руководство: [`knowledge/agy-ai-debrief-evaluation-methodology.md`](./knowledge/agy-ai-debrief-evaluation-methodology.md)).
+- [ ] **pseudo-stability-diagnostics**: Анализ латентных кризисов и выявление псевдостабильности (*Scheingleichgewicht*) vs истинного равновесия (*Systemgleichgewicht*), предостережение от синдрома «ремонтной мастерской» (*Reparaturdienst-Verhalten*) (руководство: [`knowledge/agy-pseudo-stability-and-repair-mentality.md`](./knowledge/agy-pseudo-stability-and-repair-mentality.md)).
+- [ ] **reality-shock-prompt**: Рефлексивный диалог при критическом расхождении (>30%) между прогнозом игрока в журнале и фактическим результатом проекта (архитектура: [`knowledge/agy-reality-shock-and-error-awareness-architecture.md`](./knowledge/agy-reality-shock-and-error-awareness-architecture.md)).
+- [ ] **feedback-loop-explorer**: Интерактивная трассировка контуров в CLD при клике на переменные (пошаговая подсветка замкнутых петель обратной связи и задержек).
+- [ ] **radar-delta-tooltip**: Интерактивные тултипы дельт на вершинах системного радара (сопоставление с базовой линией месяца 0 и вывод конкретного фактора износа/падения).
+- [ ] **counterfactual-trajectory-trace**: Опциональное отображение эталонного коридора Конрада на графиках истории для раннего обнаружения точки системной бифуркации.
 
 ---
 
 ## ✅ Done
 *Завершенные задачи.*
 
+- [x] **ai-prompt-export-001**: Реализация прямого экспорта итогов партии с системным научно-обоснованным промптом по методологии Дёрнера/Стермана для анализа в Claude, Gemini, ChatGPT и Codex (кнопки «📋 Скопировать промпт для ИИ», «🤖 Скачать для ИИ (Markdown + Промпт)», «🧠 LMN (JSON для ИИ)») с автоматическим включением контрфактического моделирования завершенных проектов.
+  - **Исполнитель**: `dorner_scenarios` (по прямому поручению пользователя)
+  - **Карточка**: [`COORDINATION/tasks/ai-prompt-export-001.md`](./COORDINATION/tasks/ai-prompt-export-001.md)
+  - **Артефакты**: `src/debrief.js`, `src/app.js`, `src/locales/extra.js`, `tests/debrief.test.js`
+  - **Статус**: Закрыта (124/124 тестов green, локализация на 4 языка, прямая поддержка буфера обмена, fallback скачивания и контрфактические срезы альтернативных реальностей).
+
+- [x] **project-counterfactual-001**: Контрфактический анализ партии: проверка «Что было бы без этого проекта?» в разделе `/debrief` при сохранении неизменным остального журнала решений.
+  - **Исполнитель**: `codex` (Senior Integrator)
+  - **Спецификация и верификация**: [`docs/project-counterfactual-spec.md`](./docs/project-counterfactual-spec.md), [`docs/project-counterfactual-verification.md`](./docs/project-counterfactual-verification.md)
+  - **Артефакты**: `src/counterfactual.js`, `tests/counterfactual.test.js`, `src/app.js`, `src/locales/extra.js`, `public/styles.css`
+  - **Дидактическое сопровождение**: [`knowledge/agy-counterfactual-analysis-guide.md`](./knowledge/agy-counterfactual-analysis-guide.md), [`knowledge/agy-project-counterfactual-didactics.md`](./knowledge/agy-project-counterfactual-didactics.md), [`knowledge/agy-dorner-13-lessons-error-mastery.md`](./knowledge/agy-dorner-13-lessons-error-mastery.md)
+  - **Статус**: Закрыта (16 тестов модуля, 121/121 тестов green, коммит `0a2ba43`).
+
+- [x] **causal-wear-integration-001**: Интеграция дидактического объяснения динамики износа оборудования в `src/causal.js`, устранение ложного вывода об «обслуживании, компенсирующем износ», учет интервалов журнала и устранение ошибок `modernizationLevel` и статического порога 18k.
+  - **Исполнитель**: `codex` (Senior Integrator)
+  - **Спецификация и верификация**: [`docs/project-counterfactual-verification.md`](./docs/project-counterfactual-verification.md), [`COORDINATION/tasks/causal-wear-integration-001.md`](./COORDINATION/tasks/causal-wear-integration-001.md)
+  - **Артефакты**: `src/causal.js`, `src/locales/extra.js`, `tests/causal-wear.test.js`, `tests/causal-wear-regression.test.js`
+  - **Статус**: Закрыта (10 тестов износа, 121/121 тестов green, коммит `0a2ba43`).
+
+- [x] **causal-wear-digest-001**: Устранение ложного утверждения «обслуживание компенсирует износ» при недостаточном обслуживании ($M=14$), учет длительности шага (`monthsElapsed`), разделение валового ввода модернизации и граничных состояний (0/100).
+  - **Инициатор**: `dorner_scenarios` (при аналитической поддержке `agy` и аудите `codex`)
+  - **Карточка**: [`COORDINATION/tasks/causal-wear-digest-001.md`](./COORDINATION/tasks/causal-wear-digest-001.md)
+  - **Статус**: Закрыта (полностью интегрирована в кодовую базу в рамках `causal-wear-integration-001`, коммит `0a2ba43`).
+
+- [x] **party-audit-002**: Аудит внешнего разбора партии, исправление долга в `party-review-20260911.md` (долг 18–24 мес., пик 46.26 в 21), строгое контрфактическое моделирование 2-й модернизации и жилья месяца 65, замена `id: conrad` на `no_indicators_detected` в JSON.
+  - **Исполнитель**: `codex` (при участии `review_simulation` и `repair_debrief`)
+  - **Артефакты**: [`docs/party-analysis-audit-20260911.md`](./docs/party-analysis-audit-20260911.md), [`src/debrief.js`](./src/debrief.js), [`tests/export-regressions.test.js`](./tests/export-regressions.test.js)
+  - **Статус**: Закрыта (95/95 тестов зеленые, все 3 контрфакта подтверждены в модели).
+- [x] **party-feedback-001**: Разбор реальной 120-месячной партии пользователя (117 действий, 3/3 целей), устранение необоснованных оценок игрока, калибровка объяснения стартового выпуска (890 vs расчет месяца 1) и объяснение технологической безработицы при модернизации фабрики.
+  - **Исполнитель**: `codex` (при участии `review_simulation` и `dorner_scenarios`)
+  - **Артефакты**: [`docs/party-review-20260911.md`](./docs/party-review-20260911.md), [`tests/party-feedback.test.js`](./tests/party-feedback.test.js), [`src/model.js`](./src/model.js), [`src/debrief.js`](./src/debrief.js), [`src/scenarios.js`](./src/scenarios.js)
+  - **Статус**: Закрыта (94/94 тестов зеленые, коммит `d44d38a`).
+- [x] **chronicle-navigation-001**: Связывание уведомлений о ходе с помесячной хроникой (`/?lang=ru#turn-digest`, автофокус, поддержка клавиатуры и 4 языков).
+  - **Исполнитель**: `codex` (при независимом review `repair_debrief`)
+  - **Артефакты**: [`src/app.js`](./src/app.js), [`public/styles.css`](./public/styles.css), [`src/locales/extra.js`](./src/locales/extra.js)
+  - **Статус**: Закрыта (90/90 тестов, коммит `f783193`).
+- [x] **integration-review-001**: Финальная интеграционная приемка релиза v1.1.0 (калибровка верстки радара при 1280px, строгий валидатор `hasRadarBaseline`, независимый Chrome аудит на 4 языках, валидация месяца 0).
+  - **Исполнитель**: `codex` (Senior Integrator)
+  - **Артефакты**: [`docs/integration-review-20260909.md`](./docs/integration-review-20260909.md), [`src/visuals.js`](./src/visuals.js), [`tests/visuals.test.js`](./tests/visuals.test.js)
+  - **Статус**: Закрыта (90/90 тестов, 720 месяцев, HTTP 12/13, коммит `0e1bfd7`).
+
+
+- [x] **time-lag-inertia-banner-001**: Индикатор скрытой инерции и активных проектов с временным лагом на экране решений (`decisionsView`), предостерегающий от нетерпеливого перерегулирования (*Übersteuerung*) и раскачки системы.
+  - **Исполнитель**: `dorner_scenarios`
+  - **Артефакты**: [`src/app.js`](./src/app.js), [`src/locales/cockpit.js`](./src/locales/cockpit.js), [`tests/cockpit.test.js`](./tests/cockpit.test.js)
+  - **Статус**: Закрыта (88/88 тестов проходят, словарь расширен до 416 ключей на en/de/fr, валидация `npm test`).
+- [x] **i18n-advisors-004**: Финальный каталог редких состояний советников (`src/locales/cockpit.js`, 11 ключей из `docs/review-i18n-advisors.json`, суммарно 409 ключей на ru/en/de/fr, корректная формулировка модернизации при исправных станках «повышает производительность», без утверждений о квалификации).
+  - **Исполнитель**: `dorner_scenarios`
+  - **Артефакты**: [`src/locales/cockpit.js`](./src/locales/cockpit.js), [`tests/cockpit.test.js`](./tests/cockpit.test.js)
+  - **Статус**: Закрыта (87/87 тестов проходят, 100% покрытие 409 ключей, границы освобождены).
+- [x] **i18n-dynamic-002**: Полная мультиязычная локализация динамических ключей, радара и психологических профилей (`src/locales/cockpit.js`, 185 ключей из `docs/review-i18n-dynamic.json`, суммарно 398 ключей на ru/en/de/fr, строгая эквивалентность `{n0}`–`{n4}`, аутентичные термины Дёрнера: *Ballistisches Handeln*, *Kapselung*, *Thematisches Vagabundieren*, *Reparaturdienst-Verhalten*, *Systemgleichgewicht*).
+  - **Исполнитель**: `dorner_scenarios` (при терминологической поддержке `agy`)
+  - **Артефакты**: [`src/locales/cockpit.js`](./src/locales/cockpit.js), [`tests/cockpit.test.js`](./tests/cockpit.test.js), [`knowledge/agy-dynamic-glossary.md`](./knowledge/agy-dynamic-glossary.md)
+  - **Статус**: Закрыта (80/80 тестов проходят, валидация `npm test`).
+- [x] **systemic-radar-001**: Пятиосевой радар системного здоровья города (Systemic Health Radar Chart) с критическим порогом 40%, взвешенной нормализацией осей и дидактической легендой.
+  - **Исполнитель**: `agy` (Antigravity)
+  - **Артефакты**: [`src/visuals.js`](./src/visuals.js), [`src/app.js`](./src/app.js), [`public/styles.css`](./public/styles.css), [`tests/visuals.test.js`](./tests/visuals.test.js)
+  - **Статус**: Закрыта (78/78 тестов проходят, адаптивный SVG-компонент встроен в Overview Cockpit).
+- [x] **i18n-cockpit-dynamic-003**: Расширение автономного каталога локализации всеми 185 динамическими фразами советников, радара и сценариев (`src/locales/cockpit.js`, всего 393 ключа на ru/en/de/fr, строгая проверка соответствия плейсхолдеров).
+  - **Исполнитель**: `dorner_scenarios` (при участии терминологического глоссария `agy`)
+  - **Артефакты**: [`src/locales/cockpit.js`](./src/locales/cockpit.js), [`tests/cockpit.test.js`](./tests/cockpit.test.js)
+  - **Статус**: Закрыта (78/78 тестов проходят, 100% покрытие 393 ключей, валидация `npm test`).
+- [x] **i18n-cockpit-catalog-002**: Полный автономный каталог переводов для всех экранов кабинета, сценариев и системной динамики (`src/locales/cockpit.js`, 208 базовых ключей на ru/en/de/fr, строгая проверка плейсхолдеров и часовой фабрики).
+  - **Исполнитель**: `dorner_scenarios`
+  - **Артефакты**: [`src/locales/cockpit.js`](./src/locales/cockpit.js), [`tests/cockpit.test.js`](./tests/cockpit.test.js)
+  - **Статус**: Закрыта (78/78 тестов проходят, 100% покрытие, валидация `npm test`).
+- [x] **debrief-ui-hardening-001**: Дидактическое обозначение эталонов и сценариев как учебных примеров по книге Дёрнера, защита заметок игрока `translate="no"`, живой What-If `localizeDocument`, синхронизация ползунков и динамический горизонт.
+  - **Исполнитель**: `dorner_scenarios`
+  - **Артефакты**: [`src/app.js`](./src/app.js), [`src/causal.js`](./src/causal.js), [`src/locales/extra.js`](./src/locales/extra.js), [`tests/i18n.test.js`](./tests/i18n.test.js)
+  - **Статус**: Закрыта (устранены любые подмены метрик, заметки изолированы от перевода, What-If и range/number синхронизированы).
 - [x] **advisor-guidance-shortcuts-001**: Живые памятки советников в экране решений (`decisionsView`), одобрение инвестиционных проектов с учетом лагов и полноценная клавиатурная доступность с горячими клавишами.
   - **Исполнитель**: `dorner_scenarios`
   - **Артефакты**: [`src/causal.js`](./src/causal.js), [`src/app.js`](./src/app.js), [`src/locales/extra.js`](./src/locales/extra.js), [`public/styles.css`](./public/styles.css), [`tests/causal.test.js`](./tests/causal.test.js), [`tests/i18n.test.js`](./tests/i18n.test.js)
-  - **Статус**: Закрыта (54/54 тестов проходят, 720 месяцев верифицированы, советники и горячие клавиши интегрированы).
+  - **Статус**: Закрыта (советники и горячие клавиши интегрированы).
 - [x] **i18n-cockpit-001**: Локализация ключевых терминов кабинета бургомистра, советников, ретроспективы и системной динамики Дёрнера на немецкий (de), английский (en) и французский (fr) языки.
   - **Исполнитель**: `dorner_analyst`
   - **Карточка**: [COORDINATION/tasks/i18n-cockpit-001.md](./COORDINATION/tasks/i18n-cockpit-001.md)
@@ -59,7 +144,7 @@
 - [x] **scenarios-001**: Движок исторических сценариев и эталонных вызовов Дёрнера (Песочница, Кризис часовой фабрики, Экологическая ловушка курорта, Стресс-тест Дёрнера).
   - **Исполнитель**: `dorner_scenarios`
   - **Карточка**: [COORDINATION/tasks/scenarios-001.md](./COORDINATION/tasks/scenarios-001.md)
-  - **Артефакты**: [`src/scenarios.js`](./src/scenarios.js), [`tests/scenarios.test.js`](./tests/scenarios.test.js)
+  - **Артефакты**: [`src/scenarios.js`](./src/scenarios.js), [`tests/scenarios.test.js`](./tests/scenarios.test.js), [`knowledge/agy-factory-crisis-recapitalization-analysis.md`](./knowledge/agy-factory-crisis-recapitalization-analysis.md), [`knowledge/agy-tourism-bottleneck-analysis.md`](./knowledge/agy-tourism-bottleneck-analysis.md), [`knowledge/agy-dorner-challenge-multi-criteria-analysis.md`](./knowledge/agy-dorner-challenge-multi-criteria-analysis.md)
   - **Статус**: Закрыта (38/38 тестов проходят, 4 канонических сценария с целями и бенчмарками).
 - [x] **debrief-001** (TASK-006): Модуль когнитивной ретроспективы и анализа ошибок мышления по книге Дёрнера (Dörner Debriefing Engine).
   - **Исполнитель**: `dorner_analyst` (при поддержке `debrief_agent`)

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, verifyHypotheses } from '../src/debrief.js';
+import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, formatDebriefAIPrompt, formatDebriefLMN, verifyHypotheses } from '../src/debrief.js';
 import { createGame, setPolicies, startProject, advance, requestReport } from '../src/model.js';
 
 test('debrief: отсутствие сработавших индикаторов дает нейтральный результат проверки', () => {
@@ -151,4 +151,46 @@ test('debrief: verifyHypotheses сопоставляет прогнозы из �
   assert.ok(ref.playerNote.includes('Ожидаю'));
   assert.ok(ref.outcomeSummary);
   assert.ok(ref.hindsightLesson);
+});
+
+test('debrief: formatDebriefAIPrompt генерирует системный промпт для Claude/Gemini/Codex с данными партии', () => {
+  const game = createGame();
+  const analysis = analyzeDebrief(game);
+  const prompt = formatDebriefAIPrompt(game, analysis, { status: 'victory' });
+
+  assert.equal(typeof prompt, 'string');
+  assert.match(prompt, /СИСТЕМНЫЙ ПРОМПТ ДЛЯ ИИ-АНАЛИТИКА/);
+  assert.match(prompt, /Дитриха Дёрнера/);
+  assert.match(prompt, /МЕТОДОЛОГИЧЕСКИЕ ТРЕБОВАНИЯ/);
+  assert.match(prompt, /показатели города/);
+  assert.match(prompt, /Динамика показателей по ключевым точкам/);
+  assert.match(prompt, /Вопросы для системной саморефлексии/);
+  assert.match(prompt, /Шахматный разбор ключевых ходов/);
+  assert.match(prompt, /Точка бифуркации/);
+  assert.match(prompt, /связывающих ограничений/);
+});
+
+test('debrief: formatDebriefLMN возвращает структурированную шахматную нотацию LMN с промптом для ИИ', () => {
+  const game = createGame();
+  const analysis = analyzeDebrief(game);
+  const lmn = formatDebriefLMN(game, analysis, { status: 'victory' });
+
+  assert.match(lmn.$format, /Lohhausen Match Notation/);
+  assert.ok(lmn.aiAnalysisSystemPrompt);
+  assert.match(lmn.aiAnalysisSystemPrompt, /Дитриха Дёрнера/);
+  assert.ok(Array.isArray(lmn.moves));
+  assert.equal(lmn.moves.length, 1);
+});
+
+test('debrief: formatDebriefAIPrompt включает контрфактическое сравнение завершенного проекта', () => {
+  let game = createGame();
+  game = startProject(game, 'housing', 'Прогноз: расширение жилья');
+  game = advance(game, 13);
+  const analysis = analyzeDebrief(game);
+  const prompt = formatDebriefAIPrompt(game, analysis);
+
+  assert.match(prompt, /Контрфактический анализ завершенных проектов/);
+  assert.match(prompt, /Муниципальное жильё/);
+  assert.match(prompt, /с проектом/);
+  assert.match(prompt, /без проекта/);
 });

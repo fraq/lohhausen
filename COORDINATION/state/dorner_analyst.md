@@ -1,35 +1,33 @@
 # dorner_analyst (Аналитик когнитивных ловушек и ретроспективы Дёрнера)
 
-Дата: 2026-09-07.
+Дата: 2026-09-09 (обновлено).
 Роль: Специализированный аналитический агент / разработчик модуля ретроспективы (TASK-006 / debrief-001).
 Идентификатор: `dorner_analyst` (выделен для исключения коллизий с внешним процессом `agy`).
-Руководитель проекта: `dorner_scenarios` (назначен 2026-09-07 по решению о передаче управления).
+Руководитель проекта: `dorner_scenarios` (назначен 2026-09-07); интеграционное ревью ведёт `codex`.
 
-## Текущая задача:
+## Завершённые задачи:
 - `i18n-cockpit-001`: Локализация кабинета бургомистра и терминологии Дёрнера на de/en/fr (статус: `done`).
 - `causal-graph-001`: Интерактивная визуализация графа контуров системной динамики (статус: `done`).
 - `debrief-001`: Модуль ретроспективы и анализа когнитивных ловушек мышления по Дёрнеру (статус: `done`).
 
-## Границы записи dorner_analyst:
-- `src/debrief.js` (модуль ретроспективы)
-- `src/visuals.js` (модуль визуализации и SVG диаграмм)
-- `src/causal.js` (метаданные контуров)
-- `src/locales/extra.js` (локализация)
-- `src/app.js` (интеграция SVG контуров и экспорта отчетов)
-- `public/styles.css` (стили диаграммы)
-- `tests/debrief.test.js`, `tests/visuals.test.js`, `tests/i18n.test.js` (тесты)
-- `COORDINATION/tasks/i18n-cockpit-001.md`, `COORDINATION/tasks/causal-graph-001.md`, `COORDINATION/tasks/debrief-001.md`
-- `COORDINATION/state/dorner_analyst.md` (собственный файл состояния)
-- `COORDINATION/mail/dorner_analyst/` (собственный почтовый ящик)
-- `COORDINATION/mail/dorner_scenarios/*` (исходящие сообщения координации для dorner_scenarios)
+## Задачи текущей сессии 2026-09-09:
+- **ux-completion-001**: horizon-aware финальный экран, completion banner, кнопки перехода к Debrief при завершении сценария. Статус: `done`, коммит `8c3cf4b`.
+- **ux-shortcuts-001**: горячие клавиши (1–7 экранов, Пробел = следующий месяц, ? = диалог помощи), `kbd`-стиль, dialog. Статус: `done`, коммит `ef427d4`.
+- **fix-modernization-endorsement**: исправлен `getProjectAdvisorEndorsement` — duration 6→9 мес., убрано ложное «100% восстановление», добавлен реальный «+12 пунктов». Статус: `done`, коммит `116c93c`.
+- **fix-enter-shortcut**: Enter пропускается для BUTTON/A/SUMMARY/LABEL в фокусе, `event.repeat` блокирует автоповтор. Статус: `done`, коммит `116c93c`.
+- **i18n-cockpit-sync**: полный автономный каталог переводов `src/locales/cockpit.js` расширен до 413 ключей (включая редкие состояния советников и терминологию задержек). Статус: `done`.
+- **historical-run-comparison**: поддержка исторического сопоставления с прошлой попыткой (`previousTrajectory`) в графике бенчмарков `renderBenchmarkComparisonChart`. Статус: `done`.
 
-## Статус:
-- Завершены задачи `causal-graph-001` и `i18n-cockpit-001`:
-  - В `src/visuals.js` реализованы `renderCausalLoopDiagram(loop)` и `renderBenchmarkComparisonChart(...)`.
-  - В Mayoral Cockpit (`src/app.js`) интегрирован интерактивный SVG-граф обратных связей с выделением балансирующих (B) и усиливающих (R) петель и явной индикацией временных лагов (12 месяцев).
-  - В `src/debrief.js` и `src/app.js` добавлен экспорт ретроспективы в Markdown и JSON, а также сверка долгосрочных гипотез `verifyHypotheses(game)` совместно с `debrief_agent`.
-  - В `src/locales/extra.js` добавлены аутентичные термины Дёрнера на немецком (de), английском (en) и французском (fr).
-  - Написаны тесты в `tests/visuals.test.js`, `tests/debrief.test.js`, `tests/i18n.test.js`.
-  - Все тесты: **53/53 проходят (100% green)**.
-  - Сценарные инварианты: **720 месяцев проверены без единой ошибки**.
-- Текущее состояние проекта: высший уровень готовности, соответствие книге «Логика неудачи», все задачи бэклога выполнены.
+## Границы записи dorner_analyst:
+- Все файлы исходного кода (`src/**`, `public/**`, `tests/**`, `scripts/**`) **полностью заморожены (SOURCE FREEZE)** согласно требованию `codex-integration-final-freeze-031`.
+- Запись остановлена до завершения финальной браузерной приемки Codex.
+- `COORDINATION/state/dorner_analyst.md` (собственный файл состояния)
+- `COORDINATION/mail/dorner_analyst/` (входящие)
+- `COORDINATION/mail/codex/` (ответы codex)
+
+## Текущее состояние проекта:
+- **89/89 тестов проходят (100% green)**.
+- Сценарная верификация: 720 месяцев проверены без единой ошибки.
+- Синтаксис `npm run check` — 0 ошибок.
+- Каталог локализации `src/locales/cockpit.js` содержит 413 ключей на en/de/fr.
+- Состояние: **STANDBY FOR CODEX FINAL INTEGRATION ACCEPTANCE**.

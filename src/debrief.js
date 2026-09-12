@@ -5,6 +5,8 @@
  * based on Dietrich Dörner's "The Logic of Failure" (Die Logik des Mißlingens).
  */
 
+import { listProjectChoices, compareWithoutProject } from './counterfactual.js';
+
 export function analyzeDebrief(gameOrHistory, maybeJournal, maybeState) {
   let game;
   let history;
@@ -338,6 +340,401 @@ export function formatDebriefJSON(game, analysis, evaluation = {}) {
     },
     journal: game.journal,
   }, null, 2);
+}
+
+export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize = text => text) {
+  const scenarioTitle = game.scenarioId ? String(game.scenarioId) : 'sandbox';
+  const statusLabel = evaluation.status === 'victory' ? 'Победа' : evaluation.status === 'defeat' ? 'Поражение' : game.month < (game.horizon || 120) ? 'Продолжается' : 'Завершено';
+
+  const lines = [
+    `# Запрос для системного ИИ-разбора партии Лоххаузена (Claude / Gemini / Codex / ChatGPT)`,
+    '',
+    `## СИСТЕМНЫЙ ПРОМПТ ДЛЯ ИИ-АНАЛИТИКА:`,
+    '```text',
+    'Ты — ведущий эксперт по системному мышлению, анализу сложных динамических систем и когнитивной психологии принятия решений (методология Дитриха Дёрнера, «Логика неудачи», 1989, и системная динамика Джона Стермана, 1994).',
+    'Перед тобой пошаговая хроника управления виртуальным городом Лоххаузен.',
+    '',
+    'Твоя задача — провести глубокий системный разбор решений бургомистра (игрока).',
+    '',
+    'МЕТОДОЛОГИЧЕСКИЕ ТРЕБОВАНИЯ:',
+    '1. Опирайся на объективные числа и наблюдаемую динамику: казну, долг, состояние оборудования, выпуск часов/мес., безработицу, дефицит жилья и удовлетворенность.',
+    '2. Разделяй временные горизонты: единовременные капитальные затраты в момент запуска проекта и отложенный эффект через лаги (жилье: 12 мес., модернизация оборудования: 9 мес., туризм: 6 мес.).',
+    '3. Анализируй системные компромиссы (trade-offs): соотношение модернизации и технологической безработицы (рост выработки при стабильном спросе высвобождает рабочие места).',
+    '4. Проверяй эффективность связывающих ограничений (Binding Constraints): было ли расширение запаса своевременным узким местом системы или преждевременной заморозкой ликвидности в неизбыточном ресурсе (например, жилье при наличии свободных мест).',
+    '5. Сверяй гипотезы: сопоставь заметки игрока в журнале с фактическим исходом. Проверь наличие конкурирующих гипотез (H1: целевой выигрыш vs H2: побочная цена) или игру вслепую с пустыми заметками.',
+    '6. Не приписывай игроку вымышленных эмоций или неявных мотивов, если они прямо не указаны в его заметках.',
+    '',
+    'ЖЕЛАЕМАЯ СТРУКТУРА ТВОЕГО АНАЛИЗА:',
+    '1. Общий стратегический диагноз (генеральная стратегия, баланс 5 сфер, архетип Дёрнера в %: Конрад-стратег, Маркус-тактик, ремонтная служба).',
+    '2. Шахматный разбор ключевых ходов (!! блестящие ходы, ?! неточности/преждевременные ходы, ?? системные зевки/скрытые петли).',
+    '3. Гипотезы журнала: ожидание vs реальность (проверка целевых и побочных петель, наличие баллистического синдрома или локальной рациональности).',
+    '4. Точка бифуркации (определи конкретный месяц и причину разворота фазового режима системы от истощения к росту).',
+    '5. Три главных урока для следующей партии (управление узкими местами, отслеживание дуальных петель, лаговая пауза перед новым поворотом).',
+    '6. Итоговая оценка партии (по 10-балльной шкале Дёрнера с кратким резюме).',
+    '```',
+    '',
+    '## 1. Метаданные партии',
+    `- Сценарий: ${scenarioTitle}`,
+    `- Месяц: ${game.month} из ${game.horizon || 120}`,
+    `- Итоговый статус: ${statusLabel}`,
+    `- Профиль решений (по симулятору): ${analysis.archetype.name} — ${analysis.archetype.title}`,
+    `- Сводка симулятора: ${analysis.summary}`,
+    '',
+    '## 2. Итоговые показатели города',
+    `- Население: ${Math.round(game.population)} чел.`,
+    `- Казна: ${Math.round(game.treasury * 10) / 10} тыс. марок`,
+    `- Долг: ${Math.round(game.debt * 10) / 10} тыс. марок`,
+    `- Оборудование фабрики: ${Math.round(game.equipment * 10) / 10}%`,
+    `- Выпуск часов: ${Math.round(game.production * 10) / 10} часов/мес.`,
+    `- Безработица: ${Math.round((game.unemployment || 0) * 10) / 10} чел.`,
+    `- Общая удовлетворенность: ${Math.round(game.satisfaction * 10) / 10}%`,
+    `- Дефицит жилья: ${Math.round(game.housingShortage || 0)} мест`,
+    '',
+    '## 3. Сработавшие индикаторы когнитивных ловушек',
+  ];
+
+  const detected = analysis.traps.filter(t => t.detected);
+  if (detected.length === 0) {
+    lines.push('- Пороги выбранных индикаторов не превышены в доступном журнале.');
+  } else {
+    for (const trap of detected) {
+      lines.push(`- **⚠️ ${trap.title || trap.name}**: ${trap.description}`);
+      if (trap.learningPrompt) {
+        lines.push(`  *Учебный вопрос: ${trap.learningPrompt}*`);
+      }
+    }
+  }
+
+  lines.push('');
+  lines.push('## 4. Хроника решений и заметок игрока');
+  const journal = Array.isArray(game.journal) ? game.journal : [];
+  if (journal.length === 0) {
+    lines.push('- В журнале нет зафиксированных действий.');
+  } else {
+    for (const entry of journal) {
+      const noteStr = entry.note ? ` [Заметка/Гипотеза: "${entry.note}"]` : '';
+      lines.push(`- [Месяц ${entry.month ?? 0}] ${entry.title || entry.type}${noteStr}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('## 5. Динамика показателей по ключевым точкам');
+  lines.push('| Месяц | Население | Казна | Долг | Станки (%) | Выпуск | Безработица | Удовл. (%) |');
+  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|');
+  const history = Array.isArray(game.history) ? game.history : [];
+  const historyByMonth = new Map(history.map(s => [s.month, s]));
+  const sampledMonths = new Set([0, game.month]);
+  for (let m = 12; m < game.month; m += 12) sampledMonths.add(m);
+  for (const entry of journal) {
+    if (entry.month !== undefined && entry.month <= game.month) sampledMonths.add(entry.month);
+  }
+  const sortedMonths = Array.from(sampledMonths).sort((a, b) => a - b);
+  for (const m of sortedMonths) {
+    const s = historyByMonth.get(m) || (m === game.month ? game : null);
+    if (!s) continue;
+    lines.push(`| ${m} | ${Math.round(s.population)} | ${Math.round(s.treasury)} | ${Math.round(s.debt)} | ${Math.round(s.equipment)}% | ${Math.round(s.production)} | ${Math.round(s.unemployment || 0)} | ${Math.round(s.satisfaction)}% |`);
+  }
+
+  lines.push('');
+  lines.push('## 6. Вопросы для системной саморефлексии');
+  for (const q of (analysis.reflectionQuestions || [])) {
+    lines.push(`- ${q}`);
+  }
+
+  try {
+    const choices = listProjectChoices(game);
+    if (choices.length > 0) {
+      lines.push('');
+      lines.push('## 7. Контрфактический анализ завершенных проектов (Что было бы без проекта?)');
+      for (const choice of choices) {
+        const comparison = compareWithoutProject(game, choice.journalIndex);
+        if (comparison && comparison.status === 'available') {
+          const act = comparison.actual;
+          const alt = comparison.alternative;
+          lines.push(`### Проект: «${choice.label}» (запущен в месяце ${choice.startMonth}, завершен в месяце ${choice.completeMonth})`);
+          if (choice.note) {
+            lines.push(`- Ожидание игрока перед стартом: "${choice.note}"`);
+          }
+          const treasuryDiff = Math.round((act.treasury - alt.treasury) * 10) / 10;
+          const unempDiff = Math.round(((act.unemployment || 0) - (alt.unemployment || 0)) * 10) / 10;
+          lines.push(`- Казна к месяцу ${game.month}: с проектом ${Math.round(act.treasury * 10) / 10} тыс. м., без проекта ${Math.round(alt.treasury * 10) / 10} тыс. м. (разница: ${treasuryDiff > 0 ? '+' : ''}${treasuryDiff})`);
+          lines.push(`- Безработица: с проектом ${Math.round((act.unemployment || 0) * 10) / 10} чел., без проекта ${Math.round((alt.unemployment || 0) * 10) / 10} чел. (разница: ${unempDiff > 0 ? '+' : ''}${unempDiff})`);
+          lines.push(`- Оборудование: с проектом ${Math.round(act.equipment * 10) / 10}%, без проекта ${Math.round(alt.equipment * 10) / 10}%`);
+          lines.push(`- Вместимость жилья: с проектом ${Math.round(act.housingCapacity || 0)}, без проекта ${Math.round(alt.housingCapacity || 0)}`);
+          lines.push(`- Общая удовлетворенность: с проектом ${Math.round(act.satisfaction * 10) / 10}%, без проекта ${Math.round(alt.satisfaction * 10) / 10}%`);
+          lines.push('');
+        }
+      }
+    }
+  } catch {
+    // Non-blocking in case of unsupported custom game formats
+  }
+
+  return lines.map(localize).join('\n');
+}
+
+export function buildChessMatchRecord(sessionData) {
+  const game = sessionData.game || sessionData;
+  const history = Array.isArray(game.history) ? game.history : [];
+  const journal = Array.isArray(game.journal) ? game.journal : [];
+  const horizon = game.horizon || 120;
+  const scenario = game.scenarioId || 'sandbox';
+
+  const journalByMonth = new Map();
+  for (let i = 0; i < journal.length; i++) {
+    const entry = journal[i];
+    const m = entry.month ?? 0;
+    if (!journalByMonth.has(m)) journalByMonth.set(m, []);
+    journalByMonth.get(m).push({ ...entry, _seq: i + 1 });
+  }
+
+  const historyByMonth = new Map();
+  for (const snap of history) {
+    if (snap && Number.isFinite(snap.month)) {
+      historyByMonth.set(snap.month, snap);
+    }
+  }
+
+  const moves = [];
+  const maxMonth = game.month ?? (history.length > 0 ? history.at(-1).month : 0);
+
+  for (let m = 0; m <= maxMonth; m++) {
+    const currentState = historyByMonth.get(m) || null;
+    const nextState = historyByMonth.get(m + 1) || null;
+    const rawEntries = journalByMonth.get(m) || [];
+
+    const orderedActions = rawEntries
+      .filter(e => e.type === 'report' || e.type === 'policy' || e.type === 'project')
+      .map((e, idx) => {
+        const action = {
+          seq: idx + 1,
+          type: e.type,
+          title: e.title,
+          note: e.note ? e.note.trim() : null,
+        };
+        if (e.type === 'policy') {
+          action.policyChanges = e.changes || e.patch || null;
+        } else if (e.type === 'project') {
+          action.project = {
+            id: e.project?.id || null,
+            type: e.project?.type || null,
+            label: e.project?.label || e.title,
+            cost: e.project?.cost ?? 0,
+            duration: e.project?.completeMonth ? (e.project.completeMonth - (e.project.startMonth ?? m)) : null,
+            startMonth: e.project?.startMonth ?? m,
+            completeMonth: e.project?.completeMonth ?? null,
+          };
+        }
+        return action;
+      });
+
+    const immediateProjectCost = orderedActions
+      .filter(a => a.type === 'project')
+      .reduce((sum, a) => sum + (a.project?.cost || 0), 0);
+
+    const completionsThisMonth = rawEntries
+      .filter(e => e.type === 'completion')
+      .map(e => e.title);
+
+    let transition = null;
+    if (currentState && nextState) {
+      const deltaTreasury = Math.round((nextState.treasury - currentState.treasury) * 1000) / 1000;
+      const deltaDebt = Math.round((nextState.debt - currentState.debt) * 1000) / 1000;
+      const deltaEquipment = Math.round((nextState.equipment - currentState.equipment) * 1000) / 1000;
+      const deltaProduction = Math.round((nextState.production - currentState.production) * 1000) / 1000;
+      const deltaUnemployment = Math.round((nextState.unemployment - currentState.unemployment) * 1000) / 1000;
+      const deltaSatisfaction = Math.round((nextState.satisfaction - currentState.satisfaction) * 1000) / 1000;
+      const operatingCashDelta = Math.round((deltaTreasury + immediateProjectCost) * 1000) / 1000;
+
+      transition = {
+        toMonth: m + 1,
+        intervalMonths: 1,
+        immediateProjectCost,
+        delta: {
+          treasury: deltaTreasury,
+          operatingCashDelta: immediateProjectCost > 0 ? operatingCashDelta : deltaTreasury,
+          debt: deltaDebt,
+          equipment: deltaEquipment,
+          production: deltaProduction,
+          unemployment: deltaUnemployment,
+          satisfaction: deltaSatisfaction,
+        },
+      };
+    }
+
+    const empiricalSignals = [];
+    if (currentState) {
+      const pop = currentState.population || 0;
+      const estWorkforce = currentState.workforce ?? (pop ? Math.round(pop * 0.555 * 1e6) / 1e6 : null);
+      if (currentState.equipment < 40) {
+        empiricalSignals.push(`Оборудование фабрики: ${Math.round(currentState.equipment * 10) / 10}% (ниже ориентира 40% на радарной шкале)`);
+      }
+      if (currentState.debt > 0) {
+        empiricalSignals.push(`Городской долг: ${Math.round(currentState.debt * 10) / 10} тыс. марок`);
+      }
+      if (currentState.housingShortage > 0) {
+        empiricalSignals.push(`Дефицит муниципального жилья: ${Math.round(currentState.housingShortage)} мест`);
+      }
+      if (estWorkforce && currentState.unemployment > estWorkforce * 0.15) {
+        const pct = Math.round((currentState.unemployment / estWorkforce) * 1000) / 10;
+        empiricalSignals.push(`Безработица: ${Math.round(currentState.unemployment)} чел. (${pct}% рабочей силы)`);
+      }
+    }
+
+    let moveEvaluation = { tag: '—', label: 'Штатное наблюдение' };
+    if (orderedActions.length > 0) {
+      moveEvaluation = { tag: '!', label: 'Действие бургомистра' };
+      const policyActions = orderedActions.filter(a => a.type === 'policy');
+      const projectActions = orderedActions.filter(a => a.type === 'project');
+
+      if (currentState) {
+        const hasHighTourismAds = policyActions.some(a => a.policyChanges && a.policyChanges.tourismMarketing >= 40);
+        if (hasHighTourismAds && currentState.tourismCapacity <= 25) {
+          moveEvaluation = {
+            tag: '??',
+            label: 'Системный зевок (сжигание бюджета в узком горлышке туризма: реклама >= 40k при емкости <= 25 мест)',
+          };
+        }
+        const hasLowMaintenance = policyActions.some(a => a.policyChanges && a.policyChanges.maintenance < 10);
+        if (hasLowMaintenance && currentState.equipment < 30) {
+          moveEvaluation = {
+            tag: '??',
+            label: 'Системный зевок (урезание обслуживания станков ниже 10k при износе < 30%)',
+          };
+        }
+      }
+
+      if (moveEvaluation.tag !== '??') {
+        const hypothesisProject = projectActions.find(a => a.note && a.note.length > 5);
+        if (hypothesisProject) {
+          moveEvaluation = {
+            tag: '!!',
+            label: `Системное упреждение (проект «${hypothesisProject.project?.label || 'Инвестиция'}» запущен с явной гипотезой в журнале)`,
+          };
+        }
+      }
+    }
+
+    moves.push({
+      turnMonth: m,
+      preActionState: currentState ? {
+        month: currentState.month,
+        population: Math.round(currentState.population),
+        treasury: Math.round(currentState.treasury * 10) / 10,
+        debt: Math.round(currentState.debt * 10) / 10,
+        equipment: Math.round(currentState.equipment * 10) / 10,
+        production: Math.round(currentState.production * 10) / 10,
+        unemployment: Math.round(currentState.unemployment * 10) / 10,
+        satisfaction: Math.round(currentState.satisfaction * 10) / 10,
+        housingShortage: Math.round(currentState.housingShortage || 0),
+      } : null,
+      phases: {
+        phase1_arrivalsAndCompletions: completionsThisMonth,
+        phase2_mayorInterventions: orderedActions,
+        phase3_simulationTransition: transition,
+      },
+      completionsThisMonth,
+      mayorActions: {
+        hasIntervention: orderedActions.length > 0,
+        count: orderedActions.length,
+        orderedEvents: orderedActions,
+      },
+      systemicEvaluation: moveEvaluation,
+      transitionToNextMonth: transition,
+      empiricalSignals,
+    });
+  }
+
+  const activeTraps = Array.isArray(sessionData.traps)
+    ? sessionData.traps.filter(t => t && t.detected).map(t => t.title || t.id || 'Неизвестный индикатор')
+    : [];
+
+  return {
+    $format: "Lohhausen Match Notation (LMN v1.2)",
+    aiAnalysisSystemPrompt: `Ты — аналитик системного мышления и когнитивной психологии сложных систем (по методологии Дитриха Дёрнера, «Логика неудачи»).
+Перед тобой пошаговая запись управления городом Лоххаузен (LMN v1.2: Lohhausen Match Notation).
+
+Инструкции для системного разбора:
+1. ОПИРАЙСЯ ТОЛЬКО НА НАБЛЮДАЕМЫЕ ДАННЫЕ И ЧИСЛА:
+   - Не приписывай игроку неявных психологических мотивов (страх, лень, эйфория, «технологический оптимизм»), если они не записаны прямым текстом в заметках игрока (note).
+   - Не классифицируй игрока категоричными оценочными ярлыками. Анализируй наблюдаемые действия, динамику и системные эффекты.
+
+2. АНАЛИЗ ПЕРЕХОДОВ И ДИНАМИКИ (ХОД ЗА ХОДОМ):
+   - Разделяй немедленные капитальные затраты (оплата проектов в месяц m) и последующий операционный результат перехода m -> m+1.
+   - Обрати внимание на временные лаги: какие инвестиции дали эффект с задержкой (жилье: 12 мес., модернизация: 9 мес., туризм: 6 мес.)?
+   - Проверь, запрашивал ли игрок отчеты перед принятием крупных решений (информационная подготовка) или действовал без свежих данных.
+
+3. СВЕРКА ГИПОТЕЗ (ЗАМЕТКИ В ЖУРНАЛЕ VS ФАКТИЧЕСКИЙ РЕЗУЛЬТАТ):
+   - Если игрок записал гипотезу перед стартом проекта, сопоставь прогноз с наблюдаемым состоянием системы на момент завершения проекта.
+   - Проверь наблюдаемый факт: запрашивались ли отчеты профильного подразделения после запуска проекта, или проект реализовывался без сверки отчетов за 6+ месяцев?
+
+4. СИСТЕМНЫЕ КОМПРОМИССЫ (TRADE-OFFS) И АЛЬТЕРНАТИВНЫЕ ОБЪЯСНЕНИЯ:
+   - Избегай однофакторных оценок («ход хороший» / «ход плохой»). Анализируй компромиссы по нескольким осям (например, модернизация снижает износ и повышает выпуск, но может сократить рабочие места при фиксированном спросе).
+   - Если наблюдается перелом траектории (например, выход из долга или рост безработицы), укажи несколько возможных факторов влияния вместо категоричного утверждения об одной причине.
+   - Маркируй любую причинную гипотезу как требующую контрфактической проверки.
+
+5. 3 КОНКРЕТНЫХ СИСТЕМНЫХ РЕКОМЕНДАЦИИ:
+   - Какие обратные связи, пороги или лаги остались без внимания?
+   - Какие параметры политики позволили бы сбалансировать систему эффективнее?`,
+    matchMetadata: {
+      scenario,
+      durationMonths: maxMonth,
+      horizon,
+      finalOutcome: sessionData.status || (maxMonth >= horizon ? 'complete' : 'active'),
+      archetype: sessionData.archetype ? {
+        id: sessionData.archetype.id || 'unknown',
+        title: sessionData.archetype.title || sessionData.archetype.name || 'Не определен',
+      } : null,
+      cognitiveTrapsDetected: activeTraps,
+      lastCalculatedState: history.length > 0 ? {
+        month: history.at(-1).month,
+        population: history.at(-1).population,
+        treasury: history.at(-1).treasury,
+        debt: history.at(-1).debt,
+        equipment: history.at(-1).equipment,
+        production: history.at(-1).production,
+        unemployment: history.at(-1).unemployment,
+        satisfaction: history.at(-1).satisfaction,
+      } : null,
+      currentState: {
+        month: game.month ?? (history.length > 0 ? history.at(-1).month : 0),
+        population: game.population ?? (history.length > 0 ? history.at(-1).population : 0),
+        treasury: game.treasury ?? (history.length > 0 ? history.at(-1).treasury : 0),
+        debt: game.debt ?? (history.length > 0 ? history.at(-1).debt : 0),
+        equipment: game.equipment ?? (history.length > 0 ? history.at(-1).equipment : 0),
+        production: game.production ?? (history.length > 0 ? history.at(-1).production : 0),
+        unemployment: game.unemployment ?? (history.length > 0 ? history.at(-1).unemployment : 0),
+        satisfaction: game.satisfaction ?? (history.length > 0 ? history.at(-1).satisfaction : 0),
+      },
+      hasUnadvancedInterventions: Boolean(history.length > 0 && game.month === history.at(-1).month && (journalByMonth.get(game.month)?.some(e => ['policy', 'project'].includes(e.type)) || game.treasury !== history.at(-1).treasury)),
+      finalState: history.length > 0 ? {
+        month: history.at(-1).month,
+        population: history.at(-1).population,
+        treasury: history.at(-1).treasury,
+        debt: history.at(-1).debt,
+        equipment: history.at(-1).equipment,
+        production: history.at(-1).production,
+        unemployment: history.at(-1).unemployment,
+        satisfaction: history.at(-1).satisfaction,
+      } : null,
+    },
+    moves,
+  };
+}
+
+export function formatDebriefLMN(game, analysis, evaluation = {}) {
+  const sessionData = {
+    scenario: game.scenarioId || 'sandbox',
+    month: game.month,
+    horizon: game.horizon || 120,
+    status: evaluation.status || (game.month >= (game.horizon || 120) ? 'complete' : 'active'),
+    game,
+    archetype: analysis.archetype,
+    summary: analysis.summary,
+    traps: analysis.traps,
+    reflectionQuestions: analysis.reflectionQuestions,
+  };
+  return buildChessMatchRecord(sessionData);
 }
 
 export function verifyHypotheses(game) {
