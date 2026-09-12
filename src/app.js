@@ -488,7 +488,7 @@ function overviewView() {
               <button class="button primary" data-view="debrief">📊 Итоговый разбор (Debrief) ${icon('arrow', 16)}</button>
               <button class="button secondary" data-action="new-game">Новая партия ${icon('reset', 16)}</button>
             ` : `
-              <button class="button primary hero-guide" data-view="guide">Как играть ${icon('arrow', 16)}</button>
+              <button class="button primary" data-view="guide">Как играть ${icon('arrow', 16)}</button>
               <button class="button secondary" data-view="decisions">Принять решения ${icon('decisions', 16)}</button>
               <button class="button quiet" data-view="reports">Отчеты служб ${icon('reports', 16)}</button>
             `}
@@ -1276,23 +1276,30 @@ function render() {
             </button>
           `).join('')}
         </nav>
+        <div class="sidebar-action">
+          <button class="button sidebar-new-game" data-action="new-game" data-testid="new-game" title="Начать новую игру">
+            ${icon('reset', 16)} <span>Новая игра</span>
+          </button>
+        </div>
         <div class="sidebar-foot">
           <div class="sidebar-emblem">L<span>•</span>H</div>
           <p>Маленький город.<br>Большие взаимосвязи.</p>
           ${bookLink()}
-          <button class="button quiet" data-action="new-game" data-testid="new-game">
-            ${icon('reset', 15)} Новая игра
-          </button>
         </div>
       </aside>
       <main class="main" id="content">
         <div class="language-control">
-          <label for="language-select">Язык интерфейса</label>
-          <select id="language-select" translate="no">
-            ${Object.entries({ ru: 'Русский', en: 'English', de: 'Deutsch', fr: 'Français' }).map(([code, label]) => `
-              <option value="${code}" ${language === code ? 'selected' : ''}>${label}</option>
-            `).join('')}
-          </select>
+          <button class="button secondary header-new-game" data-action="new-game" data-testid="header-new-game" title="Начать новую игру">
+            ${icon('reset', 14)} <span>Новая игра</span>
+          </button>
+          <div class="language-picker">
+            <label for="language-select">Язык интерфейса</label>
+            <select id="language-select" translate="no">
+              ${Object.entries({ ru: 'Русский', en: 'English', de: 'Deutsch', fr: 'Français' }).map(([code, label]) => `
+                <option value="${code}" ${language === code ? 'selected' : ''}>${label}</option>
+              `).join('')}
+            </select>
+          </div>
         </div>
         <header class="topbar">
           <div>

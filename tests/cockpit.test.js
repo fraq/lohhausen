@@ -99,3 +99,23 @@ test('cockpit: аутентичная терминология системно�
   assert.equal(cockpit.fr['Инерция системы'], 'Inertie du système');
   assert.match(cockpit.de['Эффект от этих мер проявится только после завершения задержки. Не спешите менять налоги или запускать дублирующие стройки: по Дёрнеру, преждевременные вмешательства вызывают системную раскачку.'], /Systemaufschaukelung/);
 });
+
+test('cockpit: кнопки действий в hero-card сбалансированы по высоте и не растягиваются асимметрично', () => {
+  const css = fs.readFileSync('public/styles.css', 'utf8');
+  assert.match(css, /\.cockpit-actions\s*\{[^}]*align-items:\s*center/);
+  assert.match(css, /\.cockpit-actions\s*\.button\s*\{[^}]*margin:\s*0/);
+  assert.doesNotMatch(css, /\.hero-guide\s*\{[^}]*margin-top:\s*8px/);
+});
+
+test('cockpit: кнопка «Новая игра» размещена заметно в сайдбаре и шапке с четкими стилями', () => {
+  const appHtml = fs.readFileSync('src/app.js', 'utf8');
+  assert.match(appHtml, /class="button sidebar-new-game"\s+data-action="new-game"/);
+  assert.match(appHtml, /class="button secondary header-new-game"\s+data-action="new-game"/);
+
+  const css = fs.readFileSync('public/styles.css', 'utf8');
+  assert.match(css, /\.sidebar-new-game\s*\{[^}]*font-weight:\s*700/);
+  assert.match(css, /\.sidebar-new-game\s*\{[^}]*border:/);
+  assert.match(css, /\.header-new-game\s*\{[^}]*min-height:/);
+});
+
+

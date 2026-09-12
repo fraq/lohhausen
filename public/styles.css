@@ -96,7 +96,10 @@ a { color: var(--green); }
 .nav-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: #d6e0d5; text-align: left; transition: background .18s, color .18s, transform .18s; }
 .nav-item:hover { background: rgba(255,255,255,.08); color: #fffdf7; }
 .nav-item.active { background: #f5f2e9; color: var(--green-deep); box-shadow: 0 5px 18px rgba(0,0,0,.12); }
-.nav-item svg { flex: 0 0 19px; }
+.sidebar-action { margin-top: 14px; padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,.14); }
+.sidebar-new-game { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 9px 14px; border-radius: 9px; border: 1px solid rgba(255,255,255,.24); background: rgba(255,255,255,.08); color: #fffdf7; font-size: 13px; font-weight: 700; letter-spacing: .2px; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
+.sidebar-new-game:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.45); color: #fff; transform: translateY(-1px); }
+.sidebar-new-game svg { width: 16px; height: 16px; color: var(--brass); flex-shrink: 0; }
 .sidebar-foot { margin-top: auto; padding: 18px 9px 0; border-top: 1px solid rgba(255,255,255,.16); color: #abc0ad; font-size: 12px; }
 
 .main { width: 100%; max-width: 1500px; min-width: 0; margin: 0 auto; padding: 34px clamp(22px, 4vw, 62px) 60px; }
@@ -254,7 +257,7 @@ kbd {
   .brand { display: inline-flex; padding: 0 7px; vertical-align: middle; }
   .brand-mark { width: 34px; height: 34px; flex-basis: 34px; }
   .brand-name { font-size: 17px; }
-  .brand-caption, .sidebar-foot { display: none; }
+  .brand-caption, .sidebar-foot, .sidebar-action { display: none; }
   .nav-list { display: inline-flex; max-width: calc(100% - 160px); margin-left: 8px; overflow-x: auto; vertical-align: middle; }
   .nav-item { width: auto; min-height: 36px; padding: 7px 9px; white-space: nowrap; }
   .nav-item span { display: none; }
@@ -473,7 +476,7 @@ kbd {
 .guide-metrics > div:last-child { border-bottom: 0; }
 .guide-metrics dt { font-weight: 700; color: var(--green); }
 .guide-metrics dd { margin: 4px 0 0; }
-.hero-guide { margin-top: 8px; margin-bottom: 10px; }
+.hero-guide { margin: 0; }
 
 a.button, a.nav-item, a.report-tab { text-decoration: none; }
 .main-footer a { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--green); text-decoration: none; }
@@ -483,8 +486,10 @@ a.button, a.nav-item, a.report-tab { text-decoration: none; }
 .report-change.neutral { color: var(--ink-soft); }
 .stat-table th, .stat-table td { overflow-wrap: anywhere; }
 
-.language-control { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 12px; color: var(--ink-soft); }
+.language-control { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 12px; color: var(--ink-soft); }
+.language-picker { display: inline-flex; align-items: center; gap: 10px; }
 .language-control select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); max-width: 160px; }
+.header-new-game { font-size: 12px; min-height: 32px; padding: 5px 12px; gap: 6px; font-weight: 600; cursor: pointer; }
 .book-reference { display: block; line-height: 1.6; font-size: 11px; color: inherit; }
 .book-reference small { display: block; font-size: 10px; opacity: .8; }
 .sidebar-foot .book-reference { color: #becdc0; }
@@ -904,8 +909,12 @@ html:not([lang="ru"]) .city-illustration text { font-size: 9px; letter-spacing: 
 .cockpit-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin: 18px 0;
+}
+.cockpit-actions .button {
+  margin: 0;
 }
 
 /* Causal Diagram SVG Styling */

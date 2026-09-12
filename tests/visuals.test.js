@@ -32,6 +32,19 @@ test('visuals: renderCausalLoopDiagram отображает маркер вре�
   assert.ok(svg.includes('⏳') || svg.includes('лаг') || svg.includes('delay'), 'Должен содержать индикатор временной задержки');
 });
 
+test('visuals: renderCausalLoopDiagram не дублирует бейджи лагов и не создает наложенных текстов', () => {
+  const loop = CAUSAL_LOOPS.find(l => l.id === 'housing_lag_loop');
+  const svg = renderCausalLoopDiagram(loop);
+
+  // Ровно один бейдж задержки на контуре
+  const delayBadgeMatches = (svg.match(/class="causal-delay-badge"/g) || []).length;
+  assert.equal(delayBadgeMatches, 1, 'На жилищной петле должен быть ровно один маркер задержки строительства');
+
+  // Узлы не должны содержать дублирующего наложенного текста
+  assert.doesNotMatch(svg, /y="247"/, 'Не должно быть наложенного текста под узлом строительства');
+  assert.doesNotMatch(svg, /y="207"/, 'Не должно быть ошибочного лага под потребностью в жилье');
+});
+
 test('visuals: renderCausalLoopDiagram корректно отличает балансирующие и усиливающие контуры', () => {
   const reinforcingLoop = CAUSAL_LOOPS.find(l => l.id === 'debt_spiral');
   const svgR = renderCausalLoopDiagram(reinforcingLoop);
