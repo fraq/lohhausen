@@ -175,7 +175,8 @@ function detectEncapsulation(journal, history, game) {
  * Public attribution:
  * Reported by community contributor «Повелитель» on Get Posting Board (replies #11600 and #11613),
  * with boundary B and same-month policy counterexample confirmed in reply #11628;
- * independently verified by Codex in docs/ai-agent-fix-ballistic-followup.md.
+ * adversarial shared-report counterexample and decision-epoch grouping formulated by Codex
+ * in docs/ai-agent-fix-ballistic-followup.md and reply #11637.
  */
 function detectBallisticAction(journal, history, game) {
   const reportKind = (entry) => {
@@ -235,12 +236,24 @@ function detectBallisticAction(journal, history, game) {
 
   const unmonitoredInterventions = unverifiedProjects.length;
   const detected = unmonitoredInterventions > 0;
-  const isRecurrent = unmonitoredInterventions >= 2;
+
+  // Group unverified projects by independent follow-up opportunities (distinct domain per completion month)
+  // and distinct completion decision epochs (distinct completion months).
+  // A single missed decision epoch or shared report opportunity must not be counted as recurrence (AC-7, Codex 068).
+  const unverifiedOpportunities = new Set(
+    unverifiedProjects.map(p => `${p.completeMonth}:${p.expectedReport}`)
+  );
+  const unverifiedEpochs = new Set(
+    unverifiedProjects.map(p => p.completeMonth)
+  );
+  const independentFollowupOpportunities = unverifiedOpportunities.size;
+  const independentDecisionEpochs = unverifiedEpochs.size;
+  const isRecurrent = independentFollowupOpportunities >= 2 && independentDecisionEpochs >= 2;
 
   let title = 'Контроль результатов проектов';
   if (isRecurrent) {
     title = 'Баллистический стиль (Ballistisches Handeln)';
-  } else if (unmonitoredInterventions === 1) {
+  } else if (unmonitoredInterventions > 0) {
     title = 'Непроверенный исход проекта';
   } else if (pendingProjects.length > 0) {
     title = 'Ожидание проверки результатов';
@@ -250,9 +263,13 @@ function detectBallisticAction(journal, history, game) {
 
   let description = '';
   if (isRecurrent) {
-    description = `После ${unmonitoredInterventions} завершенных проектов систематически не запрашивались профильные отчеты для проверки фактических результатов.`;
-  } else if (unmonitoredInterventions === 1) {
-    description = `После завершения проекта «${unverifiedProjects[0].projectLabel}» не был запрошен последующий профильный отчет для проверки фактических результатов.`;
+    description = `В ${independentDecisionEpochs} независимых периодах завершения проектов систематически не запрашивались профильные отчеты для проверки фактических результатов (${unmonitoredInterventions} завершенных проектов без контроля).`;
+  } else if (unmonitoredInterventions > 0) {
+    if (unmonitoredInterventions === 1) {
+      description = `После завершения проекта «${unverifiedProjects[0].projectLabel}» не был запрошен последующий профильный отчет для проверки фактических результатов.`;
+    } else {
+      description = `После завершения ${unmonitoredInterventions} проектов в месяце ${unverifiedProjects[0].completeMonth} не был запрошен соответствующий отчет. Единичный пропуск в рамках одного периода завершения не является признаком устойчивого когнитивного стиля.`;
+    }
   } else if (pendingProjects.length > 0) {
     description = `В текущем месяце завершен(ы) ${pendingProjects.length} проект(а). Профильный отчет ожидает запроса для оценки эффекта.`;
   } else if (completedProjects.length > 0) {
@@ -273,6 +290,8 @@ function detectBallisticAction(journal, history, game) {
       unverifiedProjects,
       pendingProjects,
       clearedProjects,
+      independentFollowupOpportunities,
+      independentDecisionEpochs,
       isRecurrent,
       totalProjects: completedProjects.length,
       totalReports: reportRequests.length,

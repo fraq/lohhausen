@@ -151,6 +151,59 @@ test('terminal horizon project completion remains followup_pending and does not 
   assert.equal(clearedTrap.evidence.pendingProjects.length, 0);
 });
 
+test('recurrence rule groups by independent follow-up opportunities and decision epochs (Codex counterexample 068, reply #11637)', () => {
+  // Minimal counterexample from Codex letter 068:
+  // Both projects start at month 0 and finish at month 6, sharing one tourism report opportunity.
+  let game = createGame();
+  game = startProject(game, 'tourism', 'first');
+  game = startProject(game, 'tourism', 'second');
+  game = advance(game, 7); // Advanced to month 7 without report
+
+  const analysis = analyzeDebrief(game);
+  const trap = analysis.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(trap.detected, true);
+  assert.equal(trap.evidence.unmonitoredInterventions, 2, 'Raw project count is 2');
+  assert.equal(trap.evidence.independentFollowupOpportunities, 1, 'Both projects share 1 domain report opportunity (6:tourism)');
+  assert.equal(trap.evidence.independentDecisionEpochs, 1, 'Both projects complete in 1 decision epoch (month 6)');
+  assert.equal(trap.evidence.isRecurrent, false, 'Single missed decision epoch must not be counted as recurrence');
+  assert.equal(trap.severity, 'low', 'Severity must be low, not high');
+  assert.equal(trap.title, 'Непроверенный исход проекта', 'Title must remain neutral outcome unverified');
+  assert.notEqual(analysis.archetype?.id, 'ballistic', 'Must not select ballistic archetype from shared report opportunity');
+
+  // Negative control: one tourism report in month 6 clears both projects
+  let clearedGame = createGame();
+  clearedGame = startProject(clearedGame, 'tourism', 'first');
+  clearedGame = startProject(clearedGame, 'tourism', 'second');
+  clearedGame = advance(clearedGame, 6);
+  clearedGame = requestReport(clearedGame, 'tourism');
+  clearedGame = advance(clearedGame, 1);
+
+  const clearedAnalysis = analyzeDebrief(clearedGame);
+  const clearedTrap = clearedAnalysis.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(clearedTrap.detected, false);
+  assert.equal(clearedTrap.evidence.clearedProjects.length, 2);
+  assert.equal(clearedTrap.evidence.unverifiedProjects.length, 0);
+
+  // Positive recurrence: projects completing in distinct decision epochs without reports
+  let recurrentGame = createGame();
+  recurrentGame = startProject(recurrentGame, 'tourism', 'epoch 1');
+  recurrentGame = advance(recurrentGame, 6); // completes at month 6
+  recurrentGame = advance(recurrentGame, 1); // unverified epoch 1 (month 7)
+  recurrentGame = startProject(recurrentGame, 'modernization', 'epoch 2');
+  recurrentGame = advance(recurrentGame, 9); // completes at month 16
+  recurrentGame = advance(recurrentGame, 1); // unverified epoch 2 (month 17)
+
+  const recurrentAnalysis = analyzeDebrief(recurrentGame);
+  const recurrentTrap = recurrentAnalysis.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(recurrentTrap.detected, true);
+  assert.equal(recurrentTrap.evidence.independentFollowupOpportunities, 2);
+  assert.equal(recurrentTrap.evidence.independentDecisionEpochs, 2);
+  assert.equal(recurrentTrap.evidence.isRecurrent, true);
+  assert.equal(recurrentTrap.severity, 'high');
+  assert.equal(recurrentTrap.title, 'Баллистический стиль (Ballistisches Handeln)');
+  assert.equal(recurrentAnalysis.archetype?.id, 'ballistic');
+});
+
 test('verifyHypotheses reports completion-month observations rather than current values or proof', () => {
   const game = {
     month: 24,

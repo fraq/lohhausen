@@ -29,7 +29,7 @@
   - **Исполнитель**: `dorner_scenarios` (при исследовательской поддержке `agy`)
   - **Спецификация**: [`docs/ai-agent-fix-ballistic-followup.md`](./docs/ai-agent-fix-ballistic-followup.md), [`knowledge/agy-ballistic-t2-counterexample-analysis.md`](./knowledge/agy-ballistic-t2-counterexample-analysis.md), [`knowledge/agy-ballistic-recurrence-rule-analysis.md`](./knowledge/agy-ballistic-recurrence-rule-analysis.md)
   - **Карточка**: [`COORDINATION/tasks/debrief-followup-fix-001.md`](./COORDINATION/tasks/debrief-followup-fix-001.md)
-  - **Статус**: review (все 4 замечания ревью Codex 064 полностью реализованы в `src/debrief.js` и покрыты тестами в `tests/debrief-regressions.test.js`: правило рекуррентности $N \ge 2$, разделение severity low/high, композиция одного месяца #11628, терминальный горизонт; 165/165 passing tests).
+  - **Статус**: review (Codex в codex-recurrence-counterexample-068/069 отверг наивный подсчет проектов $N \ge 2$; agy в Ревизии 2 `knowledge/agy-ballistic-recurrence-rule-analysis.md` формализовал группировку по независимым возможностям проверки $N_{\text{opp}} = |(completeMonth, expectedReport)|$ и эпохам решений, устраняющую ложное срабатывание на параллельных проектах; подготовлен негативный контрольный тест; 165/165 passing tests).
 
 - [ ] **chess-export-ai-001**: Внедрение экспорта шахматной записи партии (LMN v1.2) со встроенной алгоритмической классификацией ходов (`!!`, `!`, `—`, `?!`, `?`, `??`) и доказательным промптом для системного разбора в Claude/ChatGPT/Gemini.
   - **Инициатор**: `dorner_scenarios` (по поручению пользователя)

@@ -1,6 +1,7 @@
 # AI Agent Repair Brief: Post-Project Follow-Up Semantics
 
-Status: verified defect, T2 boundary resolved, implementation in review.
+Status: verified defect, T2 boundary resolved, recurrence implementation in
+review; raw project-count threshold rejected by counterexample.
 
 Audience: AI implementation and review agents working on Lohhausen.
 
@@ -100,11 +101,15 @@ must not alone assign the global `ballistic` archetype or a high-severity
 psychological label. A future promotion from repeated neutral observations to a
 Dörner pattern requires an explicit, independently tested recurrence rule.
 
-The candidate threshold of two unverified projects is not yet an accepted
-rule. Reply #11637 asks the community for the shortest trace where that
-threshold is misleading and for a rule that distinguishes repeated control
-failure from multiple projects sharing one missing or irrelevant reporting
-opportunity. Treat any response as a hypothesis to reproduce, not as a vote.
+The candidate threshold of two unverified projects is not an accepted rule.
+Reply #11637 asks the community for a shortest misleading trace. Codex also
+found one locally: start two tourism projects in the same month, let both finish
+in month 6, then advance to month 7 without a report. Raw project count is two
+and would label the result recurrent, but both projects share the same tourism
+report opportunity; one month-6 tourism report clears both. This is one missed
+decision epoch, not demonstrated recurrence. Count independent follow-up
+opportunities or decision epochs, not project rows. Treat any proposed grouping
+rule as a hypothesis to reproduce, not as a vote.
 
 ## Acceptance Criteria
 
@@ -117,8 +122,10 @@ opportunity. Treat any response as a hypothesis to reproduce, not as a vote.
    evidence and neutral language.
 6. Housing, modernization, and tourism use their existing matching report
    domains: housing, factory, and tourism.
-7. Neither pending nor one unverified project alone selects a psychological
-   archetype; a Dörner pattern requires a separately justified recurrence rule.
+7. Neither pending nor a single missed decision epoch selects a psychological
+   archetype. Multiple projects sharing one report opportunity must not be
+   counted as recurrence; a Dörner pattern requires a separately justified rule
+   over independent follow-up opportunities.
 8. Existing saves and older journal entries remain readable. Missing or
    ambiguous ordering must degrade to neutral/unknown, not a confident label.
 9. Add focused regression tests, then run `npm test` and `npm run check`.
