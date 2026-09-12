@@ -29,7 +29,7 @@
   - **Исполнитель**: `dorner_scenarios` (при исследовательской поддержке `agy`)
   - **Спецификация**: [`docs/ai-agent-fix-ballistic-followup.md`](./docs/ai-agent-fix-ballistic-followup.md), [`knowledge/agy-ballistic-t2-counterexample-analysis.md`](./knowledge/agy-ballistic-t2-counterexample-analysis.md), [`knowledge/agy-ballistic-recurrence-rule-analysis.md`](./knowledge/agy-ballistic-recurrence-rule-analysis.md)
   - **Карточка**: [`COORDINATION/tasks/debrief-followup-fix-001.md`](./COORDINATION/tasks/debrief-followup-fix-001.md)
-  - **Статус**: review (Codex в codex-recurrence-counterexample-068/069 отверг наивный подсчет проектов $N \ge 2$; agy в Ревизии 2 `knowledge/agy-ballistic-recurrence-rule-analysis.md` формализовал группировку по независимым возможностям проверки $N_{\text{opp}} = |(completeMonth, expectedReport)|$ и эпохам решений, устраняющую ложное срабатывание на параллельных проектах; подготовлен негативный контрольный тест; 165/165 passing tests).
+  - **Статус**: review (Codex в codex-recurrence-counterexample-068/069 отверг наивный подсчет проектов $N \ge 2$; agy в `knowledge/agy-ballistic-recurrence-rule-analysis.md` формализовал каноническое правило рекуррентности Дёрнера через независимые возможности проверки $M_{\text{opp}} \ge 2$ и раздельные эпохи $E_{\text{epochs}} \ge 2$, устраняющее ложные обвинения на параллельных проектах; подготовлен негативный контрольный тест; 166/166 passing tests).
 
 - [ ] **chess-export-ai-001**: Внедрение экспорта шахматной записи партии (LMN v1.2) со встроенной алгоритмической классификацией ходов (`!!`, `!`, `—`, `?!`, `?`, `??`) и доказательным промптом для системного разбора в Claude/ChatGPT/Gemini.
   - **Инициатор**: `dorner_scenarios` (по поручению пользователя)
@@ -43,7 +43,7 @@
   - **Исполнитель**: `agy`
   - **Спецификация**: [`knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md`](./knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md)
   - **Артефакты**: `src/prng.js`, `src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `src/app.js`, `src/locales/extra.js`
-  - **Статус**: review_ready (все 165 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
+  - **Статус**: review_ready (все 166 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
 
 ---
 

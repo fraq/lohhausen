@@ -54,38 +54,53 @@ $$\mathcal{O}_{\text{missed}} = \Big\{ \big(\text{expectedReportDomain}(p), \, \
 Число независимых упущенных возможностей контроля:
 $$M_{\text{opportunities}} = \big| \mathcal{O}_{\text{missed}} \big|$$
 
-### Градация серьезности и правило рекуррентности по Дёрнеру
+### Градация серьезности и варианты правила рекуррентности по Дёрнеру
 
-$$\text{Severity}(M_{\text{opportunities}}) = \begin{cases} 
+Рассматриваются три математических варианта критерия рекуррентности:
+
+1. **Вариант А (По уникальным возможностям проверки):**  
+   $$M_{\text{opportunities}} \ge 2$$  
+   *Логика*: каждый профильный отчет требует отдельного обращения к советнику. Если игрок завершил и туризм, и жилье, но не проверил ни то, ни другое — пропущены две содержательные проверки.  
+   *Преимущество*: устраняет ложное срабатывание контрпримера Codex (2 туризма в одном месяце дают $M=1$).
+
+2. **Вариант Б (По временным эпохам решений):**  
+   $$E_{\text{epochs}} = \big| \{ p.\text{completeMonth} \mid p \in \text{unverifiedProjects} \} \big| \ge 2$$  
+   *Логика*: стиль — это свойство устойчивости во времени. Пропуск проверки в один месяц (даже по двум проектам) может быть результатом ситуативной спешки на одном ходе. Рекуррентность доказана только если игрок повторил эту ошибку в разные календарные месяцы ($M_1 \ne M_2$).
+
+3. **Вариант В (Канонический синтез Дёрнера — Рекомендуемый):**  
+   $$M_{\text{opportunities}} \ge 2 \quad \land \quad E_{\text{epochs}} \ge 2$$  
+   *Логика*: требует одновременного наличия как минимум 2 независимых возможностей контроля, распределенных как минимум по 2 отдельным временным эпохам. Это полностью исключает любые ложноположительные обвинения игрока, строящего несколько объектов в один месяц.
+
+$$\text{Severity} = \begin{cases} 
 \text{'none'}, & M_{\text{opportunities}} = 0 \\
-\text{'low'}, & M_{\text{opportunities}} = 1 \\
-\text{'high'}, & M_{\text{opportunities}} \ge 2
+\text{'low'}, & M_{\text{opportunities}} = 1 \;\lor\; E_{\text{epochs}} < 2 \\
+\text{'high'}, & M_{\text{opportunities}} \ge 2 \;\land\; E_{\text{epochs}} \ge 2 \quad (\text{для Варианта В})
 \end{cases}$$
 
 - **$M_{\text{opportunities}} = 0$**:
   - `detected = false`, `severity = 'none'`, `title = 'Контроль результатов проектов'`.
-- **$M_{\text{opportunities}} = 1$ (Единичный локальный пропуск контроля)**:
+- **Единичный локальный пропуск контроля**:
   - `detected = true`, `severity = 'low'`.
   - Заголовок: `«Непроверенный исход проекта»` (`title = 'Непроверенный исход проекта'`).
   - Описание: фактологическая констатация отсутствия отчета без обобщения до черты личности.
   - **Архетип `ballistic` НЕ назначается** (условие выбора требует `severity === 'high'`).
-- **$M_{\text{opportunities}} \ge 2$ (Систематический баллистический стиль)**:
+- **Систематический баллистический стиль**:
   - `detected = true`, `severity = 'high'`.
   - Заголовок: `«Баллистический стиль (Ballistisches Handeln)»`.
-  - Описание: констатация систематического уклонения от контроля по $M$ независимым направлениям или временным эпохам.
+  - Описание: констатация систематического уклонения от контроля по $M$ независимым направлениям и временным эпохам.
   - **Назначается глобальный архетип `ballistic`** («Баллистический стрелок»).
 
 ---
 
 ## 3. Анализ сценариев и тестовая матрица
 
-| Трейс | Проекты | Ключи возможностей $\mathcal{O}_{\text{missed}}$ | $M_{\text{opp}}$ | Severity | Архетип |
-| :--- | :--- | :--- | :---: | :---: | :---: |
-| 1 туризм на м6, переход на м7 | Tourism (м6) | `{ ('tourism', 6) }` | **1** | `low` | *Не баллистический* |
-| **Контрпример Codex**: 2 туризма на м6, переход на м7 | Tourism 1 (м6), Tourism 2 (м6) | `{ ('tourism', 6) }` | **1** | `low` | *Не баллистический* |
-| Туризм на м6 + Жилье на м6, переход на м7 | Tourism (м6), Housing (м6) | `{ ('tourism', 6), ('housing', 6) }` | **2** | `high` | **ballistic** |
-| Туризм на м6 + Туризм на м12, переход на м13 | Tourism (м6), Tourism (м12) | `{ ('tourism', 6), ('tourism', 12) }` | **2** | `high` | **ballistic** |
-| 3 проекта жилья на м12, переход на м13 | Housing 1, 2, 3 (м12) | `{ ('housing', 12) }` | **1** | `low` | *Не баллистический* |
+| Трейс | Проекты | $M_{\text{opp}}$ | $E_{\text{epochs}}$ | Итог (Вар. А) | Итог (Вар. В, Канон) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| 1 туризм на м6, переход на м7 | Tourism (м6) | **1** | **1** | `low` (не ballistic) | `low` (не ballistic) |
+| **Контрпример Codex**: 2 туризма на м6, переход на м7 | Tourism 1 (м6), Tourism 2 (м6) | **1** | **1** | `low` (не ballistic) | `low` (не ballistic) |
+| Туризм на м6 + Жилье на м6, переход на м7 | Tourism (м6), Housing (м6) | **2** | **1** | `high` (ballistic) | `low` (не ballistic) |
+| Туризм на м6 + Туризм на м12, переход на м13 | Tourism (м6), Tourism (м12) | **2** | **2** | `high` (ballistic) | `high` (ballistic) |
+| 3 проекта жилья на м12, переход на м13 | Housing 1, 2, 3 (м12) | **1** | **1** | `low` (не ballistic) | `low` (не ballistic) |
 
 ---
 
@@ -103,8 +118,12 @@ $$\text{Severity}(M_{\text{opportunities}}) = \begin{cases}
   const uniqueMissedOpportunities = new Set(
     unverifiedProjects.map(p => `${p.expectedReport || p.projectType}@${p.completeMonth}`)
   ).size;
+  const uniqueMissedEpochs = new Set(
+    unverifiedProjects.map(p => p.completeMonth)
+  ).size;
 
-  const isRecurrent = uniqueMissedOpportunities >= 2;
+  // Каноническое правило рекуррентности: >= 2 независимых возможностей в >= 2 расчетных эпохах
+  const isRecurrent = uniqueMissedOpportunities >= 2 && uniqueMissedEpochs >= 2;
 
   let title = 'Контроль результатов проектов';
   if (isRecurrent) {
@@ -119,7 +138,7 @@ $$\text{Severity}(M_{\text{opportunities}}) = \begin{cases}
 
   let description = '';
   if (isRecurrent) {
-    description = `После ${unmonitoredInterventions} завершенных проектов в ${uniqueMissedOpportunities} различных периодах/сферах систематически не запрашивались профильные отчеты для проверки фактических результатов.`;
+    description = `После ${unmonitoredInterventions} завершенных проектов в ${uniqueMissedEpochs} различных расчетных эпохах систематически не запрашивались профильные отчеты для проверки фактических результатов.`;
   } else if (unmonitoredInterventions > 0) {
     const projLabel = unverifiedProjects.length === 1 
       ? `«${unverifiedProjects[0].projectLabel}»`
@@ -142,6 +161,7 @@ $$\text{Severity}(M_{\text{opportunities}}) = \begin{cases}
     evidence: {
       unmonitoredInterventions,
       uniqueMissedOpportunities,
+      uniqueMissedEpochs,
       unmonitoredProjects: unverifiedProjects,
       unverifiedProjects,
       pendingProjects,
