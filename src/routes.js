@@ -31,9 +31,28 @@ for (const reportKind of Object.values(REPORT_KINDS)) {
   ROUTES.set(`${PAGE_PATHS.reports}/${reportKind}`, { view: 'reports', reportKind });
 }
 
+export function getRepoPrefix() {
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.hostname.endsWith('github.io')) {
+      const seg = window.location.pathname.split('/')[1];
+      return seg ? `/${seg}` : '';
+    }
+    if (window.location.pathname.startsWith('/lohhausen')) {
+      return '/lohhausen';
+    }
+  }
+  return '';
+}
+
 export function resolveRoute(pathname) {
   if (typeof pathname !== 'string') return null;
-  const route = ROUTES.get(pathname);
+  const prefix = getRepoPrefix();
+  let canonical = pathname;
+  if (prefix && (canonical === prefix || canonical.startsWith(`${prefix}/`))) {
+    canonical = canonical.slice(prefix.length);
+    if (canonical === '') canonical = '/';
+  }
+  const route = ROUTES.get(canonical);
   return route ? { ...route } : null;
 }
 
@@ -42,10 +61,18 @@ export function pathFor(view, reportKind) {
     throw new Error(`Unknown view: ${String(view)}`);
   }
 
-  if (view !== 'reports') return PAGE_PATHS[view];
-  if (reportKind === undefined) return PAGE_PATHS.reports;
-  if (typeof reportKind !== 'string' || !Object.hasOwn(REPORT_KINDS, reportKind)) {
+  let canonical;
+  if (view !== 'reports') canonical = PAGE_PATHS[view];
+  else if (reportKind === undefined) canonical = PAGE_PATHS.reports;
+  else if (typeof reportKind !== 'string' || !Object.hasOwn(REPORT_KINDS, reportKind)) {
     throw new Error(`Unknown report kind: ${String(reportKind)}`);
+  } else {
+    canonical = `${PAGE_PATHS.reports}/${REPORT_KINDS[reportKind]}`;
   }
-  return `${PAGE_PATHS.reports}/${REPORT_KINDS[reportKind]}`;
+
+  const prefix = getRepoPrefix();
+  if (prefix) {
+    return canonical === '/' ? `${prefix}/` : `${prefix}${canonical}`;
+  }
+  return canonical;
 }

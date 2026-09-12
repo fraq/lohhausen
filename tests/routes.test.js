@@ -56,3 +56,26 @@ test('pathFor rejects unknown views and report kinds', () => {
   assert.throws(() => pathFor('missing'), /unknown view/i);
   assert.throws(() => pathFor('reports', 'unknown'), /unknown report kind/i);
 });
+
+test('routes: supports GitHub Pages subpath prefix (/lohhausen)', () => {
+  globalThis.window = {
+    location: {
+      hostname: 'fraq.github.io',
+      pathname: '/lohhausen/guide',
+    },
+  };
+
+  try {
+    assert.deepEqual(resolveRoute('/lohhausen/guide'), { view: 'guide', reportKind: null });
+    assert.deepEqual(resolveRoute('/lohhausen/reports/factory'), { view: 'reports', reportKind: 'factory' });
+    assert.deepEqual(resolveRoute('/lohhausen/'), { view: 'overview', reportKind: null });
+    assert.deepEqual(resolveRoute('/lohhausen'), { view: 'overview', reportKind: null });
+    assert.equal(resolveRoute('/lohhausen/missing'), null);
+
+    assert.equal(pathFor('guide'), '/lohhausen/guide');
+    assert.equal(pathFor('overview'), '/lohhausen/');
+    assert.equal(pathFor('reports', 'finance'), '/lohhausen/reports/finance');
+  } finally {
+    delete globalThis.window;
+  }
+});

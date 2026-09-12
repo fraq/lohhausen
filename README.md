@@ -6,7 +6,7 @@ As the newly elected mayor of Lohhausen, you oversee the city's complex intercon
 
 This project is an educational reconstruction of the systemic principles explored in Dietrich Dörner's psychological research. The original mathematical equations of the 1970s experiment remain unpublished; this simulator uses a validated system dynamics engine with explicit, observable coefficients. It serves as an educational learning environment rather than a psychological assessment.
 
-[Русская версия документации](README.ru.md)
+[🌐 **Live Web Demo: fraq.github.io/lohhausen**](https://fraq.github.io/lohhausen/) · [Русская версия документации](README.ru.md)
 
 ---
 

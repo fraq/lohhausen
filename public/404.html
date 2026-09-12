@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Лоххаузен — перенаправление</title>
+  <script>
+    // GitHub Pages SPA redirect: converts 404 path into a query string for index.html
+    (function(l) {
+      var pathSegmentsToKeep = 1; // Keep '/lohhausen'
+      var repo = l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/');
+      var rest = l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~');
+      var search = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '';
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        repo + '/?/' + rest + search + l.hash
+      );
+    }(window.location));
+  </script>
+</head>
+<body>
+  <p>Перенаправление…</p>
+</body>
+</html>
