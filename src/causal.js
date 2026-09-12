@@ -158,16 +158,128 @@ export function skillsForecast(education, game = {}) {
   const spending = Number.isFinite(Number(education)) ? Number(education) : (game.policies?.education ?? 35);
   const curSkills = Number.isFinite(game.skills) ? game.skills : 45;
   const modernizationLevel = Number.isFinite(game.modernizationLevel) ? game.modernizationLevel : 0;
-  const target = Math.min(100, Math.max(0, Math.round(31 + spending * 0.78 + modernizationLevel * 3)));
-  const nextSkills = Math.round(Math.min(100, Math.max(0, curSkills + (target - curSkills) * 0.075)));
-  const monthlyDelta = Math.round((target - curSkills) * 0.075 * 100) / 100;
+  // Match model.js: clamp(31 + p.education * 0.78 + game.modernizationLevel * 3, 0, 100)
+  const target = Math.min(100, Math.max(0, 31 + spending * 0.78 + modernizationLevel * 3));
+  // In model.js: game.skills = round(clamp(game.skills + (skillTarget - game.skills) * 0.075, 0, 100));
+  const rawNextSkills = Math.min(100, Math.max(0, curSkills + (target - curSkills) * 0.075));
+  const rawMonthlyDelta = (target - curSkills) * 0.075;
+  const alpha = 0.075;
+  // Exact discrete half-life: ln(0.5) / ln(1 - alpha) = 8.89... -> 8.9 мес.
+  const halfLifeMonths = Number((Math.log(0.5) / Math.log(1 - alpha)).toFixed(1));
+  // 95% gap closing time: ln(0.05) / ln(1 - alpha) = 38.4... -> 38.4 мес.
+  const settlingMonths95 = Number((Math.log(0.05) / Math.log(1 - alpha)).toFixed(1));
   return {
-    target,
-    curSkills,
-    nextSkills,
-    monthlyDelta,
-    halfLifeMonths: 8.9,
-    settlingMonths95: 38.4,
+    target: Number(target.toFixed(2)),
+    targetRaw: target,
+    curSkills: Number(curSkills.toFixed(2)),
+    nextSkills: Number(rawNextSkills.toFixed(2)),
+    nextSkillsExact: Number(rawNextSkills.toFixed(6)),
+    monthlyDelta: Number(rawMonthlyDelta.toFixed(2)),
+    monthlyDeltaExact: Number(rawMonthlyDelta.toFixed(6)),
+    halfLifeMonths,
+    settlingMonths95,
+  };
+}
+
+export function servicesForecast(services, game = {}) {
+  const pop = Number.isFinite(game.population) ? Math.max(0, game.population) : 3700;
+  const currentSpending = Number.isFinite(game.policies?.services) ? game.policies.services : 68;
+  const spending = Number.isFinite(Number(services)) ? Number(services) : currentSpending;
+  const curQuality = Number.isFinite(game.serviceQuality) ? game.serviceQuality : 80;
+  const serviceNeed = Math.max(1, pop * 0.0205);
+  const target = Math.min(100, Math.max(0, 18 + 72 * Math.min(1.15, spending / serviceNeed)));
+  const housingShortage = Math.max(0, pop - (game.housingCapacity ?? 3700));
+  const housingPenalty = pop > 0 ? (housingShortage / pop) * 2 : 0;
+  const rawNextQuality = Math.min(100, Math.max(0, curQuality + (target - curQuality) * 0.11 - housingPenalty));
+  const rawMonthlyDelta = (target - curQuality) * 0.11 - housingPenalty;
+  const alpha = 0.11;
+  const halfLifeMonths = Number((Math.log(0.5) / Math.log(1 - alpha)).toFixed(1));
+  const settlingMonths95 = Number((Math.log(0.05) / Math.log(1 - alpha)).toFixed(1));
+
+  const currentOtherPositions = Math.max(0, Math.round(pop * (0.16 + curQuality / 2500 + currentSpending / 850)));
+  const otherPositions = Math.max(0, Math.round(pop * (0.16 + curQuality / 2500 + spending / 850)));
+  const jobDifference = otherPositions - currentOtherPositions;
+
+  return {
+    serviceNeed: Number(serviceNeed.toFixed(2)),
+    curQuality: Number(curQuality.toFixed(2)),
+    target: Number(target.toFixed(2)),
+    targetRaw: target,
+    nextQuality: Number(rawNextQuality.toFixed(2)),
+    nextQualityExact: Number(rawNextQuality.toFixed(6)),
+    monthlyDelta: Number(rawMonthlyDelta.toFixed(2)),
+    monthlyDeltaExact: Number(rawMonthlyDelta.toFixed(6)),
+    halfLifeMonths,
+    settlingMonths95,
+    otherPositions,
+    currentOtherPositions,
+    jobDifference,
+  };
+}
+
+export function taxForecast(taxRate, game = {}) {
+  const curTax = Number.isFinite(game.policies?.taxRate) ? game.policies.taxRate : 16;
+  const rate = Number.isFinite(Number(taxRate)) ? Number(taxRate) : curTax;
+  const wage = Number.isFinite(game.policies?.wage) ? game.policies.wage : 100;
+  const pop = Number.isFinite(game.population) ? Math.max(0, game.population) : 3700;
+  const workforce = Number.isFinite(game.workforce) ? game.workforce : Math.round(pop * 0.555);
+
+  // Exact model.js formula for disposableScore (src/model.js:218):
+  // clamp(40 + p.wage * 0.5 - (p.taxRate - 5) * 1.4, 0, 100)
+  const disposableScore = Math.min(100, Math.max(0, 40 + wage * 0.5 - (rate - 5) * 1.4));
+  const curDisposableScore = Math.min(100, Math.max(0, 40 + wage * 0.5 - (curTax - 5) * 1.4));
+  const disposableDelta = Number((disposableScore - curDisposableScore).toFixed(2));
+
+  // Non-linear threshold penalty (src/model.js:230):
+  // Math.max(0, p.taxRate - 20) * 0.55
+  const isAboveThreshold = rate > 20;
+  const thresholdExcess = Math.max(0, rate - 20);
+  const taxPenalty = Number((thresholdExcess * 0.55).toFixed(2));
+
+  // Estimate total wages and monthly tax revenue
+  let wagePool;
+  if (game.lastBudget?.taxIncome && curTax > 0) {
+    wagePool = game.lastBudget.taxIncome / (curTax / 100);
+  } else {
+    const factoryJobs = game.factoryJobs ?? Math.round(workforce * 0.45);
+    const otherJobs = game.otherJobs ?? Math.round(workforce * 0.45);
+    const tourismJobs = game.tourismJobs ?? Math.round(workforce * 0.05);
+    wagePool = factoryJobs * 0.105 * (wage / 100) + otherJobs * 0.09 + tourismJobs * 0.085;
+  }
+  const monthlyTaxRevenue = Number((wagePool * (rate / 100)).toFixed(1));
+  const curTaxRevenue = Number((wagePool * (curTax / 100)).toFixed(1));
+  const monthlyTaxDelta = Number((monthlyTaxRevenue - curTaxRevenue).toFixed(1));
+
+  // Migration bounds in model.js (src/model.js:231):
+  // clamp(attraction * 1.1 + (employmentScore - 90) * 0.15, -15, 2)
+  const maxEmigrationRate = -15;
+  const maxImmigrationRate = 2;
+  const recoveryAsymmetryRatio = 7.5;
+
+  let warningLevel = 'normal';
+  if (rate >= 25) {
+    warningLevel = 'critical';
+  } else if (rate > 20) {
+    warningLevel = 'elevated';
+  } else if (rate < 10) {
+    warningLevel = 'low';
+  }
+
+  return {
+    curTax,
+    taxRate: rate,
+    disposableScore: Number(disposableScore.toFixed(1)),
+    curDisposableScore: Number(curDisposableScore.toFixed(1)),
+    disposableDelta,
+    isAboveThreshold,
+    thresholdExcess,
+    taxPenalty,
+    monthlyTaxRevenue,
+    monthlyTaxDelta,
+    maxEmigrationRate,
+    maxImmigrationRate,
+    recoveryAsymmetryRatio,
+    warningLevel,
   };
 }
 
@@ -308,7 +420,7 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           recommendation: 'Проанализируйте статьи расходов: услуги, обучение и субсидии.',
         });
       }
-      if (netPosition > 3000 && debt === 0) {
+      if (netPosition > 3000 && debt === 0 && tax <= 20) {
         return formatDiag({
           status: 'good',
           tone: 'positive',
@@ -317,12 +429,22 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           recommendation: 'Избыточную ликвидность можно направить в инфраструктурные проекты с долгосрочной отдачей.',
         });
       }
+      if (tax > 20) {
+        const penalty = Number(((tax - 20) * 0.55).toFixed(2));
+        return formatDiag({
+          status: tax >= 28 && (game.migrationPressure ?? 0) < 0 ? 'crisis' : 'warning',
+          tone: tax >= 28 ? 'danger' : 'warning',
+          quote: `«Господин бургомистр, налоговая ставка ${tax}% превышает критический порог толерантности (20%). Включается прямой штраф к привлекательности города (-${penalty} п., -0.55/п.п.). Казна получает сиюминутную прибавку, но люди начинают покидать город со скоростью до -15 чел./мес. (при максимуме притока лишь +2). Это подрывает будущую налоговую базу!»`,
+          keyStat: `Ставка: ${tax}% · Штраф: -${penalty} п.`,
+          recommendation: 'Держите налоги в безопасном диапазоне 16–20%, чтобы не допустить депопуляции и сжатия фонда зарплат.',
+        });
+      }
       return formatDiag({
         status: 'normal',
         tone: 'neutral',
         quote: `«Финансовое положение устойчиво. Долг города: ${Math.round(debt)} тыс. м., казна: ${Math.round(treasury)} тыс. м. Текущий баланс под контролем».`,
         keyStat: `Баланс: ${net > 0 ? '+' : ''}${Math.round(net)} тыс. м. · Долг: ${Math.round(debt)} тыс.`,
-        recommendation: 'Держите налоги в умеренном диапазоне (18–22%), чтобы не подавлять активность.',
+        recommendation: 'Держите налоги в безопасном диапазоне (16–20%), чтобы не подавлять активность и не превышать порог оттока населения.',
       });
     }
 
@@ -406,13 +528,25 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
       }
       const eduSpending = game.policies?.education ?? game.education ?? 35;
       const curSkills = game.skills ?? 45;
-      if (eduSpending < 15 || curSkills < 38) {
+      const f = skillsForecast(eduSpending, game);
+      if (f.target < curSkills && (eduSpending < 15 || curSkills < 38)) {
         return formatDiag({
           status: 'warning',
           tone: 'warning',
-          quote: `«Экономия на образовании создает скрытую угрозу. При финансировании ${eduSpending} тыс. м. квалификация рабочих (${curSkills}%) деградирует, что через 12–18 месяцев ударит по выпуску и доходам города».`,
-          keyStat: `Квалификация: ${curSkills}% · Образование: ${eduSpending} тыс. м.`,
-          recommendation: 'Поддерживайте расходы на образование хотя бы на уровне 25–35 тыс. марок, чтобы защитить квалификацию кадров.',
+          quote: `«Экономия на образовании создает скрытую угрозу. При финансировании ${eduSpending} тыс. м. целевая квалификация составляет ${f.target}%, что ниже текущей (${curSkills}%). Постепенное снижение квалификации (лаг полураспада ~8.9 мес.) ухудшит качество часов и спрос».`,
+          keyStat: `Квалификация: ${curSkills}% (цель: ${f.target}%) · Образование: ${eduSpending} тыс. м.`,
+          recommendation: 'Поддерживайте расходы на образование на уровне воспроизводства кадров.',
+        });
+      }
+      const servSpending = game.policies?.services ?? 68;
+      const sf = servicesForecast(servSpending, game);
+      if (sf.target < qual && (servSpending < sf.serviceNeed * 0.6 || sf.target < 50)) {
+        return formatDiag({
+          status: 'warning',
+          tone: 'warning',
+          quote: `«Секвестр общественных услуг создает отложенную угрозу. При расходах ${servSpending} тыс. м. целевое качество услуг составляет ${sf.target}%, что приведет к постепенной деградации среды (лаг полураспада ~6.0 мес.). Снижение услуг сокращает муниципальные рабочие места и через 6–12 месяцев ударит по здоровью пожилых жителей (вес 61%)».`,
+          keyStat: `Услуги: ${qual}% (цель: ${sf.target}%) · Бюджет: ${servSpending} тыс. м. (норма ~${Math.round(sf.serviceNeed)})`,
+          recommendation: 'Поддерживайте расходы на общественные услуги на уровне потребности города (~65–75 тыс. м.).',
         });
       }
       if (health < 50 || qual < 50) {
@@ -728,11 +862,13 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
     const workforce = game.workforce || Math.round((game.population || 3700) * 0.555);
 
     if (patch.taxRate !== undefined) {
-      const curTax = game.policies?.taxRate ?? 20;
-      const dTax = patch.taxRate - curTax;
-      const estTaxDelta = Math.round(workforce * 0.09 * (dTax / 100));
-      delta += estTaxDelta;
-      notes.push(`Налоговая ставка ${patch.taxRate}%: изменение сборов ~${estTaxDelta >= 0 ? '+' : ''}${estTaxDelta} тыс. м./мес.`);
+      const f = taxForecast(patch.taxRate, game);
+      delta += f.monthlyTaxDelta;
+      if (f.isAboveThreshold) {
+        notes.push(`Налоговая ставка ${patch.taxRate}%: сборы ~${f.monthlyTaxRevenue} тыс. м./мес. (${formatSigned(f.monthlyTaxDelta)}), но превышен порог 20% (штраф привлекательности -${f.taxPenalty} п., риск оттока до -15 чел./мес.).`);
+      } else {
+        notes.push(`Налоговая ставка ${patch.taxRate}%: сборы ~${f.monthlyTaxRevenue} тыс. м./мес. (${formatSigned(f.monthlyTaxDelta)}), порог 20% не превышен.`);
+      }
     }
     if (patch.maintenance !== undefined) {
       const curMaint = game.policies?.maintenance ?? 15;
@@ -776,18 +912,25 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
 
   switch (key) {
     case 'taxRate': {
-      const approxIncome = Math.round(workforce * 0.1 * (num / 100) * 10) / 10;
-      let side = 'Умеренное влияние на располагаемый доход.';
-      let risk = 'Низкий риск оттока.';
-      if (num > 24) {
-        side = 'Заметно снижает привлекательность города для специалистов и рабочих.';
-        risk = 'Высокий риск миграционного оттока через 3–6 месяцев.';
+      const f = taxForecast(num, game);
+      let side;
+      let risk;
+      if (f.isAboveThreshold) {
+        side = `Снижает располагаемый доход на ${Math.abs(f.disposableDelta).toFixed(1)} п. (оценка ${f.disposableScore}). Превышен нелинейный порог 20%: включается штраф привлекательности -${f.taxPenalty} п. (-0.55/п.п.). Отток жителей может достигать до -15 чел./мес., тогда как максимум притока +2 чел./мес.`;
+        if (f.warningLevel === 'critical') {
+          risk = 'Критический риск необратимой депопуляции (отток до -15 чел./мес. при максимуме притока +2) и сжатия налоговой базы.';
+        } else {
+          risk = 'Повышенный риск: включение прямого штрафа к привлекательности (-0.55 за каждый % выше 20%).';
+        }
       } else if (num < 10) {
-        side = 'Оставляет максимум средств жителям, высокая привлекательность города.';
+        side = `Оставляет максимум средств жителям (располагаемый доход ${f.disposableScore}), высокая привлекательность города.`;
         risk = 'Хронический недобор средств в городскую казну.';
+      } else {
+        side = `Умеренное влияние на располагаемый доход (${f.disposableScore}). Порог 20% не превышен: прямой фискальный штраф к привлекательности равен 0.`;
+        risk = 'Умеренная фискальная нагрузка без превышения критического порога 20%.';
       }
       return {
-        direct: `Около +${Math.round(workforce * 0.09 * (num / 100))} тыс. м./мес. налоговых поступлений.`,
+        direct: `Около +${f.monthlyTaxRevenue} тыс. м./мес. налоговых поступлений (${formatSigned(f.monthlyTaxDelta)} тыс. м./мес. к текущим).`,
         sideEffect: side,
         risk: risk,
       };
@@ -814,13 +957,23 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       };
     }
     case 'services': {
-      const need = pop * 0.0205;
+      const sf = servicesForecast(num, game);
+      const need = sf.serviceNeed;
+      const direct = `Ежемесячные расходы казны: ${num} тыс. марок (потребность города: ~${Math.round(need)} тыс.). Целевое качество услуг: ${sf.target}% (текущее: ${sf.curQuality}%). Муниципальных вакансий: ~${sf.otherPositions} мест.`;
+      let sideEffect = '';
+      let risk = '';
+      if (num >= need) {
+        sideEffect = `Поддерживает высокое качество услуг и здравоохранения (цель: ${sf.target}%), защищает пожилых горожан и семьи. Муниципальный сектор стабильно обеспечивает занятость ~${sf.otherPositions} человек.`;
+        risk = num > need * 1.3 ? 'Чрезмерное финансирование сверх потребности дает убывающую отдачу (насыщение).' : 'Умеренный риск: финансовая нагрузка сбалансирована пользой.';
+      } else {
+        const jobsLost = Math.abs(sf.jobDifference);
+        sideEffect = `Финансирование ниже потребности (~${Math.round(need)} тыс. м.): качество услуг будет плавно снижаться к ${sf.target}% (сходимость ~11% разрыва в месяц, лаг полураспада ~6.0 мес.). Прямой побочный эффект — сокращение муниципальных рабочих мест на ~${jobsLost} чел.`;
+        risk = 'Высокий системный риск: сжатие общественных услуг запускает цепную реакцию — рост безработицы, падение здоровья пожилых людей (вес 61%) и отток населения из города.';
+      }
       return {
-        direct: `Ежемесячные расходы казны: ${num} тыс. марок (потребность города: ~${Math.round(need)} тыс.).`,
-        sideEffect: num >= need
-          ? 'Поддерживает высокое качество здравоохранения и услуг, защищает пожилых и семьи.'
-          : 'Постепенное ухудшение здоровья жителей и отток населения.',
-        risk: num > need * 1.4 ? 'Чрезмерная нагрузка на казну без дополнительной отдачи (насыщение).' : 'Риск деградации социальной среды.',
+        direct,
+        sideEffect,
+        risk,
       };
     }
     case 'education': {
@@ -829,17 +982,22 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       let side = '';
       let risk = '';
       if (num === 0) {
-        side = 'Обнуление обучения дает сиюминутную экономию казны, но запускает необратимое падение квалификации к 31% (полураспад ~9 мес.), снижая производительность и спрос на продукцию фабрики.';
-        risk = 'Высочайший системный риск: отложенный кризис фабрики и падение налоговой базы через 12–24 месяца.';
+        if (f.curSkills > f.target) {
+          side = `При нулевом финансировании и текущей модернизации целевая квалификация составляет ${f.target}%. При сохранении такой политики прогнозируется постепенное падение квалификации к ${f.target}% (сходимость ~7.5% разрыва в месяц, лаг полураспада 8.9 мес.), что снижает производительность.`;
+          risk = 'Высочайший системный риск: если не возобновить обучение, снижение квалификации кадров со временем приведет к падению качества продукции и сокращению спроса.';
+        } else {
+          side = `При нулевом финансировании целевая квалификация составляет ${f.target}%. Поскольку текущая квалификация (${f.curSkills}%) ниже цели за счет модернизации оборудования, квалификация продолжит сходиться к ${f.target}%.`;
+          risk = 'Умеренный риск: отсутствие расходов на обучение ограничивает дальнейший потенциал квалификации уровнем модернизации.';
+        }
       } else if (f.target > f.curSkills) {
-        side = `Квалификация будет плавно расти к ${f.target}% (сходимость ~7.5% разрыва в месяц, полураспад 8.9 мес.), стимулируя производительность и спрос на часы.`;
-        risk = 'Эффект проявляется с инерцией: не ожидайте быстрого роста отдачи в первый же месяц.';
+        side = `При сохранении выбранных расходов квалификация будет плавно расти к ${f.target}% (сходимость ~7.5% разрыва в месяц, полураспад 8.9 мес.), стимулируя производительность и спрос на часы.`;
+        risk = 'Эффект проявляется с инерцией: изменение начинается со следующего месяца, но полный выход на целевой уровень требует времени.';
       } else if (f.target < f.curSkills) {
-        side = `Финансирование ниже уровня воспроизводства: квалификация рабочих постепенно снизится с ${f.curSkills}% до ${f.target}% (лаг полураспада 8.9 мес.).`;
-        risk = 'Риск скрытой эрозии человеческого капитала: падение качества часов снизит рыночный спрос.';
+        side = `При сохранении выбранных расходов целевая квалификация (${f.target}%) ниже текущей (${f.curSkills}%): квалификация рабочих будет постепенно сходиться к ${f.target}% (лаг полураспада 8.9 мес.).`;
+        risk = 'Риск скрытой эрозии человеческого капитала: постепенное снижение квалификации ухудшит качество продукции и рыночный спрос.';
       } else {
         side = `Поддерживает равновесный уровень квалификации рабочих на отметке ${f.curSkills}%.`;
-        risk = 'Умеренный: баланс между расходами казны и качеством кадров соблюден.';
+        risk = 'Умеренный: баланс между расходами казны и качеством кадров соблюден при текущем уровне модернизации.';
       }
       return {
         direct,

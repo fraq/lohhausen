@@ -6,6 +6,7 @@ import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectC
 import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, formatDebriefAIPrompt, formatDebriefLMN, verifyHypotheses } from './debrief.js';
 import { listProjectChoices, compareWithoutProject } from './counterfactual.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
+import { computeAntifragilityMetrics } from './taleb-events.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
 const LANGUAGE_KEY = 'lohhausen-language';
@@ -388,6 +389,23 @@ function scenarioObjectiveBanner() {
           </div>
         `).join('')}
       </div>
+      ${game.talebState ? `
+        <div style="margin-top: 10px; padding: 8px 12px; background: rgba(31, 95, 122, 0.08); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.25); font-size: 13px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>🦢 Крайнестан (Нассим Талеб)</strong>
+            <span class="badge" style="font-size:11px;">Сид: #${game.seed}</span>
+          </div>
+          ${game.talebState.activeShocks?.length > 0 ? `
+            <div style="margin-top:6px; display:grid; gap:4px;">
+              ${game.talebState.activeShocks.map(s => `
+                <div style="color:#8d4130; font-weight:600;">⚠️ ${escapeHTML(s.title)} (осталось ${s.monthsRemaining} мес.): ${escapeHTML(s.effects?.demandMultiplier ? `спрос x${s.effects.demandMultiplier}` : s.effects?.maintenanceMultiplier ? `ремонт x${s.effects.maintenanceMultiplier}` : s.effects?.interestMultiplier ? `ставка долга x${s.effects.interestMultiplier}` : 'активен')}</div>
+              `).join('')}
+            </div>
+          ` : `
+            <div style="margin-top:4px; color:var(--muted); font-style:italic;">Текущий режим: штиль. Берегите подушку ликвидности (Slack) от редких шоков.</div>
+          `}
+        </div>
+      ` : ''}
       ${isDefeat && evaluation.reason ? `
         <p style="margin: 10px 0 0; color: #8d4130; font-weight: 600; font-size: 13px;">Причина завершения: ${escapeHTML(evaluation.reason)}</p>
       ` : ''}
@@ -936,6 +954,40 @@ function projectComparisonView() {
   </section>`;
 }
 
+function renderTalebAntifragilitySection() {
+  if (!game.talebState && game.scenarioId !== 'extremistan_challenge') return '';
+  const metrics = computeAntifragilityMetrics(game);
+  return `
+    <div class="panel" style="margin-bottom: 24px; border-left: 4px solid #1f5f7a; background: var(--surface);" data-testid="taleb-antifragility-panel">
+      <p class="eyebrow" style="color: #1f5f7a;">РИСК-ПРОФИЛЬ И АНТИХРУПКОСТЬ (НАССИМ ТАЛЕБ)</p>
+      <h3 style="margin: 4px 0 8px; font-size: 20px;">${escapeHTML(metrics.triadTitle)}</h3>
+      <p style="margin: 0 0 12px; font-size: 14px; color: var(--ink);"><strong>Оценка устойчивости:</strong> ${escapeHTML(metrics.verdict)}</p>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;">
+        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
+          <div style="font-size:12px; color:var(--muted);">Подушка ликвидности (Slack)</div>
+          <div style="font-size:18px; font-weight:700; color:#1f5f7a;">${metrics.slackScore}/100</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Запас свободной казны</div>
+        </div>
+        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
+          <div style="font-size:12px; color:var(--muted);">Индекс индейки (Turkey Index)</div>
+          <div style="font-size:18px; font-weight:700; color:${metrics.turkeyIndex > 10 ? '#8d4130' : '#3a7d44'};">${metrics.turkeyIndex} мес.</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Беспечность при нулевых резервах</div>
+        </div>
+        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
+          <div style="font-size:12px; color:var(--muted);">Стратегия штанги (Barbell)</div>
+          <div style="font-size:18px; font-weight:700; color:${metrics.barbellCompliance >= 60 ? '#3a7d44' : '#b67a24'};">${metrics.barbellCompliance}%</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Месяцев с надежной базой (казна 600+)</div>
+        </div>
+        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
+          <div style="font-size:12px; color:var(--muted);">Черные лебеди</div>
+          <div style="font-size:18px; font-weight:700; color:#1f5f7a;">${metrics.survivedSwans}</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Событий пережито / капитализировано</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function debriefView() {
   const summary = summarize(game);
   const analysis = analyzeDebrief(game);
@@ -988,6 +1040,7 @@ function debriefView() {
       </div>
 
       ${projectComparisonView()}
+      ${renderTalebAntifragilitySection()}
 
       <div class="panel" style="margin-bottom: 24px; border-left: 4px solid var(--accent); background: var(--surface);">
         <p class="eyebrow" style="color: var(--accent);">НАБЛЮДЕНИЯ ПО ЖУРНАЛУ РЕШЕНИЙ</p>
@@ -1362,7 +1415,7 @@ function render() {
       <h2 id="reset-title">Новая партия в Лоххаузене</h2>
       <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите дидактический сценарий управления по мотивам книги Дитриха Дёрнера:</p>
       <div class="scenario-select-list" style="display: grid; gap: 8px; margin-bottom: 20px;">
-        ${getScenariosList().map(sc => `
+        ${getScenariosList({ all: true }).map(sc => `
           <label class="scenario-option" style="display:flex; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--surface); align-items:flex-start;">
             <input type="radio" name="scenario-choice" value="${sc.id}" ${sc.id === selectedScenarioId ? 'checked' : ''} style="margin-top:4px;">
             <div style="flex:1;">

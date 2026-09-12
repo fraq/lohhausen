@@ -64,19 +64,26 @@ export function analyzeDebrief(gameOrHistory, maybeJournal, maybeState) {
       title: 'Хаотичное переключение фокуса',
       description: 'В журнале найдено много быстрых переключений между сферами. Этот индикатор не устанавливает причины поведения игрока.',
     };
-  } else if (traps.find(t => t.id === 'ballistic_action' && t.detected)) {
+  } else if (traps.find(t => t.id === 'ballistic_action' && t.detected && t.severity === 'high')) {
     archetype = {
       id: 'ballistic',
       name: 'Баллистический стрелок',
       title: 'Действие вслепую без обратной связи',
-      description: 'После завершения крупных мер в журнале отсутствуют профильные отчеты. Этот индикатор описывает только доступные записи партии.',
+      description: 'После завершения крупных мер в журнале систематически отсутствуют профильные отчеты. Этот индикатор описывает только доступные записи партии.',
     };
-  } else {
+  } else if (traps.find(t => t.id === 'lag_ignorance' && t.detected)) {
     archetype = {
       id: 'oversteerer',
       name: 'Нетерпеливый регулятор',
       title: 'Быстрые развороты налоговой ставки',
       description: 'В журнале есть частые коррекции параметров до истечения возможного периода отклика. Этот индикатор не доказывает мотивы игрока.',
+    };
+  } else {
+    archetype = {
+      id: 'no_indicators_detected',
+      name: 'Нет выраженного профиля',
+      title: 'Локальные наблюдения без устойчивого стиля',
+      description: 'В журнале зафиксированы отдельные события (например, непроверенный исход проекта), но устойчивый когнитивный стиль или системная ловушка не выявлены.',
     };
   }
 
@@ -154,6 +161,22 @@ function detectEncapsulation(journal, history, game) {
   };
 }
 
+/**
+ * Detects ballistic action (Ballistisches Handeln) using event-based follow-up semantics (T0/T1/T2).
+ * 
+ * Semantics and state machine:
+ * - T0 (followup_pending): Project completed in current month (game.month === completeMonth).
+ *   The player has not yet had a post-completion decision opportunity. Not detected, severity none.
+ * - T1 (cleared): A matching domain report was requested strictly after the completion event.
+ * - T2 (outcome_unverified): The simulation advanced to subsequent months (game.month > completeMonth)
+ *   without any matching report after completion. (Projects completing at the horizon remain followup_pending
+ *   until a subsequent advance or report request). Detected true, severity low/medium for single, high for recurrent.
+ * 
+ * Public attribution:
+ * Reported by community contributor «Повелитель» on Get Posting Board (replies #11600 and #11613),
+ * with boundary B and same-month policy counterexample confirmed in reply #11628;
+ * independently verified by Codex in docs/ai-agent-fix-ballistic-followup.md.
+ */
 function detectBallisticAction(journal, history, game) {
   const reportKind = (entry) => {
     const explicit = entry.kind || entry.reportKind || entry.request || entry.report?.kind;
@@ -167,41 +190,93 @@ function detectBallisticAction(journal, history, game) {
     return null;
   };
   const expectedReport = { housing: 'housing', modernization: 'factory', tourism: 'tourism' };
+  const currentMonth = Number.isFinite(game.month) ? game.month : 0;
+
   const completedProjects = journal.filter(entry =>
     entry.type === 'project' && entry.project && Number.isFinite(entry.project.completeMonth) &&
-    (game.month ?? 0) >= entry.project.completeMonth
+    currentMonth >= entry.project.completeMonth
   );
   const reportRequests = journal.filter(entry => entry.type === 'report');
-  const unmonitoredProjects = completedProjects.filter(entry => {
+
+  const evaluatedProjects = completedProjects.map(entry => {
     const expected = expectedReport[entry.project.type];
     const completionIndex = journal.findIndex(item =>
       item.type === 'completion' && item.month === entry.project.completeMonth &&
       String(item.title || '').includes(entry.project.label || entry.project.type)
     );
-    return !expected || !reportRequests.some(report => {
+
+    const hasMatchingReport = expected && reportRequests.some(report => {
       if (reportKind(report) !== expected || report.month < entry.project.completeMonth) return false;
       if (report.month > entry.project.completeMonth) return true;
       return completionIndex >= 0 && journal.indexOf(report) > completionIndex;
     });
-  }).map(entry => ({
-    projectType: entry.project.type,
-    completeMonth: entry.project.completeMonth,
-    expectedReport: expectedReport[entry.project.type] || null,
-  }));
-  const unmonitoredInterventions = unmonitoredProjects.length;
 
+    let status = 'cleared';
+    if (!hasMatchingReport) {
+      if (currentMonth === entry.project.completeMonth) {
+        status = 'followup_pending';
+      } else {
+        status = 'outcome_unverified';
+      }
+    }
+
+    return {
+      projectType: entry.project.type,
+      projectLabel: entry.project.label || entry.project.type,
+      completeMonth: entry.project.completeMonth,
+      expectedReport: expected || null,
+      status,
+    };
+  });
+
+  const unverifiedProjects = evaluatedProjects.filter(p => p.status === 'outcome_unverified');
+  const pendingProjects = evaluatedProjects.filter(p => p.status === 'followup_pending');
+  const clearedProjects = evaluatedProjects.filter(p => p.status === 'cleared');
+
+  const unmonitoredInterventions = unverifiedProjects.length;
   const detected = unmonitoredInterventions > 0;
+  const isRecurrent = unmonitoredInterventions >= 2;
+
+  let title = 'Контроль результатов проектов';
+  if (isRecurrent) {
+    title = 'Баллистический стиль (Ballistisches Handeln)';
+  } else if (unmonitoredInterventions === 1) {
+    title = 'Непроверенный исход проекта';
+  } else if (pendingProjects.length > 0) {
+    title = 'Ожидание проверки результатов';
+  }
+
+  const severity = isRecurrent ? 'high' : (detected ? 'low' : 'none');
+
+  let description = '';
+  if (isRecurrent) {
+    description = `После ${unmonitoredInterventions} завершенных проектов систематически не запрашивались профильные отчеты для проверки фактических результатов.`;
+  } else if (unmonitoredInterventions === 1) {
+    description = `После завершения проекта «${unverifiedProjects[0].projectLabel}» не был запрошен последующий профильный отчет для проверки фактических результатов.`;
+  } else if (pendingProjects.length > 0) {
+    description = `В текущем месяце завершен(ы) ${pendingProjects.length} проект(а). Профильный отчет ожидает запроса для оценки эффекта.`;
+  } else if (completedProjects.length > 0) {
+    description = 'После завершенных проектов были запрошены профильные отчеты.';
+  } else {
+    description = 'Завершенных проектов для проверки этого паттерна пока нет.';
+  }
+
   return {
     id: 'ballistic_action',
-    title: 'Баллистический стиль (Ballistisches Handeln)',
+    title,
     detected,
-    severity: detected ? 'high' : 'none',
-    description: detected
-      ? `После ${unmonitoredInterventions} завершенных проектов не найден последующий профильный отчет для проверки наблюдаемого результата.`
-      : completedProjects.length > 0
-        ? 'После завершенных проектов были запрошены профильные отчеты.'
-        : 'Завершенных проектов для проверки этого паттерна пока нет.',
-    evidence: { unmonitoredInterventions, unmonitoredProjects, totalProjects: completedProjects.length, totalReports: reportRequests.length },
+    severity,
+    description,
+    evidence: {
+      unmonitoredInterventions,
+      unmonitoredProjects: unverifiedProjects,
+      unverifiedProjects,
+      pendingProjects,
+      clearedProjects,
+      isRecurrent,
+      totalProjects: completedProjects.length,
+      totalReports: reportRequests.length,
+    },
     learningPrompt: 'После завершения крупной меры запросите профильный отчет и сравните наблюдения с исходным ожиданием.',
   };
 }
@@ -361,16 +436,15 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
     '2. Разделяй временные горизонты: единовременные капитальные затраты в момент запуска проекта и отложенный эффект через лаги (жилье: 12 мес., модернизация оборудования: 9 мес., туризм: 6 мес.).',
     '3. Анализируй системные компромиссы (trade-offs): соотношение модернизации и технологической безработицы (рост выработки при стабильном спросе высвобождает рабочие места).',
     '4. Проверяй эффективность связывающих ограничений (Binding Constraints): было ли расширение запаса своевременным узким местом системы или преждевременной заморозкой ликвидности в неизбыточном ресурсе (например, жилье при наличии свободных мест).',
-    '5. Сверяй гипотезы: сопоставь заметки игрока в журнале с фактическим исходом. Проверь наличие конкурирующих гипотез (H1: целевой выигрыш vs H2: побочная цена) или игру вслепую с пустыми заметками.',
-    '6. Не приписывай игроку вымышленных эмоций или неявных мотивов, если они прямо не указаны в его заметках.',
+    '5. Сопоставляй записанные ожидания игрока в журнале с фактическим исходом симуляции. Если поле заметки не заполнено, фиксируй это нейтрально: «ожидание не записано» (пустая запись не доказывает отсутствие размышления).',
+    '6. Не приписывай игроку вымышленных эмоций, психологических ярлыков или неявных мотивов, если они прямо не зафиксированы в журнале.',
     '',
-    'ЖЕЛАЕМАЯ СТРУКТУРА ТВОЕГО АНАЛИЗА:',
-    '1. Общий стратегический диагноз (генеральная стратегия, баланс 5 сфер, архетип Дёрнера в %: Конрад-стратег, Маркус-тактик, ремонтная служба).',
-    '2. Шахматный разбор ключевых ходов (!! блестящие ходы, ?! неточности/преждевременные ходы, ?? системные зевки/скрытые петли).',
-    '3. Гипотезы журнала: ожидание vs реальность (проверка целевых и побочных петель, наличие баллистического синдрома или локальной рациональности).',
-    '4. Точка бифуркации (определи конкретный месяц и причину разворота фазового режима системы от истощения к росту).',
-    '5. Три главных урока для следующей партии (управление узкими местами, отслеживание дуальных петель, лаговая пауза перед новым поворотом).',
-    '6. Итоговая оценка партии (по 10-балльной шкале Дёрнера с кратким резюме).',
+    'РЕКОМЕНДУЕМАЯ СТРУКТУРА ТВОЕГО АНАЛИЗА:',
+    '1. Наблюдение и общий баланс сфер (динамика показателей города по 5 направлениям, сопоставление с профилем решений).',
+    '2. Шахматный разбор ключевых ходов и связывающих ограничений (фактические решения бургомистра в контексте узких мест системы; эвристические отметки ?/??/! носят технический характер, а не оценку интеллекта игрока).',
+    '3. Записанные ожидания vs фактические результаты (сверка зафиксированных гипотез с динамикой переменных; при отсутствии заметки констатируй «ожидание не записано»).',
+    '4. Анализ причинности и проверка гипотез (Точка бифуркации / поворотный момент: проверяемые гипотезы о причинах ключевых изменений; если переломный режим или единственная причина не подтверждаются данными — прямо укажи на неопределенность).',
+    '5. Ограничения модели и выводы для будущих партий (учет инерционных лагов, ограничений обратной связи и предотвращение задержек регулирования).',
     '```',
     '',
     '## 1. Метаданные партии',
@@ -385,7 +459,7 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
     `- Казна: ${Math.round(game.treasury * 10) / 10} тыс. марок`,
     `- Долг: ${Math.round(game.debt * 10) / 10} тыс. марок`,
     `- Оборудование фабрики: ${Math.round(game.equipment * 10) / 10}%`,
-    `- Квалификация рабочих (Skills): ${Math.round((game.skills ?? 0) * 10) / 10}%`,
+    `- Квалификация рабочих (Skills): ${Number.isFinite(game.skills) ? `${Math.round(game.skills * 10) / 10}%` : 'нет данных (legacy)'}`,
     `- Выпуск часов: ${Math.round(game.production * 10) / 10} часов/мес.`,
     `- Безработица: ${Math.round((game.unemployment || 0) * 10) / 10} чел.`,
     `- Общая удовлетворенность: ${Math.round(game.satisfaction * 10) / 10}%`,
@@ -433,7 +507,8 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
   for (const m of sortedMonths) {
     const s = historyByMonth.get(m) || (m === game.month ? game : null);
     if (!s) continue;
-    lines.push(`| ${m} | ${Math.round(s.population)} | ${Math.round(s.treasury)} | ${Math.round(s.debt)} | ${Math.round(s.equipment)}% | ${Math.round(s.skills ?? 0)}% | ${Math.round(s.production)} | ${Math.round(s.unemployment || 0)} | ${Math.round(s.satisfaction)}% |`);
+    const skillsCell = Number.isFinite(s.skills) ? `${Math.round(s.skills)}%` : '—';
+    lines.push(`| ${m} | ${Math.round(s.population)} | ${Math.round(s.treasury)} | ${Math.round(s.debt)} | ${Math.round(s.equipment)}% | ${skillsCell} | ${Math.round(s.production)} | ${Math.round(s.unemployment || 0)} | ${Math.round(s.satisfaction)}% |`);
   }
 
   lines.push('');
@@ -542,7 +617,8 @@ export function buildChessMatchRecord(sessionData) {
       const deltaTreasury = Math.round((nextState.treasury - currentState.treasury) * 1000) / 1000;
       const deltaDebt = Math.round((nextState.debt - currentState.debt) * 1000) / 1000;
       const deltaEquipment = Math.round((nextState.equipment - currentState.equipment) * 1000) / 1000;
-      const deltaSkills = Math.round(((nextState.skills ?? 0) - (currentState.skills ?? 0)) * 1000) / 1000;
+      const hasSkillsDelta = Number.isFinite(nextState.skills) && Number.isFinite(currentState.skills);
+      const deltaSkills = hasSkillsDelta ? Math.round((nextState.skills - currentState.skills) * 1000) / 1000 : null;
       const deltaProduction = Math.round((nextState.production - currentState.production) * 1000) / 1000;
       const deltaUnemployment = Math.round((nextState.unemployment - currentState.unemployment) * 1000) / 1000;
       const deltaSatisfaction = Math.round((nextState.satisfaction - currentState.satisfaction) * 1000) / 1000;
@@ -572,8 +648,8 @@ export function buildChessMatchRecord(sessionData) {
       if (currentState.equipment < 40) {
         empiricalSignals.push(`Оборудование фабрики: ${Math.round(currentState.equipment * 10) / 10}% (ниже ориентира 40% на радарной шкале)`);
       }
-      if ((currentState.skills ?? 45) < 38) {
-        empiricalSignals.push(`Квалификация рабочих: ${Math.round((currentState.skills ?? 45) * 10) / 10}% (ниже ориентира эффективной производительности 38%)`);
+      if (Number.isFinite(currentState.skills) && currentState.skills < 38) {
+        empiricalSignals.push(`Квалификация рабочих: ${Math.round(currentState.skills * 10) / 10}% (ниже ориентира эффективной производительности 38%)`);
       }
       if (currentState.debt > 0) {
         empiricalSignals.push(`Городской долг: ${Math.round(currentState.debt * 10) / 10} тыс. марок`);
@@ -598,31 +674,31 @@ export function buildChessMatchRecord(sessionData) {
         if (hasHighTourismAds && currentState.tourismCapacity <= 25) {
           moveEvaluation = {
             tag: '??',
-            label: 'Системный зевок (сжигание бюджета в узком горлышке туризма: реклама >= 40k при емкости <= 25 мест)',
+            label: 'Эвристический риск: сжигание бюджета в узком горлышке туризма (реклама >= 40k при емкости <= 25 мест)',
           };
         }
         const hasLowMaintenance = policyActions.some(a => a.policyChanges && a.policyChanges.maintenance < 10);
         if (hasLowMaintenance && currentState.equipment < 30) {
           moveEvaluation = {
             tag: '??',
-            label: 'Системный зевок (урезание обслуживания станков ниже 10k при износе < 30%)',
+            label: 'Эвристический риск: урезание обслуживания станков ниже 10k при износе оборудования < 30%',
           };
         }
         const hasZeroEducation = policyActions.some(a => a.policyChanges && a.policyChanges.education === 0);
-        if (hasZeroEducation && (currentState.skills ?? 45) > 40) {
+        if (hasZeroEducation && Number.isFinite(currentState.skills) && currentState.skills > 40) {
           moveEvaluation = {
             tag: '??',
-            label: 'Системный зевок (обнуление расходов на образование: скрытый лаг разрушения квалификации и спроса)',
+            label: 'Эвристический риск: обнуление расходов на образование при квалификации > 40% (скрытый лаг деградации кадров)',
           };
         }
       }
 
       if (moveEvaluation.tag !== '??') {
-        const hypothesisProject = projectActions.find(a => a.note && a.note.length > 5);
+        const hypothesisProject = projectActions.find(a => a.note && a.note.trim().length >= 5);
         if (hypothesisProject) {
           moveEvaluation = {
-            tag: '!!',
-            label: `Системное упреждение (проект «${hypothesisProject.project?.label || 'Инвестиция'}» запущен с явной гипотезой в журнале)`,
+            tag: '!',
+            label: `Действие с зафиксированным ожиданием (проект «${hypothesisProject.project?.label || 'Инвестиция'}» запущен с комментарием в журнале)`,
           };
         }
       }
@@ -636,7 +712,7 @@ export function buildChessMatchRecord(sessionData) {
         treasury: Math.round(currentState.treasury * 10) / 10,
         debt: Math.round(currentState.debt * 10) / 10,
         equipment: Math.round(currentState.equipment * 10) / 10,
-        skills: Math.round((currentState.skills ?? 0) * 10) / 10,
+        skills: Number.isFinite(currentState.skills) ? Math.round(currentState.skills * 10) / 10 : null,
         production: Math.round(currentState.production * 10) / 10,
         unemployment: Math.round(currentState.unemployment * 10) / 10,
         satisfaction: Math.round(currentState.satisfaction * 10) / 10,

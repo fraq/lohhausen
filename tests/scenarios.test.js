@@ -78,3 +78,24 @@ test('scenarios: эталонные бенчмарки Конрада и Мар�
   }
 });
 
+test('scenarios: applyScenario корректно инициализирует Вызов Крайнестана с опциональным seed', () => {
+  const base = createGame();
+  const gameDefault = applyScenario(base, 'extremistan_challenge');
+  assert.equal(gameDefault.scenarioId, 'extremistan_challenge');
+  assert.equal(gameDefault.horizon, 60);
+  assert.equal(gameDefault.treasury, 900);
+  assert.equal(gameDefault.debt, 0);
+  assert.equal(gameDefault.seed, 19870505);
+  assert.ok(gameDefault.talebState, 'talebState must be initialized');
+  assert.equal(gameDefault.talebState.seed, 19870505);
+
+  const gameCustomSeed = applyScenario(base, 'extremistan_challenge', 42);
+  assert.equal(gameCustomSeed.seed, 42);
+  assert.equal(gameCustomSeed.talebState.seed, 42);
+
+  const evaluation = evaluateScenario(gameDefault);
+  assert.equal(evaluation.scenarioId, 'extremistan_challenge');
+  assert.equal(evaluation.status, 'active');
+  assert.equal(evaluation.objectives.length, 4);
+});
+

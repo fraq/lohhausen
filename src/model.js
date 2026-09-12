@@ -1,5 +1,7 @@
+import { processTalebPreStep } from './taleb-events.js';
+
 const HORIZON = 120;
-const SCENARIO_HORIZONS = Object.freeze({ sandbox: 120, factory_crisis: 36, tourism_dilemma: 48, dorner_challenge: 60 });
+const SCENARIO_HORIZONS = Object.freeze({ sandbox: 120, factory_crisis: 36, tourism_dilemma: 48, dorner_challenge: 60, extremistan_challenge: 60 });
 const REPORT_KINDS = ['finance', 'factory', 'housing', 'social', 'tourism'];
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const round = (value, digits = 6) => Number(value.toFixed(digits));
@@ -154,6 +156,7 @@ function advanceOne(source) {
   game.month += 1;
   const events = [];
   applyProjects(game, events);
+  const talebMod = game.talebState ? processTalebPreStep(game, events) : { demandMultiplier: 1.0, priceOverride: null, interestMultiplier: 1.0, maintenanceMultiplier: 1.0, tourismMultiplier: 1.0, tourismDemandBonus: 0, taxPenaltyMultiplier: 1.0 };
   const p = game.policies;
   const populationBeforeMigration = Math.max(0, game.population);
   const workforce = populationBeforeMigration === 0 ? 0 : round(populationBeforeMigration * 0.555);
@@ -164,7 +167,7 @@ function advanceOne(source) {
 
   const productivity = 1.27 * (0.43 + game.equipment / 100 * 0.57) * (0.50 + game.skills / 100 * 0.50) * (1 + game.modernizationLevel * 0.12);
   const qualityDemand = (0.58 + game.equipment / 100 * 0.42) * (0.62 + game.skills / 100 * 0.38);
-  const forecastDemand = (730 + p.marketing * 5.2) * qualityDemand;
+  const forecastDemand = (730 + p.marketing * 5.2) * qualityDemand * talebMod.demandMultiplier;
   const desiredProduction = Math.max(0, forecastDemand - game.inventory * 0.18);
   const technicalFactoryPositions = Math.max(0, Math.round(610 + game.equipment * 7 + game.skills * 4 + game.modernizationLevel * 180));
   const marketFactoryPositions = Math.max(0, Math.ceil(desiredProduction / Math.max(0.1, productivity)));
@@ -173,7 +176,7 @@ function advanceOne(source) {
   game.otherJobs = Math.min(workforce, otherPositions);
   game.factoryJobs = Math.min(Math.max(0, workforce - game.otherJobs), factoryPositions);
   const seasonalTourism = 20 + 28 * Math.sin(((game.month - 2) / 12) * Math.PI * 2);
-  game.tourismDemand = round(Math.max(0, 72 + p.tourismMarketing * 4.8 + seasonalTourism));
+  game.tourismDemand = round(Math.max(0, (72 + p.tourismMarketing * 4.8 + seasonalTourism + talebMod.tourismDemandBonus) * talebMod.tourismMultiplier));
   const potentialVisitors = Math.min(game.tourismDemand, game.tourismCapacity);
   const availableForTourism = Math.max(0, workforce - game.otherJobs - game.factoryJobs);
   game.tourismJobs = Math.min(availableForTourism, Math.ceil(potentialVisitors / 8));
@@ -181,20 +184,22 @@ function advanceOne(source) {
   game.unemployment = round(Math.max(0, workforce - game.otherJobs - game.factoryJobs - game.tourismJobs));
 
   game.production = round(Math.max(0, game.factoryJobs * productivity));
-  game.demand = round(Math.max(0, (730 + p.marketing * 5.2 + 35 * Math.sin(game.month / 12 * Math.PI * 2)) * qualityDemand));
-  const goods = trade({ production: game.production, inventory: game.inventory, demand: game.demand, price: 0.57 });
+  game.demand = round(Math.max(0, (730 + p.marketing * 5.2 + 35 * Math.sin(game.month / 12 * Math.PI * 2)) * qualityDemand * talebMod.demandMultiplier));
+  const effectivePrice = talebMod.priceOverride !== null ? talebMod.priceOverride : 0.57;
+  const goods = trade({ production: game.production, inventory: game.inventory, demand: game.demand, price: effectivePrice });
   game.sales = goods.sales; game.inventory = goods.inventory;
 
   const factoryWages = game.factoryJobs * 0.105 * (p.wage / 100);
   const materials = game.production * 0.145;
-  const factoryProfit = goods.revenue - factoryWages - materials - p.maintenance - p.marketing;
+  const maintenanceExpense = p.maintenance * talebMod.maintenanceMultiplier;
+  const factoryProfit = goods.revenue - factoryWages - materials - maintenanceExpense - p.marketing;
   const otherWages = game.otherJobs * 0.09;
   const tourismWages = game.tourismJobs * 0.085;
   const taxIncome = (factoryWages + otherWages + tourismWages) * (p.taxRate / 100);
   const tourismIncome = game.visitors * 0.19;
   const rentIncome = Math.min(game.housingCapacity, populationBeforeMigration) * 0.006;
   const debtBeforeBudget = game.debt;
-  const interest = game.debt * 0.008;
+  const interest = game.debt * 0.008 * talebMod.interestMultiplier;
   const administration = 78 + populationBeforeMigration * 0.004;
   const income = taxIncome + factoryProfit + tourismIncome + rentIncome;
   const expenses = p.services + p.education + p.tourismMarketing + administration + interest;
@@ -222,7 +227,7 @@ function advanceOne(source) {
   if (populationBeforeMigration === 0) {
     game.population = 0; game.workforce = 0; game.factoryJobs = 0; game.otherJobs = 0; game.tourismJobs = 0; game.unemployment = 0; game.housingShortage = 0;
   } else {
-    const attraction = game.satisfaction - 90 - Math.max(0, p.taxRate - 20) * 0.55 - game.housingShortage / populationBeforeMigration * 60;
+    const attraction = game.satisfaction - 90 - Math.max(0, p.taxRate - 20) * 0.55 * talebMod.taxPenaltyMultiplier - game.housingShortage / populationBeforeMigration * 60;
     const desiredMigration = clamp(attraction * 1.1 + (employmentScore - 90) * 0.15, -15, 2);
     game.migrationPressure = round(game.migrationPressure * 0.68 + desiredMigration * 0.32);
     game.population = round(Math.max(0, populationBeforeMigration + game.migrationPressure));
@@ -318,6 +323,8 @@ function validateGame(value) {
   if (!Array.isArray(value.history) || value.history.length === 0 || !value.history.every(validSnapshot) || value.history[0].month !== 0 || value.history.at(-1).month !== value.month || !value.history.every((item, index) => item.month === index)) return false;
   if (!Array.isArray(value.journal) || !value.journal.every((entry) => isPlainObject(entry) && Number.isInteger(entry.month) && entry.month >= 0 && entry.month <= value.month && typeof entry.type === 'string' && typeof entry.title === 'string' && typeof entry.note === 'string')) return false;
   if (!Array.isArray(value.events) || !value.events.every((event) => typeof event === 'string') || !isPlainObject(value.lastBudget) || !['income', 'expenses', 'net'].every((key) => Number.isFinite(value.lastBudget[key]))) return false;
+  if ('seed' in value && (!Number.isInteger(value.seed) || value.seed < 0)) return false;
+  if ('talebState' in value && !isPlainObject(value.talebState)) return false;
   return true;
 }
 

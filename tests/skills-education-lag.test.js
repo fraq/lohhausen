@@ -84,3 +84,46 @@ test('buildChessMatchRecord tracks skills in preActionState, transition deltas, 
   assert.equal(move0.systemicEvaluation.tag, '??');
   assert.match(move0.systemicEvaluation.label, /образовани|квалификаци/i);
 });
+
+test('skillsForecast exact fractional alignment matches model.js advance step exactly', () => {
+  const game = createGame(); // policies.education: 20, skills: 45, modernizationLevel: 0
+  const forecast = skillsForecast(20, game);
+  assert.equal(forecast.target, 46.6);
+  assert.equal(forecast.nextSkills, 45.12);
+  assert.equal(forecast.nextSkillsExact, 45.12);
+  assert.equal(forecast.monthlyDelta, 0.12);
+
+  // Advance game by 1 month and verify simulation model gives exact same number
+  const nextGame = advance(game, 1);
+  assert.equal(nextGame.skills, 45.12);
+  assert.equal(nextGame.skills, forecast.nextSkillsExact);
+});
+
+test('legacy sessions without skills do not substitute 0 and preserve null/unknown values', () => {
+  let game = createGame();
+  game = advance(game, 12);
+  delete game.skills;
+  for (const h of game.history) {
+    delete h.skills;
+  }
+
+  const analysis = analyzeDebrief(game);
+  const prompt = formatDebriefAIPrompt(game, analysis);
+
+  // Summary should report no historical data rather than 0%
+  assert.match(prompt, /Квалификация рабочих.*legacy|нет данных/i);
+  assert.doesNotMatch(prompt, /Квалификация рабочих.*:\s*0%/);
+
+  // Table row should contain '—' for skills
+  assert.match(prompt, /\|\s*0\s*\|.*\|\s*—\s*\|/);
+
+  // Chess match record
+  const match = buildChessMatchRecord({ game });
+  assert.ok(match.moves.length >= 1);
+  const move0 = match.moves[0];
+  assert.equal(move0.preActionState.skills, null);
+  if (move0.transitionToNextMonth) {
+    assert.equal(move0.transitionToNextMonth.delta.skills, null);
+  }
+});
+

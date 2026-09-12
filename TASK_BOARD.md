@@ -24,6 +24,13 @@
 ### 🔍 Review & Proposed
 *Задачи на согласовании и проверке.*
 
+- [ ] **debrief-followup-fix-001**: Устранение ложного срабатывания индикатора `ballistic_action` непосредственно в момент завершения проекта до появления у игрока возможности действия (находка участника «Повелитель» на Get Posting Board #11600/#11613). Внедрение событийной модели T0 (`followup_pending`), T1 (`cleared`), T2 (`outcome_unverified`) со сменой статуса на T2 строго при переходе на следующий расчетный месяц (`game.month > completeMonth`) и нейтральными формулировками без ярлыков.
+  - **Инициатор**: Публичное ревью («Повелитель»), верифицировано `codex`
+  - **Исполнитель**: `dorner_scenarios` (при исследовательской поддержке `agy`)
+  - **Спецификация**: [`docs/ai-agent-fix-ballistic-followup.md`](./docs/ai-agent-fix-ballistic-followup.md), [`knowledge/agy-ballistic-t2-counterexample-analysis.md`](./knowledge/agy-ballistic-t2-counterexample-analysis.md), [`knowledge/agy-ballistic-recurrence-rule-analysis.md`](./knowledge/agy-ballistic-recurrence-rule-analysis.md)
+  - **Карточка**: [`COORDINATION/tasks/debrief-followup-fix-001.md`](./COORDINATION/tasks/debrief-followup-fix-001.md)
+  - **Статус**: review (все 4 замечания ревью Codex 064 полностью реализованы в `src/debrief.js` и покрыты тестами в `tests/debrief-regressions.test.js`: правило рекуррентности $N \ge 2$, разделение severity low/high, композиция одного месяца #11628, терминальный горизонт; 165/165 passing tests).
+
 - [ ] **chess-export-ai-001**: Внедрение экспорта шахматной записи партии (LMN v1.2) со встроенной алгоритмической классификацией ходов (`!!`, `!`, `—`, `?!`, `?`, `??`) и доказательным промптом для системного разбора в Claude/ChatGPT/Gemini.
   - **Инициатор**: `dorner_scenarios` (по поручению пользователя)
   - **Спецификация**: [`knowledge/dorner-chess-export-spec.md`](./knowledge/dorner-chess-export-spec.md), [`knowledge/dorner-move-evaluation-engine.md`](./knowledge/dorner-move-evaluation-engine.md)
@@ -31,13 +38,18 @@
   - **Верификатор**: [`scripts/verify-chess-export.mjs`](./scripts/verify-chess-export.mjs)
   - **Статус**: verified_ready (все 4 сценария успешно протестированы, соответствие всем критериям подтверждено).
 
+- [ ] **taleb-antifragile-mode**: Внедрение игрового режима «Вызов Крайнестана: Черный лебедь и Антихрупкость» (`extremistan_challenge`) по книгам Нассима Талеба: детерминированный генератор псевдослучайных чисел Mulberry32 со степенным распределением Парето (`src/prng.js`), каталог положительных/отрицательных Черных лебедей и ятрогенного шума (`src/taleb-events.js`), интеграция в модель (`src/model.js`) и сценарии (`src/scenarios.js`), эталоны Конрада и Маркуса, панель метрик Антихрупкости (Slack, Turkey Index, Barbell Strategy) в Debrief (`src/app.js`), полная локализация (`src/locales/extra.js`) и тестовый набор (`tests/prng.test.js`, `tests/taleb-events.test.js`, `tests/taleb-mode.test.js`).
+  - **Инициатор**: Запрос пользователя
+  - **Исполнитель**: `agy`
+  - **Спецификация**: [`knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md`](./knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md)
+  - **Артефакты**: `src/prng.js`, `src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `src/app.js`, `src/locales/extra.js`
+  - **Статус**: review_ready (все 165 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
+
 ---
 
 ## 🗄️ Backlog (Дидактические инициативы и системные улучшения)
 *Стратегические предложения по системному обучению (спецификация: [`knowledge/dorner-v1.2-didactic-roadmap.md`](./knowledge/dorner-v1.2-didactic-roadmap.md), атлас отказов: [`knowledge/dorner-scenario-failure-atlas.md`](./knowledge/dorner-scenario-failure-atlas.md), гроссмейстерский кейс: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).*
 
-- [ ] **services-health-diagnostics**: Предостережение от когнитивной ловушки секвестра общественных услуг («синдром донора бюджета»): каскадные задержки ($\tau_s = 9.1$ мес., $\tau_h = 11.1$ мес.), мультипликатор занятости ($209$ рабочих мест при срезе с $68$ до $20$ тыс. марок) и крах благополучия пожилых людей (вес $61\%$) в `/debrief` и подсказках кабинета (исследование: [`knowledge/agy-municipal-services-health-feedback-loop.md`](./knowledge/agy-municipal-services-health-feedback-loop.md)).
-- [ ] **fiscal-squeeze-diagnostics**: Предостережение от фискальной ловушки завышения налогов: нелинейный порог $20\%$, асимметрия миграционных потоков ($[-15, +2]$ чел./мес.) и разрушение налогооблагаемой базы в `/debrief` и подсказках кабинета (исследование: [`knowledge/agy-fiscal-squeeze-and-laffer-trap.md`](./knowledge/agy-fiscal-squeeze-and-laffer-trap.md)).
 - [ ] **competing-hypotheses-journal**: Внедрение в журнал решений обязательной фиксации конкурирующих гипотез ($H_1$: целевой выигрыш vs $H_2$: побочная цена/потеря занятости) перед запуском проектов для исключения игры «вслепую» с пустыми заметками (спецификация: [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md), кейс-стади: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).
 - [ ] **binding-constraint-evaluator**: Автоматический аудит эффективности капитальных вложений по связывающим ограничениям (Binding Constraints) в `/debrief`: выявление преждевременного омертвления ликвидности в неизбыточных фондах (кейс муниципального жилья) vs своевременного расширения узких мест (станки, туризм) (руководство: [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)).
 - [ ] **ai-debrief-methodology**: Методология системного аудита и оценки партий в ИИ (Claude, Gemini, Codex) по канонам Дёрнера и Стермана: 6-фазный протокол, чек-лист анти-галлюцинаций для LLM (руководство: [`knowledge/agy-ai-debrief-evaluation-methodology.md`](./knowledge/agy-ai-debrief-evaluation-methodology.md)).
@@ -45,13 +57,20 @@
 - [ ] **reality-shock-prompt**: Рефлексивный диалог при критическом расхождении (>30%) между прогнозом игрока в журнале и фактическим результатом проекта (архитектура: [`knowledge/agy-reality-shock-and-error-awareness-architecture.md`](./knowledge/agy-reality-shock-and-error-awareness-architecture.md)).
 - [ ] **feedback-loop-explorer**: Интерактивная трассировка контуров в CLD при клике на переменные (пошаговая подсветка замкнутых петель обратной связи и задержек).
 - [ ] **radar-delta-tooltip**: Интерактивные тултипы дельт на вершинах системного радара (сопоставление с базовой линией месяца 0 и вывод конкретного фактора износа/падения).
-- [ ] **taleb-antifragile-mode**: Исследование и внедрение игрового режима «Черный лебедь и Антихрупкость» по Нассиму Талебу: моделирование событий Крайнестана с толстыми хвостами (Парето/Пуассон), сохранение детерминизма через Seeded PRNG, проверка на «проблему индейки», ятрогению и стратегию штанги (исследование: [`knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md`](./knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md)).
 - [ ] **counterfactual-trajectory-trace**: Опциональное отображение эталонного коридора Конрада на графиках истории для раннего обнаружения точки системной бифуркации.
-
----
 
 ## ✅ Done
 *Завершенные задачи.*
+
+- [x] **fiscal-squeeze-diagnostics**: Предостережение от фискальной ловушки завышения налогов (кривая Лаффера по Дёрнеру): нелинейный штраф при превышении порога 20% ($\Delta \text{taxRate} \times 0.55$), асимметрия миграционных потоков ($[-15, +2]$ чел./мес., коэффициент восстановления 7.5:1), расчет чистого располагаемого дохода домохозяйств (`taxForecast`), интеграция в `getPolicyWhatIf` и предупреждение казначея фрау Вебер до запуска необратимого оттока населения.
+  - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 35)
+  - **Артефакты**: `src/causal.js`, `tests/fiscal-squeeze-tax.test.js`, [`knowledge/agy-fiscal-squeeze-and-laffer-trap.md`](./knowledge/agy-fiscal-squeeze-and-laffer-trap.md)
+  - **Статус**: Закрыта (3/3 тестов модуля, 164/164 тестов green, HTTP 200 OK).
+
+- [x] **services-health-diagnostics**: Предостережение от когнитивной ловушки секвестра общественных услуг («синдром донора бюджета»): расчет инерционного лага качества услуг ($t_{1/2} = 5.9$ мес., $\tau = 8.6$ мес.), прямой мультипликатор муниципальной занятости ($\Delta \text{jobs} = \text{pop} \times \Delta \text{services} / 850$), упреждающее предупреждение советника Хельги Мейер до обрушения здоровья и учет веса пожилых ($61\%$) в `getPolicyWhatIf`.
+  - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 31)
+  - **Артефакты**: `src/causal.js`, `tests/services-health-lag.test.js`, [`knowledge/agy-municipal-services-health-feedback-loop.md`](./knowledge/agy-municipal-services-health-feedback-loop.md)
+  - **Статус**: Закрыта (4/4 тестов модуля, 161/161 тестов green, HTTP 200 OK).
 
 - [x] **new-game-discoverability-001**: Повышение заметности и доступности кнопки «Новая игра» по прямому замечанию пользователя: вынос кнопки в отдельный блок действий сайдбара `.sidebar-action` прямо под основным меню навигации со стильным оформлением (высота 42px, фон glassmorphism, контрастная обводка, теплая латунная иконка сброса), а также добавление аккуратной кнопки перезапуска в верхнюю панель управления `.language-control` (`.header-new-game`).
   - **Исполнитель**: `agy` (по прямому поручению пользователя)
@@ -63,18 +82,18 @@
   - **Артефакты**: `public/styles.css`, `src/app.js`, `tests/cockpit.test.js`
   - **Статус**: Закрыта (133/133 тестов green, регрессионный тест добавлен в `tests/cockpit.test.js`, HTTP 200 OK).
 
-- [x] **skills-lag-diagnostics**: Предостережение от когнитивной ловушки «бесплатной экономии на обучении»: расчет инерционного лага человеческого капитала ($\tau = 13.3$ мес., $t_{1/2} = 8.89$ мес.), интеграция `skillsForecast`, диагностика советника по социальной сфере, квалификация рабочих в сводке и таблице траектории ИИ-промпта, учет квалификации в `preActionState`, дельтах и шахматной нотации LMN v1.2.
-  - **Исполнитель**: `dorner_scenarios` (при теоретическом обосновании `agy` и аудите `codex`)
+- [x] **skills-lag-diagnostics**: Предостережение от когнитивной ловушки «бесплатной экономии на обучении»: расчет инерционного лага человеческого капитала ($\tau = 13.3$ мес., $t_{1/2} = 8.89$ мес.), интеграция `skillsForecast`, диагностика советника по социальной сфере, квалификация рабочих в сводке и таблице траектории ИИ-промпта, учет квалификации в `preActionState`, дельтах и шахматной нотации LMN v1.2. Устранены замечания ревью Codex 054/056: точная синхронизация с дробным расчетом модели (`45.12`), дискретные формулы лагов, условность прогнозов и сохранение `null` для legacy-партий.
+  - **Исполнитель**: `dorner_scenarios`
   - **Карточка**: [`COORDINATION/tasks/skills-lag-diagnostics-001.md`](./COORDINATION/tasks/skills-lag-diagnostics-001.md)
   - **Исследование**: [`knowledge/agy-education-skills-lag-analysis.md`](./knowledge/agy-education-skills-lag-analysis.md)
   - **Артефакты**: `src/causal.js`, `src/debrief.js`, `src/model.js`, `tests/skills-education-lag.test.js`
-  - **Статус**: Закрыта (131/131 тестов green, 5/5 тестов модуля, 720 состояний, HTTP 200 OK).
+  - **Статус**: feedback_addressed (135/135 тестов green, 7/7 тестов модуля, 720 состояний, HTTP 200 OK).
 
-- [x] **ai-prompt-export-001**: Реализация прямого экспорта итогов партии с системным научно-обоснованным промптом по методологии Дёрнера/Стермана для анализа в Claude, Gemini, ChatGPT и Codex (кнопки «📋 Скопировать промпт для ИИ», «🤖 Скачать для ИИ (Markdown + Промпт)», «🧠 LMN (JSON для ИИ)») с автоматическим включением контрфактического моделирования завершенных проектов.
-  - **Исполнитель**: `dorner_scenarios` (по прямому поручению пользователя)
+- [x] **ai-prompt-export-001**: Реализация прямого экспорта итогов партии с системным научно-обоснованным промптом по методологии Дёрнера/Стермана для анализа в Claude, Gemini, ChatGPT и Codex (кнопки «📋 Скопировать промпт для ИИ», «🤖 Скачать для ИИ (Markdown + Промпт)», «🧠 LMN (JSON для ИИ)») с автоматическим включением контрфактического моделирования завершенных проектов. Устранены замечания ревью Codex 054: строгая научная структура разбора, эвристические индикаторы ходов, безопасная работа с legacy-партиями без подмены на ноль.
+  - **Исполнитель**: `dorner_scenarios`
   - **Карточка**: [`COORDINATION/tasks/ai-prompt-export-001.md`](./COORDINATION/tasks/ai-prompt-export-001.md)
-  - **Артефакты**: `src/debrief.js`, `src/app.js`, `src/locales/extra.js`, `tests/debrief.test.js`
-  - **Статус**: Закрыта (124/124 тестов green, локализация на 4 языка, прямая поддержка буфера обмена, fallback скачивания и контрфактические срезы альтернативных реальностей).
+  - **Артефакты**: `src/debrief.js`, `src/app.js`, `src/locales/extra.js`, `tests/debrief.test.js`, `tests/skills-education-lag.test.js`
+  - **Статус**: feedback_addressed (135/135 тестов green, локализация на 4 языка, прямая поддержка буфера обмена, fallback скачивания и контрфактические срезы альтернативных реальностей).
 
 - [x] **project-counterfactual-001**: Контрфактический анализ партии: проверка «Что было бы без этого проекта?» в разделе `/debrief` при сохранении неизменным остального журнала решений.
   - **Исполнитель**: `codex` (Senior Integrator)

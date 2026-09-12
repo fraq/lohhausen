@@ -1,4 +1,5 @@
 import { createGame } from './model.js';
+import { initTalebState } from './taleb-events.js';
 
 export const SCENARIOS = Object.freeze({
   sandbox: {
@@ -62,10 +63,27 @@ export const SCENARIOS = Object.freeze({
       { id: 'solvency', label: 'Казна с положительным сальдо (долг 0)', target: 0, check: (g) => g.debt === 0 },
     ],
   },
+  extremistan_challenge: {
+    id: 'extremistan_challenge',
+    icon: '🦢',
+    title: 'Вызов Крайнестана: Черный лебедь и Антихрупкость',
+    subtitle: 'Управление в условиях толстых хвостов и редких шоков по Нассиму Талебу',
+    difficulty: 'Экстремальная (Философская)',
+    horizon: 60,
+    duration: 60,
+    briefing: 'Город функционирует в условиях статистического Крайнестана по Нассиму Талебу. Мир подвержен редким масштабным шокам и неожиданным взлетам (Черные лебеди). Докажите, что город способен выжить, сохраняя запас прочности (Slack), избегая долговой гибели (Ruin) и извлекая пользу из волатильности через опциональность.',
+    objectives: [
+      { id: 'solvency', label: 'Казна без хронического долга (долг = 0)', target: 0, check: (g) => g.debt === 0 },
+      { id: 'resilience', label: 'Подушка казны ≥ 800 тыс. марок (Slack)', target: 800, check: (g) => g.treasury >= 800 },
+      { id: 'satisfaction', label: 'Удовлетворенность горожан ≥ 80%', target: 80, check: (g) => g.satisfaction >= 80 },
+      { id: 'population', label: 'Сохранить население города ≥ 3400 чел.', target: 3400, check: (g) => g.population >= 3400 },
+    ],
+  },
 });
 
-export function getScenariosList() {
-  return [
+export function getScenariosList(options) {
+  const includeAll = options === true || options?.all === true;
+  const list = [
     {
       id: SCENARIOS.sandbox.id,
       icon: SCENARIOS.sandbox.icon,
@@ -103,6 +121,20 @@ export function getScenariosList() {
       briefing: SCENARIOS.dorner_challenge.briefing,
     },
   ];
+
+  if (includeAll) {
+    list.push({
+      id: SCENARIOS.extremistan_challenge.id,
+      icon: SCENARIOS.extremistan_challenge.icon,
+      title: SCENARIOS.extremistan_challenge.title,
+      subtitle: SCENARIOS.extremistan_challenge.subtitle,
+      difficulty: SCENARIOS.extremistan_challenge.difficulty,
+      horizon: SCENARIOS.extremistan_challenge.horizon,
+      briefing: SCENARIOS.extremistan_challenge.briefing,
+    });
+  }
+
+  return list;
 }
 
 export function listScenarios() {
@@ -116,7 +148,7 @@ export function getScenario(id) {
   return SCENARIOS.sandbox;
 }
 
-export function applyScenario(baseGame, scenarioId) {
+export function applyScenario(baseGame, scenarioId, seed = null) {
   const scenario = getScenario(scenarioId);
   const game = structuredClone(baseGame);
 
@@ -150,6 +182,11 @@ export function applyScenario(baseGame, scenarioId) {
     game.debt = 800;
     game.satisfaction = 68;
     game.satisfactionGroups = { workers: 58, families: 65, seniors: 74 };
+  } else if (scenario.id === 'extremistan_challenge') {
+    game.seed = Number.isInteger(seed) ? seed : (baseGame.seed || 19870505);
+    game.talebState = initTalebState(game.seed);
+    game.treasury = 900;
+    game.debt = 0;
   }
 
   // Обновляем начальный слепок истории под условия сценария
@@ -197,6 +234,7 @@ export function evaluateScenario(game) {
     let current = null;
     if (obj.id === 'equipment') current = Math.round(game.equipment);
     else if (obj.id === 'debt' || obj.id === 'solvency' || obj.id === 'treasury') current = Math.round(game.debt);
+    else if (obj.id === 'resilience') current = Math.round(game.treasury);
     else if (obj.id === 'production') current = Math.round(game.production);
     else if (obj.id === 'tourism_capacity') current = game.tourismCapacity;
     else if (obj.id === 'housing') current = game.housingShortage || 0;
@@ -249,6 +287,7 @@ export function evaluateScenario(game) {
     metCount,
     totalCount,
     objectives,
+    progress: objectives,
     completionRate,
   };
 }
@@ -341,6 +380,35 @@ export function getScenarioBenchmark(scenarioId) {
         debtTrajectory: [500, 1500, 3200, 5100, 7200, 9800],
         finalDebt: 9800,
         finalSatisfaction: 42,
+      },
+    };
+  }
+
+  if (scenarioId === 'extremistan_challenge') {
+    return {
+      conrad: {
+        name: 'Эталон Конрада (Стратегия штанги и Антихрупкость)',
+        description: 'Создание мощной подушки ликвидности (Slack), отказ от долга, выкуп подешевевших активов на спадах.',
+        strategy: 'Удерживать свободную казну не ниже 800 тыс. марок, сохранять нулевой долг и выкупать активы при появлении Черных лебедей.',
+        verdict: 'Город с легкостью выдержал кризисы и стал сильнее: казна 1450 тыс., удовлетворенность 89%, полное отсутствие долга.',
+        equipmentTrajectory: [48, 55, 68, 74, 86, 92],
+        finalEquipment: 92,
+        satisfactionTrajectory: [84, 82, 85, 84, 88, 89],
+        debtTrajectory: [0, 0, 0, 0, 0, 0],
+        finalDebt: 0,
+        finalSatisfaction: 89,
+      },
+      marcus: {
+        name: 'Траектория Маркуса (Иллюзия индейки и крах)',
+        description: 'Оптимизация «в ноль резервов», растрата ликвидности и катастрофический дефолт при первом же внешнем шоке.',
+        strategy: 'Тратить всю казну без создания буфера, брать кредиты при спаде спроса и пытаться тушить пожары налогами.',
+        verdict: 'Ловушка индейки сработала: приход Кварцевого кризиса вогнал город в неуправляемую долговую спираль (долг >12000 тыс. м.).',
+        equipmentTrajectory: [48, 44, 32, 24, 15, 8],
+        finalEquipment: 8,
+        satisfactionTrajectory: [84, 80, 65, 52, 45, 38],
+        debtTrajectory: [0, 500, 2200, 5400, 8900, 13500],
+        finalDebt: 13500,
+        finalSatisfaction: 38,
       },
     };
   }
