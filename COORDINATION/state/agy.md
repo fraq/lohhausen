@@ -139,6 +139,25 @@
   3. Трилемму спроса и модернизации фабрики (`factoryTarget`, `marketFactoryPositions`, `production`): при насыщенном спросе рост производительности высвобождает рабочих ($\lceil 800/0.85 \rceil - \lceil 800/1.00 \rceil = 142$ чел.) без прироста выпуска часов.
 - Обновлен индекс `TASK_BOARD.md`: инициатива `binding-constraint-evaluator` снабжена ссылкой на руководство.
 - Проверочный контур: **124 / 124 тестов зеленые (100% pass)**, `npm run check` — 0 ошибок, `verify-scenarios.mjs` — 720 состояний валидны, `verify-chess-export.mjs` — 4/4 сценария подтверждены (LMN v1.2), `verify-http.mjs` — 12 страниц и 14 модулей 200 OK.
+- 2026-09-12 (цикл 25, Кайдзен-итерация 19): Системная динамика общественных услуг и здравоохранения (каскадные задержки, мультипликатор занятости и крах благополучия пожилых людей).
+- Разработан и выверен по `src/model.js` фундаментальный аналитический документ: [`knowledge/agy-municipal-services-health-feedback-loop.md`](../../knowledge/agy-municipal-services-health-feedback-loop.md) («Системная динамика общественных услуг и здравоохранения в симуляторе Лоххаузена: Каскадные задержки ($\tau_s = 9.1$ мес., $\tau_h = 11.1$ мес.), мультипликатор занятости (209 рабочих мест) и крах благополучия пожилых людей по Дёрнеру»).
+- Документ математически строго вскрывает:
+  1. Двухкаскадную задержку второго порядка: возмущение бюджета услуг $S$ (`p.services`) сначала фильтруется контуром услуг `serviceQuality` ($\alpha_s = 0.11$, $\tau_s = 9.09$ мес., $t_{1/2} = 6.3$ мес.), а затем полученная дельта транслируется в контур здравоохранения `health` ($\alpha_h = 0.09$, $\tau_h = 11.11$ мес., $t_{1/2} = 7.7$ мес.);
+  2. Скрытый мультипликатор занятости (`otherPositions = Math.round(N * (0.16 + serviceQuality/2500 + services/850))`): снижение $S$ с базовых $68$ до $20$ тыс. марок мгновенно ликвидирует $209$ рабочих мест в сфере услуг, взвинчивая безработицу на $+10.1\%$ и нанося вторичный удар по здоровью через стресс безработицы;
+  3. Сокрушительный удар по старшему поколению (`seniors`): тандем «здоровье + услуги» составляет $61\%$ ($0.33 + 0.28$) веса благополучия пожилых людей; падение удовлетворенности пенсионеров на $-20.8$ пунктов делает победу в `dorner_challenge` ($\ge 85\%$ для всех групп) математически невозможной;
+  4. Формулировку диагностического правила для `/debrief` и подсказок кабинета по преодолению «синдрома донора бюджета» (*Verfügbarkeitsheuristik*).
+- Обновлен индекс `TASK_BOARD.md`: добавлена инициатива `services-health-diagnostics` в Backlog.
+- Проверочный контур: **124 / 124 тестов зеленые (100% pass)**, `npm run check` — 0 ошибок, `verify-scenarios.mjs` — 720 состояний валидны, `verify-chess-export.mjs` — 4/4 сценария подтверждены (LMN v1.2), `verify-http.mjs` — 12 страниц и 14 модулей 200 OK.
+- 2026-09-12 (цикл 26, Кайдзен-итерация 20): Научно-дидактическая спецификация механизма конкурирующих гипотез (H1 vs H2) и структурированного журнала решений по Дёрнеру.
+- Разработан и выверен по `src/model.js` фундаментальный документ: [`knowledge/agy-competing-hypotheses-journal-spec.md`](../../knowledge/agy-competing-hypotheses-journal-spec.md) («Спецификация механизма конкурирующих гипотез (H1 vs H2) и структурированного журнала решений по Дёрнеру»).
+- Документ устраняет когнитивный дефект «баллистического действия» (*Ballistisches Handeln*) и пустых заметок в журнале (`playerNote: ""`):
+  1. Математическая матрица конкурирующих пар гипотез для 3 проектов: целевой выигрыш $H_1$ (снятие связывающего ограничения) vs побочная цена/риск $H_2$ (омертвление ликвидности для `housing`, технологическая безработица для `modernization`, кадровый дефицит и холостой ход для `tourism`);
+  2. Обратно совместимая схема метаданных `hypotheses` в `journalEntry` (`h1Target`, `h2Risk`, `constraintAssessment`, `predictedUnemploymentImpact`, `predictedCashBufferMonths`);
+  3. Алгоритмическая модель верификации гипотез в `/debrief` (`verifyCompetingHypotheses`): разграничение системного мастерства (`!!`), однобокого технократизма (`?!`) и баллистической слепоты (`??`);
+  4. Интеграция с LMN v1.2 и системным промптом для внешних ИИ (`formatDebriefAIPrompt`).
+- Синхронизирован обзорный индекс `TASK_BOARD.md` (инициатива `competing-hypotheses-journal` переведена в статус со спецификацией, задача `skills-lag-diagnostics` закрыта в Done).
+- Правило FIX-FIRST: устранен дефект проверки округления отрицательных половинных чисел в JS (`Math.round(-10.5) === -10`) в `tests/skills-education-lag.test.js`, проверено точное значение `zeroForecast.monthlyDelta` ($-1.05$).
+- Проверочный контур: **129 / 129 тестов зеленые (100% pass)**, `npm run check` — 0 ошибок, `verify-scenarios.mjs` — 720 состояний валидны, `verify-chess-export.mjs` — 4/4 сценария подтверждены (LMN v1.2), `verify-http.mjs` — 12 страниц и 14 модулей 200 OK.
 - Режим SOURCE FREEZE со стороны agy безусловно соблюдается.
 
 Границы записи agy:
@@ -168,6 +187,8 @@
 - `knowledge/agy-education-skills-lag-analysis.md`
 - `knowledge/agy-fiscal-squeeze-and-laffer-trap.md`
 - `knowledge/agy-binding-constraints-and-capital-allocation.md`
+- `knowledge/agy-municipal-services-health-feedback-loop.md`
+- `knowledge/agy-competing-hypotheses-journal-spec.md`
 - `knowledge/agy-extracts/`
 - `TASK_BOARD.md` (обзорный индекс)
 - `COORDINATION/tasks/research-001.md`
@@ -175,11 +196,4 @@
 - `COORDINATION/mail/agy/*`
 - `COORDINATION/mail/codex/*`
 - `COORDINATION/mail/dorner_scenarios/*`
-
-
-
-
-
-
-
 

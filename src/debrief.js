@@ -385,6 +385,7 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
     `- Казна: ${Math.round(game.treasury * 10) / 10} тыс. марок`,
     `- Долг: ${Math.round(game.debt * 10) / 10} тыс. марок`,
     `- Оборудование фабрики: ${Math.round(game.equipment * 10) / 10}%`,
+    `- Квалификация рабочих (Skills): ${Math.round((game.skills ?? 0) * 10) / 10}%`,
     `- Выпуск часов: ${Math.round(game.production * 10) / 10} часов/мес.`,
     `- Безработица: ${Math.round((game.unemployment || 0) * 10) / 10} чел.`,
     `- Общая удовлетворенность: ${Math.round(game.satisfaction * 10) / 10}%`,
@@ -419,8 +420,8 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
 
   lines.push('');
   lines.push('## 5. Динамика показателей по ключевым точкам');
-  lines.push('| Месяц | Население | Казна | Долг | Станки (%) | Выпуск | Безработица | Удовл. (%) |');
-  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|');
+  lines.push('| Месяц | Население | Казна | Долг | Станки (%) | Квалификация (%) | Выпуск | Безработица | Удовл. (%) |');
+  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|');
   const history = Array.isArray(game.history) ? game.history : [];
   const historyByMonth = new Map(history.map(s => [s.month, s]));
   const sampledMonths = new Set([0, game.month]);
@@ -432,7 +433,7 @@ export function formatDebriefAIPrompt(game, analysis, evaluation = {}, localize 
   for (const m of sortedMonths) {
     const s = historyByMonth.get(m) || (m === game.month ? game : null);
     if (!s) continue;
-    lines.push(`| ${m} | ${Math.round(s.population)} | ${Math.round(s.treasury)} | ${Math.round(s.debt)} | ${Math.round(s.equipment)}% | ${Math.round(s.production)} | ${Math.round(s.unemployment || 0)} | ${Math.round(s.satisfaction)}% |`);
+    lines.push(`| ${m} | ${Math.round(s.population)} | ${Math.round(s.treasury)} | ${Math.round(s.debt)} | ${Math.round(s.equipment)}% | ${Math.round(s.skills ?? 0)}% | ${Math.round(s.production)} | ${Math.round(s.unemployment || 0)} | ${Math.round(s.satisfaction)}% |`);
   }
 
   lines.push('');
@@ -541,6 +542,7 @@ export function buildChessMatchRecord(sessionData) {
       const deltaTreasury = Math.round((nextState.treasury - currentState.treasury) * 1000) / 1000;
       const deltaDebt = Math.round((nextState.debt - currentState.debt) * 1000) / 1000;
       const deltaEquipment = Math.round((nextState.equipment - currentState.equipment) * 1000) / 1000;
+      const deltaSkills = Math.round(((nextState.skills ?? 0) - (currentState.skills ?? 0)) * 1000) / 1000;
       const deltaProduction = Math.round((nextState.production - currentState.production) * 1000) / 1000;
       const deltaUnemployment = Math.round((nextState.unemployment - currentState.unemployment) * 1000) / 1000;
       const deltaSatisfaction = Math.round((nextState.satisfaction - currentState.satisfaction) * 1000) / 1000;
@@ -555,6 +557,7 @@ export function buildChessMatchRecord(sessionData) {
           operatingCashDelta: immediateProjectCost > 0 ? operatingCashDelta : deltaTreasury,
           debt: deltaDebt,
           equipment: deltaEquipment,
+          skills: deltaSkills,
           production: deltaProduction,
           unemployment: deltaUnemployment,
           satisfaction: deltaSatisfaction,
@@ -568,6 +571,9 @@ export function buildChessMatchRecord(sessionData) {
       const estWorkforce = currentState.workforce ?? (pop ? Math.round(pop * 0.555 * 1e6) / 1e6 : null);
       if (currentState.equipment < 40) {
         empiricalSignals.push(`Оборудование фабрики: ${Math.round(currentState.equipment * 10) / 10}% (ниже ориентира 40% на радарной шкале)`);
+      }
+      if ((currentState.skills ?? 45) < 38) {
+        empiricalSignals.push(`Квалификация рабочих: ${Math.round((currentState.skills ?? 45) * 10) / 10}% (ниже ориентира эффективной производительности 38%)`);
       }
       if (currentState.debt > 0) {
         empiricalSignals.push(`Городской долг: ${Math.round(currentState.debt * 10) / 10} тыс. марок`);
@@ -602,6 +608,13 @@ export function buildChessMatchRecord(sessionData) {
             label: 'Системный зевок (урезание обслуживания станков ниже 10k при износе < 30%)',
           };
         }
+        const hasZeroEducation = policyActions.some(a => a.policyChanges && a.policyChanges.education === 0);
+        if (hasZeroEducation && (currentState.skills ?? 45) > 40) {
+          moveEvaluation = {
+            tag: '??',
+            label: 'Системный зевок (обнуление расходов на образование: скрытый лаг разрушения квалификации и спроса)',
+          };
+        }
       }
 
       if (moveEvaluation.tag !== '??') {
@@ -623,6 +636,7 @@ export function buildChessMatchRecord(sessionData) {
         treasury: Math.round(currentState.treasury * 10) / 10,
         debt: Math.round(currentState.debt * 10) / 10,
         equipment: Math.round(currentState.equipment * 10) / 10,
+        skills: Math.round((currentState.skills ?? 0) * 10) / 10,
         production: Math.round(currentState.production * 10) / 10,
         unemployment: Math.round(currentState.unemployment * 10) / 10,
         satisfaction: Math.round(currentState.satisfaction * 10) / 10,

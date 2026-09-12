@@ -13,8 +13,7 @@
 import assert from 'node:assert/strict';
 import { createGame, advance, startProject, setPolicies, requestReport } from '../src/model.js';
 import { createScenarioGame, evaluateScenario } from '../src/scenarios.js';
-import { analyzeDebrief, formatDebriefJSON } from '../src/debrief.js';
-import { buildChessMatchRecord } from '../scratch/chess-export.mjs';
+import { analyzeDebrief, formatDebriefJSON, buildChessMatchRecord } from '../src/debrief.js';
 
 console.log('=== Verifying Lohhausen Match Notation (LMN v1.2) Export ===\n');
 

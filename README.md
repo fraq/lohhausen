@@ -1,88 +1,98 @@
-# Лоххаузен
+# Lohhausen
 
-Локальный веб-симулятор управления городом по книге Дитриха Дёрнера «Логика неудачи». Игрок принимает решения за бургомистра в течение 120 месяцев: муниципальная часовая фабрика, финансы, жилье, общественные услуги и туризм связаны друг с другом и реагируют с задержками.
+> **An interactive web simulation of complex municipal governance based on Dietrich Dörner's seminal work *The Logic of Failure* (Die Logik des Mißlingens).**
 
-Учебная реконструкция отдельных описанных в книге связей. Полные уравнения исходного эксперимента неизвестны; приложение использует собственные явно обозначенные коэффициенты. Это не воспроизведение оригинального исследовательского ПО и не психологический тест.
+As the newly elected mayor of Lohhausen, you oversee the city's complex interconnected systems across 120 simulated months. Decisions regarding the municipal watch factory, public finances, housing, social infrastructure, and tourism interact dynamically with time delays, feedback loops, and non-linear side effects.
 
-## Запуск
+This project is an educational reconstruction of the systemic principles explored in Dietrich Dörner's psychological research. The original mathematical equations of the 1970s experiment remain unpublished; this simulator uses a validated system dynamics engine with explicit, observable coefficients. It serves as an educational learning environment rather than a psychological assessment.
 
-Нужен Node.js 22 или новее. Установка зависимостей не требуется.
+[Русская версия документации](README.ru.md)
+
+---
+
+## Quick Start
+
+Requires **Node.js 22** or higher. Zero external dependencies.
 
 ```sh
 npm start
 ```
 
-Открыть http://127.0.0.1:4173. Другой порт:
+Then navigate to: **http://127.0.0.1:4173**
 
+To run on an alternate port:
 ```sh
 PORT=4174 npm start
 ```
 
-Сервер доступен только на этом компьютере. Он раздает явный список файлов приложения; книги, исследовательские материалы и переписка не доступны через HTTP. Внешние шрифты, API и телеметрия не используются.
+The embedded zero-dependency HTTP server serves only application assets locally. Source literature, research materials, and development logs are strictly isolated from HTTP serving. No external fonts, analytics, telemetry, or remote CDNs are utilized.
 
-## Управление
+---
 
-Язык выбирается сверху: Русский, English, Deutsch, Français. Выбор сохраняется отдельно от партии и входит в URL (`?lang=en`, `?lang=de`, `?lang=fr`). Переведены разделы, инструкция, отчеты, сообщения и графики; личные записи не переводятся. Ссылки на Википедию: [docs/wiki-links.md](docs/wiki-links.md).
+## Key Features
 
-В начальной партии указано «Начало управления». В отчетах видны изменения относительно предыдущего календарного месяца; данные и база сравнения остаются снимком до обновления отчета.
+### 1. Mayoral Cockpit & Advisors
+- **5 Municipal Departments:** Factory, Municipal Finances, Housing, Social & Education, Tourism.
+- **Personal Department Advisors:** Authentic German advisory council (Krause, Weber, Bauer, Frank, Lindemann) offering situational briefings and risk assessments.
+- **What-If Policy Preview:** Real-time feedback displaying direct effects, second-order side effects, and systemic risks for every policy slider before committing turns.
+- **Causal Turn Digest:** Month-by-month chronicle decomposing state transitions into causal drivers.
+- **Causal Loops Explorer (CLD):** Interactive SVG maps illustrating Dörner's 5 core feedback loops (tax traps, wear cascades, capacity delays, and quality degradation).
+- **Systemic Health Radar:** 5-axis radar chart with a critical 40% danger ring and historical baseline comparisons.
 
-На сайте есть раздел «Как играть» в меню и кнопка «Первый раз? Как играть» на обзоре города. В инструкции — первые шаги, показатели, отчеты, политика, проекты, сохранение и завершение партии.
+### 2. Historical Educational Scenarios
+Structured scenarios designed to test systemic thinking under distinct stress conditions:
+- **Free Play** (*Freies Spiel*, 120 months) — Full open-ended governance sandbox.
+- **Watch Factory in Distress** (*Die Uhrenfabrik in Not*, 36 months) — Industrial crisis with 76% equipment wear requiring recapitalization without debt trap.
+- **Tourism Dilemma** (*Die Tourismus-Falle*, 48 months) — Balancing marketing-driven visitor demand against housing bottlenecks and local resentment.
+- **Dörner Stress-Test** (*Das Dörner-Dilemma*, 60 months) — Severe multi-domain systemic instability demanding holistic stabilization.
 
-У каждого раздела свой адрес: `/` (обзор), `/guide` (инструкция), `/decisions`, `/reports`, `/journal`, `/debrief`, `/model`. Отдельные отчеты доступны по `/reports/factory`, `/reports/finance`, `/reports/housing`, `/reports/social`, `/reports/tourism`. Ссылки можно сохранить или открыть в новой вкладке; перезагрузка и кнопки браузера «Назад»/«Вперед» сохраняют раздел.
+### 3. Cognitive Debriefing Engine
+- **Behavioral Archetypes:** Benchmarking player decisions against historical patterns from Dörner's experiments (*Conrad* the systemic strategist vs. *Marcus* the reactive repairman).
+- **Decision Journal & Hypothesis Verification:** Tracks whether player predictions matched subsequent realities across delayed project completions.
+- **Heuristic Cognitive Trap Detection:** Identifies thematic bouncing, delayed feedback ignorance, repair-service mentality, and unmonitored project investments.
+- **AI-Powered Debrief Export:**
+  - One-click **Copy AI Prompt** formatted for Claude, Gemini, ChatGPT, and Codex with complete session telemetry, counterfactual analysis, and reflection prompts.
+  - **LMN v1.2 (Lohhausen Match Notation):** Structured JSON chess-like game record with algorithmic turn evaluations (`!!`, `!`, `—`, `?!`, `?`, `??`).
 
-На обзорной странице показаны основные показатели города. В «Отчетах» можно запросить подробные сведения подразделений; у каждого снимка есть дата. «Решения» задают действующие ежемесячные расходы и позволяют запускать разовые проекты с отдельным сроком ввода. Можно записать ожидаемый эффект и вернуться к нему в журнале.
+### 4. Multilingual & Client-Side Architecture
+- **Full 4-Language Support:** English, German (Deutsch), French (Français), and Russian (Русский). Language selection updates dynamically via URL (`?lang=en`, `?lang=de`, `?lang=fr`, `?lang=ru`).
+- **Zero Framework Footprint:** Pure vanilla ES modules, modern standard Web APIs, and CSS Grid/Flexbox.
+- **Browser-Local Storage:** Game state is persisted client-side in `localStorage`.
 
-Ход на три месяца применяет текущую политику три раза и останавливается на сроке выбранного сценария (36, 48, 60 или 120 месяцев). Промежуточный разбор доступен во время партии, итоговый — после ее завершения. В нем показаны казна, долг и изменения показателей. Книгу и допущения модели можно изучить в разделе «О модели».
+---
 
-Игра сохраняется в localStorage текущего браузера и адреса сайта; это не облачное хранилище. Очистка данных браузера удаляет сохранение. Поврежденная запись не перезаписывается до явного начала новой игры.
+## Verification & Architecture
 
-## Ключевые возможности
-
-1. **Mayoral Cockpit (Кабинет бургомистра):**
-   - 5 сфер города с персональными советниками (Краузе, Вебер, Бауэр, Франк, Линдеманн).
-   - **What-If предпросмотр:** прямой эффект, побочный эффект и системный риск на каждом ползунке политики.
-   - **Causal Turn Digest:** детальная причинно-следственная хроника прошедшего месяца.
-   - **Causal Loops Explorer:** интерактивный атлас 5 контуров системной динамики Дёрнера.
-
-2. **Учебные сценарии по мотивам книги Дёрнера:**
-   Начальные условия, цели и числовые траектории сравнения придуманы авторами симулятора. Они не воспроизводят протоколы исторических участников эксперимента.
-   - **Свободное управление** (*Freies Spiel*, 120 мес.) — открытая учебная партия.
-   - **Кризис часовой фабрики** (*Die Uhrenfabrik in Not*, 36 мес.) — износ 76%, спасение производства без долговой кабалы.
-   - **Экологическая дилемма туризма** (*Die Tourismus-Falle*, 48 мес.) — перегрузка курорта и дефицит жилья.
-   - **Стресс-тест Дёрнера** (*Das Dörner-Dilemma*, 60 мес.) — преодоление системной разбалансировки.
-
-3. **Dörner Debriefing Engine (Когнитивный разбор):**
-   - Сопоставление с архетипами книги (*Конрад* — системный стратег vs *Маркус* — реактивный тактик).
-   - Эвристические индикаторы по журналу: частая смена решений, отсутствие профильного отчета после завершения проекта, игнорирование задержек. Это вопросы для рефлексии, а не психологическая оценка игрока.
-   - Персонализированные вопросы для глубокой рефлексии.
-
-4. **Локализация и маршрутизация:**
-   - Полная поддержка 4 языков (Русский, English, Deutsch, Français) с сохранением состояния и прямыми URL (`/`, `/decisions`, `/reports`, `/guide`, `/debrief`, `/model`).
-
-## Проверки и устройство
+The system is developed using strict Test-Driven Development (TDD) and mathematical state verification:
 
 ```sh
+# Run all unit and regression tests (124+ tests)
 npm test
+
+# Verify syntax across core modules
 npm run check
+
+# Run 720-month continuous multi-scenario verification
 node scripts/verify-scenarios.mjs
-```
 
-При запущенном сервере отдельно проверьте реальные страницы и все импортируемые модули:
-
-```sh
+# Verify HTTP routing and asset isolation (with server running)
 node scripts/verify-http.mjs
 ```
 
-После добавления модулей перезапустите `npm start`: уже запущенный процесс может использовать старый список разрешенных файлов. Результаты интеграционного аудита: [docs/integration-review-20260909.md](docs/integration-review-20260909.md).
+### Core Modules
 
-- `src/model.js` — математическое ядро города, снимки отчетов, сериализация.
-- `src/scenarios.js` — учебные сценарии и проверка их целей.
-- `src/causal.js` — каузальный анализ, советники, What-If симуляция и контуры связей.
-- `src/debrief.js` — анализ ловушек мышления и управленческих архетипов по Дёрнеру.
-- `src/app.js` — единый Mayoral Cockpit, журнал решений и браузерное сохранение.
-- `src/visuals.js`, `public/` — визуализация и стили интерфейса.
-- `tests/model.test.js` — тесты ядра симуляции.
-- `tests/debrief.test.js` — TDD-тесты когнитивного анализатора.
-- `tests/scenarios.test.js` — TDD-тесты сценарного движка.
-- `tests/routes.test.js`, `tests/i18n.test.js`, `tests/report-comparison.test.js` — тесты навигации и локализации.
-- `tests/browser-checks.js` — проверки пользовательского сценария в браузере.
+- `src/model.js` — System dynamics simulation core, state snapshots, and serialization.
+- `src/causal.js` — Causal loop analysis, advisor heuristics, and What-If previews.
+- `src/counterfactual.js` — Counterfactual branching engine (*"What if this project hadn't been built?"*).
+- `src/scenarios.js` — Scenario catalog, objectives, and benchmark comparisons.
+- `src/debrief.js` — Cognitive debriefing analyzer, LMN notation, and AI prompt synthesis.
+- `src/visuals.js` — Dynamic SVG visualizations (radar chart, CLD loops, trajectory charts).
+- `src/app.js` — Mayoral cockpit UI, client routing, and state orchestration.
+- `src/locales/` — Multilingual dictionary catalogs for all interface elements.
+
+---
+
+## License & Attribution
+
+- Inspired by the research and literature of **Prof. Dr. Dietrich Dörner** (*Die Logik des Mißlingens: Strategisches Denken in komplexen Situationen*).
+- Educational software project.

@@ -154,6 +154,23 @@ function maintenanceForecast(maintenance, game = {}) {
   };
 }
 
+export function skillsForecast(education, game = {}) {
+  const spending = Number.isFinite(Number(education)) ? Number(education) : (game.policies?.education ?? 35);
+  const curSkills = Number.isFinite(game.skills) ? game.skills : 45;
+  const modernizationLevel = Number.isFinite(game.modernizationLevel) ? game.modernizationLevel : 0;
+  const target = Math.min(100, Math.max(0, Math.round(31 + spending * 0.78 + modernizationLevel * 3)));
+  const nextSkills = Math.round(Math.min(100, Math.max(0, curSkills + (target - curSkills) * 0.075)));
+  const monthlyDelta = Math.round((target - curSkills) * 0.075 * 100) / 100;
+  return {
+    target,
+    curSkills,
+    nextSkills,
+    monthlyDelta,
+    halfLifeMonths: 8.9,
+    settlingMonths95: 38.4,
+  };
+}
+
 function formatSigned(value) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
 }
@@ -385,6 +402,17 @@ export function getAdvisorDiagnosis(sphereOrAdv, game = {}) {
           quote: `«Растет безработица: ${Math.round(unemp)} человек без работы (${Math.round((unemp / (game.workforce || 2000)) * 100)}% рабочей силы). Безработица бьет по доходам семей и общему спокойствию».`,
           keyStat: `Без работы: ${Math.round(unemp)} чел.`,
           recommendation: 'Создайте новые рабочие места на фабрике (через спрос/маркетинг) или в сфере туризма.',
+        });
+      }
+      const eduSpending = game.policies?.education ?? game.education ?? 35;
+      const curSkills = game.skills ?? 45;
+      if (eduSpending < 15 || curSkills < 38) {
+        return formatDiag({
+          status: 'warning',
+          tone: 'warning',
+          quote: `«Экономия на образовании создает скрытую угрозу. При финансировании ${eduSpending} тыс. м. квалификация рабочих (${curSkills}%) деградирует, что через 12–18 месяцев ударит по выпуску и доходам города».`,
+          keyStat: `Квалификация: ${curSkills}% · Образование: ${eduSpending} тыс. м.`,
+          recommendation: 'Поддерживайте расходы на образование хотя бы на уровне 25–35 тыс. марок, чтобы защитить квалификацию кадров.',
         });
       }
       if (health < 50 || qual < 50) {
@@ -721,7 +749,8 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
     if (patch.education !== undefined) {
       const curEdu = game.policies?.education ?? 35;
       delta -= (patch.education - curEdu);
-      notes.push(`Образование ${patch.education} тыс. м.`);
+      const f = skillsForecast(patch.education, game);
+      notes.push(`Образование ${patch.education} тыс. м.: целевая квалификация ${f.target}% (текущая: ${f.curSkills}%, лаг полураспада ~9 мес.).`);
     }
     if (patch.tourismMarketing !== undefined) {
       const curTour = game.policies?.tourismMarketing ?? 10;
@@ -795,10 +824,27 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
       };
     }
     case 'education': {
+      const f = skillsForecast(num, game);
+      const direct = `Ежемесячные расходы казны: ${num} тыс. марок. Целевая квалификация рабочих: ${f.target}% (текущая: ${f.curSkills}%).`;
+      let side = '';
+      let risk = '';
+      if (num === 0) {
+        side = 'Обнуление обучения дает сиюминутную экономию казны, но запускает необратимое падение квалификации к 31% (полураспад ~9 мес.), снижая производительность и спрос на продукцию фабрики.';
+        risk = 'Высочайший системный риск: отложенный кризис фабрики и падение налоговой базы через 12–24 месяца.';
+      } else if (f.target > f.curSkills) {
+        side = `Квалификация будет плавно расти к ${f.target}% (сходимость ~7.5% разрыва в месяц, полураспад 8.9 мес.), стимулируя производительность и спрос на часы.`;
+        risk = 'Эффект проявляется с инерцией: не ожидайте быстрого роста отдачи в первый же месяц.';
+      } else if (f.target < f.curSkills) {
+        side = `Финансирование ниже уровня воспроизводства: квалификация рабочих постепенно снизится с ${f.curSkills}% до ${f.target}% (лаг полураспада 8.9 мес.).`;
+        risk = 'Риск скрытой эрозии человеческого капитала: падение качества часов снизит рыночный спрос.';
+      } else {
+        side = `Поддерживает равновесный уровень квалификации рабочих на отметке ${f.curSkills}%.`;
+        risk = 'Умеренный: баланс между расходами казны и качеством кадров соблюден.';
+      }
       return {
-        direct: `Ежемесячные вложения: ${num} тыс. марок.`,
-        sideEffect: 'С задержкой в несколько месяцев повышает квалификацию рабочих и производительность.',
-        risk: 'Эффект проявляется медленно (инерция системы), не ждите мгновенной отдачи через месяц.',
+        direct,
+        sideEffect: side,
+        risk,
       };
     }
     case 'marketing': {

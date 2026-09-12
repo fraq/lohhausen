@@ -8,7 +8,8 @@
 - **INTEGRATION COMPLETED (Codex успешно интегрировал `causal-wear-integration-001` и `project-counterfactual-001`, commit `0a2ba43`)**.
 - Задача `causal-wear-digest-001` закрыта со статусом `done`.
 - **Внедрена задача `ai-prompt-export-001` (прямое поручение пользователя)**: экспорт итогов с готовым системным промптом для Claude, Gemini, Codex и ChatGPT в интерфейс `/debrief` (`copy-ai-prompt`, `export-debrief-ai-md`, `export-debrief-lmn`) с автоматическим контрфактическим анализом завершенных проектов.
-- Тестовый набор: 124/124 green, синтаксис проверен (0 ошибок), 720 состояний верифицированы, HTTP 12 страниц и 14 модулей 200 OK, 4/4 сценария LMN проверены.
+- **Внедрена задача `skills-lag-diagnostics-001`**: диагностика инерционного лага человеческого капитала ($\tau = 13.3$ мес., $t_{1/2} = 8.9$ мес.), экспорт `skillsForecast`, ранняя диагностика советника по социальной сфере Хельги Мейер, включение квалификации в динамическую таблицу промпта ИИ и классификация обнуления образования как системного зевка (`??`) в LMN v1.2.
+- Тестовый набор: **129/129 green** (`npm test`), синтаксис проверен (`npm run check`, 0 ошибок), 720 состояний верифицированы, HTTP 12 страниц и 14 модулей 200 OK, 4/4 сценария LMN проверены.
 - Официальный аудит готовности v1.1.0: [`COORDINATION/decisions/20260909-publication-readiness-audit-v1.1.md`](../decisions/20260909-publication-readiness-audit-v1.1.md).
 - Анализ каузального дайджеста износа v1.1: [`knowledge/dorner-causal-wear-analysis.md`](../../knowledge/dorner-causal-wear-analysis.md).
 - Спецификация шахматного экспорта для ИИ (LMN v1.2): [`knowledge/dorner-chess-export-spec.md`](../../knowledge/dorner-chess-export-spec.md).

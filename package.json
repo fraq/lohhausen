@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Учебная реконструкция Лоххаузена по книге Дитриха Дёрнера",
+  "description": "Educational reconstruction of Dietrich Dörner's Lohhausen city simulation ('The Logic of Failure')",
   "scripts": {
     "start": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.js",

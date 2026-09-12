@@ -24,7 +24,7 @@ export const PROJECTS = Object.freeze({
 const DEFAULT_POLICIES = Object.freeze({ taxRate: 16, wage: 100, maintenance: 14, services: 68, education: 20, marketing: 20, tourismMarketing: 5 });
 
 function snapshot(game) {
-  return { month: game.month, population: game.population, treasury: game.treasury, debt: game.debt, production: game.production, unemployment: game.unemployment, housingShortage: game.housingShortage, satisfaction: game.satisfaction, equipment: game.equipment, housingCapacity: game.housingCapacity, tourismCapacity: game.tourismCapacity, visitors: game.visitors, serviceQuality: game.serviceQuality };
+  return { month: game.month, population: game.population, treasury: game.treasury, debt: game.debt, production: game.production, unemployment: game.unemployment, housingShortage: game.housingShortage, satisfaction: game.satisfaction, equipment: game.equipment, skills: game.skills, housingCapacity: game.housingCapacity, tourismCapacity: game.tourismCapacity, visitors: game.visitors, serviceQuality: game.serviceQuality };
 }
 
 function makeBudget() {
