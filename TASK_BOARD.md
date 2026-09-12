@@ -38,20 +38,26 @@
   - **Верификатор**: [`scripts/verify-chess-export.mjs`](./scripts/verify-chess-export.mjs)
   - **Статус**: verified_ready (все 4 сценария успешно протестированы, соответствие всем критериям подтверждено).
 
+- [ ] **competing-hypotheses-journal-001**: Внедрение в журнал решений фиксации структурированных гипотез ($H_1$: целевой выигрыш vs $H_2$: сопутствующий риск/побочный эффект) перед запуском инвестиционных проектов с автоматической верификацией в `/debrief` (`verifyHypotheses`) без оценочных суждений и психологических ярлыков (`consistent`, `inconsistent`, `too_early`, `no_data`). Полный учет физики модели, непрерывного износа оборудования и сохранение исходных расчетных уравнений (SOURCE FREEZE).
+  - **Инициатор**: Дидактическая инициатива Дёрнера, специфицировано `agy`, верифицировано с учетом ревью `codex` (055)
+  - **Исполнитель**: `agy`
+  - **Спецификация**: [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md)
+  - **Карточка**: [`COORDINATION/tasks/competing-hypotheses-journal-001.md`](./COORDINATION/tasks/competing-hypotheses-journal-001.md)
+  - **Артефакты**: `src/model.js`, `src/debrief.js`, `tests/hypotheses.test.js`
+  - **Статус**: review (все 6 тестов TDD green, 177/177 passed в полном проверочном контуре, 100% обратная совместимость со старыми сохранениями).
+
 - [ ] **taleb-antifragile-mode**: Внедрение игрового режима «Вызов Крайнестана: Черный лебедь и Антихрупкость» (`extremistan_challenge`) по книгам Нассима Талеба: детерминированный генератор псевдослучайных чисел Mulberry32 со степенным распределением Парето (`src/prng.js`), каталог положительных/отрицательных Черных лебедей и ятрогенного шума (`src/taleb-events.js`), интеграция в модель (`src/model.js`) и сценарии (`src/scenarios.js`), эталоны Конрада и Маркуса, панель метрик Антихрупкости (Slack, Turkey Index, Barbell Strategy) в Debrief (`src/app.js`), полная локализация (`src/locales/extra.js`) и тестовый набор (`tests/prng.test.js`, `tests/taleb-events.test.js`, `tests/taleb-mode.test.js`).
   - **Инициатор**: Запрос пользователя
   - **Исполнитель**: `agy`
   - **Спецификация**: [`knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md`](./knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md)
   - **Артефакты**: `src/prng.js`, `src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `src/app.js`, `src/locales/extra.js`
-  - **Статус**: review_ready (все 166 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
+  - **Статус**: review_ready (все 177 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
 
 ---
 
 ## 🗄️ Backlog (Дидактические инициативы и системные улучшения)
 *Стратегические предложения по системному обучению (спецификация: [`knowledge/dorner-v1.2-didactic-roadmap.md`](./knowledge/dorner-v1.2-didactic-roadmap.md), атлас отказов: [`knowledge/dorner-scenario-failure-atlas.md`](./knowledge/dorner-scenario-failure-atlas.md), гроссмейстерский кейс: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).*
 
-- [ ] **competing-hypotheses-journal**: Внедрение в журнал решений обязательной фиксации конкурирующих гипотез ($H_1$: целевой выигрыш vs $H_2$: побочная цена/потеря занятости) перед запуском проектов для исключения игры «вслепую» с пустыми заметками (спецификация: [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md), кейс-стади: [`knowledge/agy-grandmaster-case-study-20260912.md`](./knowledge/agy-grandmaster-case-study-20260912.md)).
-- [ ] **binding-constraint-evaluator**: Автоматический аудит эффективности капитальных вложений по связывающим ограничениям (Binding Constraints) в `/debrief`: выявление преждевременного омертвления ликвидности в неизбыточных фондах (кейс муниципального жилья) vs своевременного расширения узких мест (станки, туризм) (руководство: [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)).
 - [ ] **ai-debrief-methodology**: Методология системного аудита и оценки партий в ИИ (Claude, Gemini, Codex) по канонам Дёрнера и Стермана: 6-фазный протокол, чек-лист анти-галлюцинаций для LLM (руководство: [`knowledge/agy-ai-debrief-evaluation-methodology.md`](./knowledge/agy-ai-debrief-evaluation-methodology.md)).
 - [ ] **pseudo-stability-diagnostics**: Анализ латентных кризисов и выявление псевдостабильности (*Scheingleichgewicht*) vs истинного равновесия (*Systemgleichgewicht*), предостережение от синдрома «ремонтной мастерской» (*Reparaturdienst-Verhalten*) (руководство: [`knowledge/agy-pseudo-stability-and-repair-mentality.md`](./knowledge/agy-pseudo-stability-and-repair-mentality.md)).
 - [ ] **reality-shock-prompt**: Рефлексивный диалог при критическом расхождении (>30%) между прогнозом игрока в журнале и фактическим результатом проекта (архитектура: [`knowledge/agy-reality-shock-and-error-awareness-architecture.md`](./knowledge/agy-reality-shock-and-error-awareness-architecture.md)).
@@ -61,6 +67,16 @@
 
 ## ✅ Done
 *Завершенные задачи.*
+
+- [x] **binding-constraint-evaluator**: Анализ связывающих ограничений (Binding Constraints) и эффективности капитальных вложений по Дёрнеру и Голдратту: выявление преждевременного омертвления дефицитной ликвидности в ненапряженных фондах (`evaluateProjectConstraint`), точный расчет времени буфера исчерпания запаса в месяцах ($\text{surplus} / \max(0.1, \text{growthRate})$), предотвращение ложных призывов строить жилье при избыточном резерве (200 мест на 100 месяцев), интеграция в `getProjectAdvisorEndorsement` с оценкой ликвидности казны.
+  - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 38)
+  - **Артефакты**: `src/causal.js`, `tests/binding-constraints.test.js`, [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)
+  - **Статус**: Закрыта (5/5 тестов модуля, 175/175 тестов green, HTTP 200 OK).
+
+- [x] **competing-hypotheses-journal**: Фиксация и автоматическая верификация конкурирующих гипотез ($H_1$: целевой выигрыш vs $H_2$: побочная цена/потеря занятости) в журнале решений (`startProject` с опциональным объектом гипотез, `verifyHypotheses` в `src/debrief.js`) с нейтральными формулировками (`consistent`, `inconsistent`, `no_data`) без оценочных ярлыков и с полной обратной совместимостью для legacy-партий.
+  - **Исполнитель**: Коллаборация `dorner_scenarios` & `agy` (при аудите `codex`)
+  - **Артефакты**: `src/model.js`, `src/debrief.js`, `tests/hypotheses.test.js`, [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md)
+  - **Статус**: Закрыта (4/4 тестов модуля, 175/175 тестов green, HTTP 200 OK).
 
 - [x] **fiscal-squeeze-diagnostics**: Предостережение от фискальной ловушки завышения налогов (кривая Лаффера по Дёрнеру): нелинейный штраф при превышении порога 20% ($\Delta \text{taxRate} \times 0.55$), асимметрия миграционных потоков ($[-15, +2]$ чел./мес., коэффициент восстановления 7.5:1), расчет чистого располагаемого дохода домохозяйств (`taxForecast`), интеграция в `getPolicyWhatIf` и предупреждение казначея фрау Вебер до запуска необратимого оттока населения.
   - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 35)

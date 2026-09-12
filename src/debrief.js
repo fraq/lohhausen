@@ -846,6 +846,69 @@ export function formatDebriefLMN(game, analysis, evaluation = {}) {
   return buildChessMatchRecord(sessionData);
 }
 
+function evaluateSingleHypothesis(hyp, startSnapshot, completionSnapshot, isTarget = true) {
+  if (!hyp || typeof hyp !== 'object') return null;
+  const metric = hyp.metric;
+  if (!metric || typeof metric !== 'string') return null;
+
+  const startVal = startSnapshot && Number.isFinite(startSnapshot[metric]) ? startSnapshot[metric] : null;
+  const compVal = completionSnapshot && Number.isFinite(completionSnapshot[metric]) ? completionSnapshot[metric] : null;
+
+  if (startVal === null || compVal === null) {
+    return {
+      status: 'no_data',
+      metric,
+      details: `Наблюдения по показателю "${metric}" недоступны в истории для сопоставления.`,
+    };
+  }
+
+  const observedDelta = Number((compVal - startVal).toFixed(2));
+  let isConsistent = false;
+
+  if (Number.isFinite(hyp.expectedDelta)) {
+    if (hyp.expectedDelta === 0) {
+      isConsistent = Math.abs(observedDelta) <= 2;
+    } else {
+      const signMatch = Math.sign(observedDelta) === Math.sign(hyp.expectedDelta);
+      isConsistent = signMatch && Math.abs(observedDelta) >= Math.abs(hyp.expectedDelta) * 0.7;
+    }
+  } else if (hyp.expectedDirection) {
+    if (hyp.expectedDirection === 'increase') {
+      isConsistent = observedDelta > 0.5;
+    } else if (hyp.expectedDirection === 'decrease') {
+      isConsistent = observedDelta < -0.5;
+    } else if (hyp.expectedDirection === 'neutral') {
+      isConsistent = Math.abs(observedDelta) <= 5;
+    }
+  } else {
+    isConsistent = isTarget ? observedDelta >= 0 : Math.abs(observedDelta) <= 5;
+  }
+
+  const deltaStr = observedDelta >= 0 ? `+${observedDelta}` : `${observedDelta}`;
+  let explanation = '';
+  if (isConsistent) {
+    explanation = isTarget
+      ? `Наблюдаемый показатель (${metric}: ${deltaStr}) согласуется с зафиксированным ожиданием игрока. Причинная связь требует отдельного факторного анализа.`
+      : `Сопутствующий показатель (${metric}: ${deltaStr}) согласуется с предварительным прогнозом риска.`;
+  } else {
+    explanation = isTarget
+      ? `Наблюдаемый показатель (${metric}: ${deltaStr}) разошелся с зафиксированным ожиданием игрока. Возможные факторы: сопряженные контуры, изменение рыночного спроса или динамические лаги.`
+      : `Сопутствующий показатель (${metric}: ${deltaStr}) разошелся с ожиданием: проявилось побочное влияние в сопряженном контуре.`;
+  }
+
+  return {
+    status: isConsistent ? 'consistent' : 'inconsistent',
+    metric,
+    startValue: startVal,
+    completionValue: compVal,
+    observedDelta,
+    expectedDelta: Number.isFinite(hyp.expectedDelta) ? hyp.expectedDelta : undefined,
+    expectedDirection: hyp.expectedDirection || undefined,
+    rationale: hyp.rationale || hyp.anticipatedCost || undefined,
+    details: explanation,
+  };
+}
+
 export function verifyHypotheses(game) {
   if (!game || !Array.isArray(game.journal)) return [];
 
@@ -880,6 +943,45 @@ export function verifyHypotheses(game) {
           ? 'Автоматическая сверка показывает только наблюдаемые значения и не доказывает, что записанная гипотеза верна или что проект был их единственной причиной.'
           : 'Исходное ожидание не записано. Автоматическая сверка показывает только наблюдаемые значения и не устанавливает причинную связь.';
 
+        let hypothesisVerification;
+        if (!entry.hypotheses || typeof entry.hypotheses !== 'object') {
+          hypothesisVerification = {
+            status: 'no_data',
+            details: 'Ожидание не записано. Автоматическая сверка показывает только наблюдаемые значения и не устанавливает причинную связь.',
+            h1Result: null,
+            h2Result: null,
+          };
+        } else {
+          const startSnapshot = Array.isArray(game.history)
+            ? game.history.find(item => item && item.month === proj.startMonth)
+            : null;
+          const h1Result = evaluateSingleHypothesis(entry.hypotheses.h1Target, startSnapshot, snapshot, true);
+          const h2Result = evaluateSingleHypothesis(entry.hypotheses.h2Risk, startSnapshot, snapshot, false);
+
+          let status = 'no_data';
+          let details = '';
+
+          if (h1Result && h1Result.status !== 'no_data') {
+            if (h1Result.status === 'consistent' && (!h2Result || h2Result.status === 'consistent')) {
+              status = 'consistent';
+              details = 'Наблюдаемые показатели согласуются с зафиксированными ожиданиями и прогнозом рисков. Причинная связь требует подтверждения.';
+            } else {
+              status = 'inconsistent';
+              details = 'Один или несколько наблюдаемых показателей разошлись с зафиксированным ожиданием игрока в целевом или сопряженном контуре.';
+            }
+          } else {
+            status = 'no_data';
+            details = 'Недостаточно данных для верификации гипотезы.';
+          }
+
+          hypothesisVerification = {
+            status,
+            details,
+            h1Result,
+            h2Result,
+          };
+        }
+
         completedProjects.push({
           projectType: proj.type,
           projectLabel: proj.label || proj.type,
@@ -890,6 +992,8 @@ export function verifyHypotheses(game) {
           hindsightLesson,
           evidenceStatus: evidenceAvailable ? 'observed' : 'unavailable',
           completionSnapshot: snapshot ? structuredClone(snapshot) : null,
+          hypotheses: entry.hypotheses ? structuredClone(entry.hypotheses) : null,
+          hypothesisVerification,
         });
       }
     }

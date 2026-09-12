@@ -1027,28 +1027,255 @@ export function getPolicyWhatIf(arg1, arg2, arg3) {
 }
 
 /**
+ * Evaluates capital investment projects against physical system bottlenecks (Binding Constraints),
+ * buffer depletion horizons, liquidity impacts, and immediate marginal returns.
+ * Grounded in Dietrich Dörner's chapter on resource allocation and the Theory of Constraints.
+ *
+ * @param {string} projectKey - 'housing' | 'modernization' | 'tourism'
+ * @param {Object} game - current game state
+ * @returns {Object} constraint evaluation
+ */
+export function evaluateProjectConstraint(projectKey, game = {}) {
+  const treasury = game.treasury ?? 800;
+
+  switch (projectKey) {
+    case 'housing': {
+      const pop = game.population ?? 3700;
+      const cap = game.housingCapacity ?? 3900;
+      const shortage = game.housingShortage ?? Math.max(0, pop - cap);
+      const surplus = cap - pop;
+      const underConstruction = (game.projects || []).filter((p) => p.type === 'housing').length;
+      const cost = 300;
+      const duration = 12;
+      const maxImmigrationRate = 2; // model bounds migration to [-15, +2]
+
+      let bufferMonths = 0;
+      let status = 'slack';
+      let statusLabel = 'Несвязывающий фонд (избыточный резерв)';
+      let marginalPayoffImmediate = false;
+      let bottleneckNote = '';
+      let recommendation = '';
+
+      if (shortage > 0 || surplus <= 0) {
+        status = 'binding';
+        statusLabel = 'Критическое узкое горлышко (дефицит жилья)';
+        bufferMonths = 0;
+        marginalPayoffImmediate = true;
+        bottleneckNote = `Острый дефицит жилья (${Math.round(shortage || Math.abs(surplus))} мест). Снижает удовлетворенность и стимулирует отток жителей.`;
+        recommendation = 'Срочно начать строительство (+60 мест, 12 мес.) для ликвидации дефицита.';
+      } else if (surplus < 50) {
+        status = 'latent';
+        statusLabel = 'Латентное ограничение (буфер исчерпывается)';
+        bufferMonths = Math.round(surplus / maxImmigrationRate);
+        marginalPayoffImmediate = (surplus < duration * maxImmigrationRate);
+        bottleneckNote = `Свободный резерв жилья сократился до ${Math.round(surplus)} мест (хватит примерно на ${bufferMonths} мес. при максимальном притоке).`;
+        recommendation = 'Своевременная закладка жилья перед возникновением дефицита.';
+      } else {
+        status = 'slack';
+        statusLabel = 'Несвязывающий фонд (избыточный резерв)';
+        bufferMonths = Math.round(surplus / maxImmigrationRate);
+        marginalPayoffImmediate = false;
+        bottleneckNote = `Избыточный резерв ${Math.round(surplus)} свободных мест при максимальном росте населения до +${maxImmigrationRate} чел./мес. (буфер на ~${bufferMonths} мес.).`;
+        recommendation = 'Избыточный буфер: проект заморозит 300 тыс. м. казны без немедленного прироста благополучия (housingScore = 100%). Сохраняйте ликвидность для узких мест.';
+      }
+
+      const postProjectTreasury = treasury - cost;
+      let liquidityRisk = 'safe';
+      if (treasury < cost) {
+        liquidityRisk = 'infeasible';
+      } else if (postProjectTreasury < 200) {
+        liquidityRisk = 'severe_drain';
+      } else if (postProjectTreasury < 600) {
+        liquidityRisk = 'moderate_drain';
+      }
+
+      return {
+        key: 'housing',
+        cost,
+        duration,
+        surplus: Math.round(surplus),
+        shortage: Math.round(shortage),
+        underConstruction,
+        maxImmigrationRate,
+        bufferMonths,
+        status,
+        statusLabel,
+        marginalPayoffImmediate,
+        bottleneckNote,
+        recommendation,
+        liquidityRisk,
+        postProjectTreasury,
+        summary: `Жилищный фонд: ${statusLabel}. Резерв: ${Math.round(surplus)} мест (~${bufferMonths} мес.).`,
+      };
+    }
+
+    case 'modernization': {
+      const eq = game.equipment ?? 48;
+      const modLevel = game.modernizationLevel ?? 0;
+      const underConstruction = (game.projects || []).filter((p) => p.type === 'modernization').length;
+      const cost = 460;
+      const duration = 9;
+
+      let status = 'binding';
+      let statusLabel = 'Критическое ограничение (износ оборудования)';
+      let marginalPayoffImmediate = true;
+      let bottleneckNote = '';
+      let recommendation = '';
+
+      if (eq < 50) {
+        status = 'binding';
+        statusLabel = 'Критическое ограничение (износ оборудования)';
+        marginalPayoffImmediate = true;
+        bottleneckNote = `Оборудование изношено до ${eq.toFixed(1)}%. Износ снижает выпуск часов и выручку фабрики.`;
+        recommendation = 'Критически необходимо: модернизация добавит +12 п. к оборудованию и повысит производительность.';
+      } else if (eq < 75) {
+        status = 'latent';
+        statusLabel = 'Латентное ограничение (нарастающий износ)';
+        marginalPayoffImmediate = true;
+        bottleneckNote = `Оборудование умеренно изношено (${eq.toFixed(1)}%). Естественный износ требует планового обновления.`;
+        recommendation = 'Целесообразно: плановое обновление станков (+12 п., +1 уровень) за 9 месяцев.';
+      } else {
+        status = 'slack';
+        statusLabel = 'Исправный фонд (резерв надежности)';
+        marginalPayoffImmediate = false;
+        bottleneckNote = `Оборудование в хорошем состоянии (${eq.toFixed(1)}%). Станки пока не сдерживают выпуск.`;
+        recommendation = 'Оборудование исправно: проект не является первоочередным узким местом. Избегайте преждевременного омертвления казны.';
+      }
+
+      const postProjectTreasury = treasury - cost;
+      let liquidityRisk = 'safe';
+      if (treasury < cost) {
+        liquidityRisk = 'infeasible';
+      } else if (postProjectTreasury < 200) {
+        liquidityRisk = 'severe_drain';
+      } else if (postProjectTreasury < 600) {
+        liquidityRisk = 'moderate_drain';
+      }
+
+      return {
+        key: 'modernization',
+        cost,
+        duration,
+        equipment: eq,
+        modernizationLevel: modLevel,
+        underConstruction,
+        status,
+        statusLabel,
+        marginalPayoffImmediate,
+        bottleneckNote,
+        recommendation,
+        liquidityRisk,
+        postProjectTreasury,
+        summary: `Оборудование фабрики: ${statusLabel}. Состояние: ${eq.toFixed(1)}% (износ станков).`,
+      };
+    }
+
+    case 'tourism': {
+      const cap = game.tourismCapacity ?? 20;
+      const dem = game.tourismDemand ?? 25;
+      const ads = game.policies?.tourismMarketing ?? 5;
+      const underConstruction = (game.projects || []).filter((p) => p.type === 'tourism').length;
+      const cost = 220;
+      const duration = 6;
+
+      let status = 'latent';
+      let statusLabel = 'Потенциал диверсификации';
+      let marginalPayoffImmediate = (dem > cap);
+      let bottleneckNote = '';
+      let recommendation = '';
+
+      if (cap <= 20 && (dem >= cap || ads > 10)) {
+        status = 'binding';
+        statusLabel = 'Критическое узкое горлышко (дефицит мест)';
+        marginalPayoffImmediate = true;
+        bottleneckNote = `Гостиницы переполнены (${cap} мест), а реклама создает спрос (${Math.round(dem)} чел.), который невозможно разместить (узкое горлышко).`;
+        recommendation = 'Расширение гостиничного фонда (+80 мест, 6 мес.) снимет ограничение и прекратит сжигание бюджета рекламы.';
+      } else if (cap < 100) {
+        status = 'latent';
+        statusLabel = 'Потенциал диверсификации';
+        marginalPayoffImmediate = (dem > cap);
+        bottleneckNote = `Гостиничный фонд составляет ${cap} мест. Проект добавит +80 мест.`;
+        recommendation = 'Создает инфраструктурную базу для диверсификации доходов города.';
+      } else {
+        status = 'slack';
+        statusLabel = 'Достаточная емкость фонда';
+        marginalPayoffImmediate = false;
+        bottleneckNote = `Вместимость отелей ${cap} мест полностью удовлетворяет спрос (${Math.round(dem)} чел.).`;
+        recommendation = 'Фонд развит: узким местом является привлечение спроса или наем персонала, а не стройка.';
+      }
+
+      const postProjectTreasury = treasury - cost;
+      let liquidityRisk = 'safe';
+      if (treasury < cost) {
+        liquidityRisk = 'infeasible';
+      } else if (postProjectTreasury < 200) {
+        liquidityRisk = 'severe_drain';
+      } else if (postProjectTreasury < 600) {
+        liquidityRisk = 'moderate_drain';
+      }
+
+      return {
+        key: 'tourism',
+        cost,
+        duration,
+        capacity: cap,
+        demand: Math.round(dem),
+        marketing: ads,
+        underConstruction,
+        status,
+        statusLabel,
+        marginalPayoffImmediate,
+        bottleneckNote,
+        recommendation,
+        liquidityRisk,
+        postProjectTreasury,
+        summary: `Туристический сектор: ${statusLabel}. Вместимость: ${cap} мест (спрос: ${Math.round(dem)}).`,
+      };
+    }
+
+    default:
+      return {
+        key: projectKey,
+        cost: 0,
+        duration: 0,
+        status: 'slack',
+        statusLabel: 'Нейтральный проект',
+        marginalPayoffImmediate: false,
+        bottleneckNote: '',
+        recommendation: '',
+        liquidityRisk: 'safe',
+        postProjectTreasury: treasury,
+        summary: 'Неизвестный проект.',
+      };
+  }
+}
+
+/**
  * Returns specific mayoral advisor guidance for capital investment projects,
  * highlighting time lags, physical bottlenecks, and long-term implications.
  */
 export function getProjectAdvisorEndorsement(projectKey, game = {}) {
+  const audit = evaluateProjectConstraint(projectKey, game);
+
   switch (projectKey) {
     case 'housing': {
       const pop = game.population ?? 3700;
       const cap = game.housingCapacity ?? 3900;
       const surplus = cap - pop;
       let advice = '';
-      if (surplus < 100) {
+      if (surplus < 50) {
         advice = 'Жилой фонд почти исчерпан! Строительство длится 12 месяцев. Если не начать сейчас, неизбежно возникнет острый дефицит жилья и отток людей.';
-      } else if (surplus < 300) {
-        advice = `Запас жилья умеренный (~${Math.round(surplus)} мест). С учетом 12-месячного строительного лага стоит готовить расширение заранее.`;
+      } else if (surplus < 100) {
+        advice = `Запас жилья умеренный (~${Math.round(surplus)} мест, резерв на ~${audit.bufferMonths} мес.). С учетом 12-месячного строительного лага стоит готовить расширение заранее.`;
       } else {
-        advice = `Жилья пока достаточно (~${Math.round(surplus)} свободных мест). Проект добавит еще 60 мест через 12 месяцев.`;
+        advice = `Запас жилья значительный (~${Math.round(surplus)} свободных мест при максимальном росте до +${audit.maxImmigrationRate} чел./мес., резерв на ~${audit.bufferMonths} мес.). Проект добавит еще 60 мест через 12 месяцев, но немедленной отдачи для благополучия или казны не даст.`;
       }
       return {
         advisor: ADVISORS.housing,
         advice,
         duration: 12,
         key: 'housing',
+        constraintAudit: audit,
       };
     }
     case 'modernization': {
@@ -1067,6 +1294,7 @@ export function getProjectAdvisorEndorsement(projectKey, game = {}) {
         advice,
         duration: 9,
         key: 'modernization',
+        constraintAudit: audit,
       };
     }
     case 'tourism': {
@@ -1083,6 +1311,7 @@ export function getProjectAdvisorEndorsement(projectKey, game = {}) {
         advice,
         duration: 6,
         key: 'tourism',
+        constraintAudit: audit,
       };
     }
     default:
@@ -1091,6 +1320,7 @@ export function getProjectAdvisorEndorsement(projectKey, game = {}) {
         advice: 'Капитальные инвестиции требуют учета временного лага отдачи.',
         duration: 0,
         key: projectKey,
+        constraintAudit: audit,
       };
   }
 }

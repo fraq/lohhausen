@@ -66,7 +66,7 @@ export function setPolicies(game, patch, note = '') {
   return next;
 }
 
-export function startProject(game, type, note = '') {
+export function startProject(game, type, note = '', hypotheses = null) {
   assertGameLike(game); assertActive(game, 'запускать проекты');
   const project = PROJECTS[type];
   if (!project) throw new Error('Неизвестный инвестиционный проект.');
@@ -76,7 +76,19 @@ export function startProject(game, type, note = '') {
   const item = { id: `${type}-${next.month}-${next.projects.length + 1}`, type, label: project.label, cost: project.cost, startMonth: next.month, completeMonth: next.month + project.duration };
   next.treasury = round(next.treasury - project.cost);
   next.projects.push(item);
-  next.journal.push({ month: next.month, type: 'project', title: `Запущен проект: ${project.label}`, note: String(note), project: copy(item) });
+  let noteText = '';
+  let hyp = hypotheses;
+  if (typeof note === 'object' && note !== null) {
+    noteText = note.note ? String(note.note) : '';
+    if (!hyp && note.hypotheses) hyp = note.hypotheses;
+  } else {
+    noteText = String(note || '');
+  }
+  const journalEntry = { month: next.month, type: 'project', title: `Запущен проект: ${project.label}`, note: noteText, project: copy(item) };
+  if (hyp && typeof hyp === 'object') {
+    journalEntry.hypotheses = copy(hyp);
+  }
+  next.journal.push(journalEntry);
   next.events = [`${project.label}: ввод запланирован на месяц ${item.completeMonth}.`];
   return next;
 }
