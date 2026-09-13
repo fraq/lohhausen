@@ -1,7 +1,8 @@
 # binding-constraints-001
 Owner: agy
-Status: done
+Status: review (pending Codex acceptance)
 Priority: High (Didactic Core / Capital Allocation)
+Note: Изменения в коде (коммит cc7be0e) находятся на отдельном ревью у Senior Integrator (Codex) и НЕ приняты. Выкатка приостановлена по указанию пользователя.
 
 ## Цель:
 Устранить когнитивную ловушку ложного приоритета и омертвления дефицитной ликвидности (Dörner, "Die Logik des Mißlingens", гл. 4: «Цели и приоритеты: планирование в условиях дефицита ресурсов», Theory of Constraints Голдратта):

@@ -132,3 +132,124 @@ test("scenarios: бенчмарки Конрада и Маркуса для extr
   assert.equal(benchmark.conrad.finalDebt, 0);
   assert.ok(benchmark.marcus.finalDebt > 10000);
 });
+
+test("taleb-mode: deserializeGame отвергает поврежденный talebState ({}, не-массивы, невалидные поля)", () => {
+  const baseGame = applyScenario(createGame(), "extremistan_challenge", 12345);
+  const validJson = serializeGame(baseGame);
+
+  // 1. talebState: {} должен отвергаться
+  const corruptEmpty = JSON.parse(validJson);
+  corruptEmpty.talebState = {};
+  const resEmpty = deserializeGame(JSON.stringify(corruptEmpty));
+  assert.ok(resEmpty instanceof Error, "Пустой объект talebState должен возвращать Error");
+
+  // 2. Отсутствие или не-массив scheduledEvents
+  const corruptNoScheduled = JSON.parse(validJson);
+  corruptNoScheduled.talebState.scheduledEvents = "not_an_array";
+  assert.ok(deserializeGame(JSON.stringify(corruptNoScheduled)) instanceof Error);
+
+  // 3. Отсутствие или не-массив activeShocks
+  const corruptNoActive = JSON.parse(validJson);
+  corruptNoActive.talebState.activeShocks = null;
+  assert.ok(deserializeGame(JSON.stringify(corruptNoActive)) instanceof Error);
+
+  // 4. Отсутствие или не-массив history
+  const corruptNoHist = JSON.parse(validJson);
+  corruptNoHist.talebState.history = 123;
+  assert.ok(deserializeGame(JSON.stringify(corruptNoHist)) instanceof Error);
+
+  // 5. Неизвестный eventId в scheduledEvents
+  const corruptUnknownEvent = JSON.parse(validJson);
+  corruptUnknownEvent.talebState.scheduledEvents = [{ month: 12, eventId: "alien_invasion" }];
+  assert.ok(deserializeGame(JSON.stringify(corruptUnknownEvent)) instanceof Error);
+
+  // 6. Невалидный месяц (> horizon)
+  const corruptMonth = JSON.parse(validJson);
+  corruptMonth.talebState.scheduledEvents = [{ month: 999, eventId: "quartz_crisis" }];
+  assert.ok(deserializeGame(JSON.stringify(corruptMonth)) instanceof Error);
+
+  // 7. Невалидный monthsRemaining в activeShocks
+  const corruptRemaining = JSON.parse(validJson);
+  corruptRemaining.talebState.activeShocks = [{ eventId: "quartz_crisis", monthsRemaining: 0 }];
+  assert.ok(deserializeGame(JSON.stringify(corruptRemaining)) instanceof Error);
+
+  // 8. Нечисловой эффект в activeShocks
+  const corruptEffect = JSON.parse(validJson);
+  corruptEffect.talebState.activeShocks = [{
+    eventId: "quartz_crisis",
+    monthsRemaining: 5,
+    effects: { demandMultiplier: "broken_number" }
+  }];
+  assert.ok(deserializeGame(JSON.stringify(corruptEffect)) instanceof Error);
+});
+
+test("taleb-mode: deserializeGame отвергает мутации Codex 079 (history month > game.month, null-эффекты, seed mismatch, missing prngState)", () => {
+  const baseGame = applyScenario(createGame(), "extremistan_challenge", 12345);
+  const validJson = serializeGame(baseGame);
+
+  // 1. history month > game.month (m=999 или m=10 при game.month=0)
+  const corruptHistMonth = JSON.parse(validJson);
+  corruptHistMonth.talebState.history = [{ month: 999, eventId: "quartz_crisis" }];
+  assert.ok(deserializeGame(JSON.stringify(corruptHistMonth)) instanceof Error, "History month 999 должен отвергаться");
+
+  const corruptHistFuture = JSON.parse(validJson);
+  corruptHistFuture.talebState.history = [{ month: 10, eventId: "quartz_crisis" }];
+  assert.ok(deserializeGame(JSON.stringify(corruptHistFuture)) instanceof Error, "History month > game.month должен отвергаться");
+
+  // 2. active shock с effects: { demandMultiplier: null }
+  const corruptNullEffect = JSON.parse(validJson);
+  corruptNullEffect.talebState.activeShocks = [{
+    eventId: "quartz_crisis",
+    monthsRemaining: 5,
+    effects: { demandMultiplier: null }
+  }];
+  assert.ok(deserializeGame(JSON.stringify(corruptNullEffect)) instanceof Error, "Active shock с null effect должен возвращать Error");
+
+  // 11. Рассинхронизация seed между game.seed и talebState.seed
+  const corruptSeedMismatch = JSON.parse(validJson);
+  corruptSeedMismatch.seed = 123;
+  corruptSeedMismatch.talebState.seed = 456;
+  assert.ok(deserializeGame(JSON.stringify(corruptSeedMismatch)) instanceof Error, "Рассинхронизация seed metadata обязана возвращать Error");
+
+  // 12. Отсутствующий talebState.prngState
+  const corruptNoPrng = JSON.parse(validJson);
+  delete corruptNoPrng.talebState.prngState;
+  assert.ok(deserializeGame(JSON.stringify(corruptNoPrng)) instanceof Error, "Отсутствующий prngState обязан возвращать Error");
+});
+
+test("taleb-mode: отрицательный seed нормализуется в uint32 и проходит round-trip", () => {
+  const game = applyScenario(createGame(), "extremistan_challenge", -1);
+  assert.ok(Number.isInteger(game.seed) && game.seed >= 0, `Seed должен быть нормализован в uint32: got ${game.seed}`);
+  assert.equal(game.seed, 4294967295);
+
+  const serialized = serializeGame(game);
+  const restored = deserializeGame(serialized);
+  assert.ok(!(restored instanceof Error), `Сохранение с нормализованным seed обязано загружаться: ${restored}`);
+  assert.equal(restored.seed, 4294967295);
+});
+
+test("taleb-mode: round-trip валидного состояния на старте (0), середине (25) и горизонте (60)", () => {
+  for (const m of [0, 25, 60]) {
+    const game = advance(applyScenario(createGame(), "extremistan_challenge", 777), m);
+    const serialized = serializeGame(game);
+    const restored = deserializeGame(serialized);
+
+    assert.ok(!(restored instanceof Error), `Ошибка десериализации на месяце ${m}: ${restored}`);
+    assert.equal(restored.month, m);
+    assert.equal(restored.scenarioId, "extremistan_challenge");
+    assert.equal(restored.seed, 777);
+    assert.deepEqual(restored.talebState.scheduledEvents, game.talebState.scheduledEvents);
+    assert.deepEqual(restored.talebState.activeShocks, game.talebState.activeShocks);
+    assert.deepEqual(restored.talebState.history, game.talebState.history);
+  }
+});
+
+test("taleb-mode: сохранение без talebState сохраняет 100% обратную совместимость", () => {
+  const sandbox = createGame();
+  const serialized = serializeGame(sandbox);
+  const restored = deserializeGame(serialized);
+
+  assert.ok(!(restored instanceof Error));
+  assert.equal(restored.talebState, undefined);
+  assert.ok(restored.scenarioId === undefined || restored.scenarioId === "sandbox");
+});

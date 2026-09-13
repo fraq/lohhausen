@@ -118,4 +118,8 @@ test('cockpit: кнопка «Новая игра» размещена заме�
   assert.match(css, /\.header-new-game\s*\{[^}]*min-height:/);
 });
 
-
+test('cockpit: диалог новой игры отображает только 4 канонических сценария Дёрнера без extremistan_challenge', () => {
+  const appCode = fs.readFileSync('src/app.js', 'utf8');
+  assert.match(appCode, /\$\{getScenariosList\(\)\.map\(/, 'new-game dialog must use default canonical getScenariosList() without all:true');
+  assert.doesNotMatch(appCode, /getScenariosList\(\{\s*all:\s*true\s*\}\)/, 'public selector must not include unaccepted experimental scenarios');
+});

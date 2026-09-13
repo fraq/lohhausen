@@ -1,4 +1,4 @@
-import { processTalebPreStep } from './taleb-events.js';
+import { processTalebPreStep, validateTalebState } from './taleb-events.js';
 
 const HORIZON = 120;
 const SCENARIO_HORIZONS = Object.freeze({ sandbox: 120, factory_crisis: 36, tourism_dilemma: 48, dorner_challenge: 60, extremistan_challenge: 60 });
@@ -336,7 +336,7 @@ function validateGame(value) {
   if (!Array.isArray(value.journal) || !value.journal.every((entry) => isPlainObject(entry) && Number.isInteger(entry.month) && entry.month >= 0 && entry.month <= value.month && typeof entry.type === 'string' && typeof entry.title === 'string' && typeof entry.note === 'string')) return false;
   if (!Array.isArray(value.events) || !value.events.every((event) => typeof event === 'string') || !isPlainObject(value.lastBudget) || !['income', 'expenses', 'net'].every((key) => Number.isFinite(value.lastBudget[key]))) return false;
   if ('seed' in value && (!Number.isInteger(value.seed) || value.seed < 0)) return false;
-  if ('talebState' in value && !isPlainObject(value.talebState)) return false;
+  if ('talebState' in value && !validateTalebState(value.talebState, value.horizon, value.month, value.seed)) return false;
   return true;
 }
 

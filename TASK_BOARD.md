@@ -16,13 +16,14 @@
 ## 🚀 In Progress
 *Активные задачи.*
 
-*(В настоящий момент активных задач в разработке нет; ожидается согласование следующей итерации с Senior Integrator).*
+*(В данный момент активных задач в разработке нет; задачи переданы на ревью).*
 
 ---
 
 
 ### 🔍 Review & Proposed
 *Задачи на согласовании и проверке.*
+
 
 - [ ] **debrief-followup-fix-001**: Устранение ложного срабатывания индикатора `ballistic_action` непосредственно в момент завершения проекта до появления у игрока возможности действия (находка участника «Повелитель» на Get Posting Board #11600/#11613). Внедрение событийной модели T0 (`followup_pending`), T1 (`cleared`), T2 (`outcome_unverified`) со сменой статуса на T2 строго при переходе на следующий расчетный месяц (`game.month > completeMonth`) и нейтральными формулировками без ярлыков.
   - **Инициатор**: Публичное ревью («Повелитель»), верифицировано `codex`
@@ -38,20 +39,42 @@
   - **Верификатор**: [`scripts/verify-chess-export.mjs`](./scripts/verify-chess-export.mjs)
   - **Статус**: verified_ready (все 4 сценария успешно протестированы, соответствие всем критериям подтверждено).
 
-- [ ] **competing-hypotheses-journal-001**: Внедрение в журнал решений фиксации структурированных гипотез ($H_1$: целевой выигрыш vs $H_2$: сопутствующий риск/побочный эффект) перед запуском инвестиционных проектов с автоматической верификацией в `/debrief` (`verifyHypotheses`) без оценочных суждений и психологических ярлыков (`consistent`, `inconsistent`, `too_early`, `no_data`). Полный учет физики модели, непрерывного износа оборудования и сохранение исходных расчетных уравнений (SOURCE FREEZE).
+- [ ] **competing-hypotheses-journal-001**: Внедрение в журнал решений фиксации структурированных гипотез ($H_1$: целевой выигрыш vs $H_2$: сопутствующий риск/побочный эффект) перед запуском инвестиционных проектов с автоматической верификацией в `/debrief` (`verifyHypotheses`) без оценочных суждений и психологических ярлыков (`consistent`, `inconsistent`, `too_early`, `no_data`).
   - **Инициатор**: Дидактическая инициатива Дёрнера, специфицировано `agy`, верифицировано с учетом ревью `codex` (055)
   - **Исполнитель**: `agy`
   - **Спецификация**: [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md)
   - **Карточка**: [`COORDINATION/tasks/competing-hypotheses-journal-001.md`](./COORDINATION/tasks/competing-hypotheses-journal-001.md)
   - **Артефакты**: `src/model.js`, `src/debrief.js`, `tests/hypotheses.test.js`
-  - **Статус**: review (все 6 тестов TDD green, 177/177 passed в полном проверочном контуре, 100% обратная совместимость со старыми сохранениями).
+  - **Статус**: review (коммит `cc7be0e` находится на отдельном ревью у Codex, НЕ принят; выкатка приостановлена; 4/4 тестов модуля проходят, 177/177 green).
+
+- [ ] **binding-constraints-001**: Анализ связывающих ограничений (Binding Constraints) и эффективности капитальных вложений по Дёрнеру и Голдратту: выявление преждевременного омертвления дефицитной ликвидности в ненапряженных фондах (`evaluateProjectConstraint`), точный расчет времени буфера исчерпания запаса в месяцах ($\text{surplus} / \max(0.1, \text{growthRate})$), предотвращение ложных призывов строить жилье при избыточном резерве (200 мест на 100 месяцев), интеграция в `getProjectAdvisorEndorsement` с оценкой ликвидности казны.
+  - **Инициатор**: Дидактическая инициатива по гл. 4 Дёрнера
+  - **Исполнитель**: `agy`
+  - **Спецификация**: [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)
+  - **Карточка**: [`COORDINATION/tasks/binding-constraints-001.md`](./COORDINATION/tasks/binding-constraints-001.md)
+  - **Артефакты**: `src/causal.js`, `tests/binding-constraints.test.js`
+  - **Статус**: review (предложено в коммите `cc7be0e`, ожидает отдельного ревью Codex; 5/5 тестов модуля проходят, 177/177 green).
 
 - [ ] **taleb-antifragile-mode**: Внедрение игрового режима «Вызов Крайнестана: Черный лебедь и Антихрупкость» (`extremistan_challenge`) по книгам Нассима Талеба: детерминированный генератор псевдослучайных чисел Mulberry32 со степенным распределением Парето (`src/prng.js`), каталог положительных/отрицательных Черных лебедей и ятрогенного шума (`src/taleb-events.js`), интеграция в модель (`src/model.js`) и сценарии (`src/scenarios.js`), эталоны Конрада и Маркуса, панель метрик Антихрупкости (Slack, Turkey Index, Barbell Strategy) в Debrief (`src/app.js`), полная локализация (`src/locales/extra.js`) и тестовый набор (`tests/prng.test.js`, `tests/taleb-events.test.js`, `tests/taleb-mode.test.js`).
   - **Инициатор**: Запрос пользователя
   - **Исполнитель**: `agy`
   - **Спецификация**: [`knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md`](./knowledge/agy-taleb-black-swan-antifragile-mode-feasibility.md)
+  - **Ревью**: [`docs/extremistan-review-20260912.md`](./docs/extremistan-review-20260912.md) (Codex)
   - **Артефакты**: `src/prng.js`, `src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `src/app.js`, `src/locales/extra.js`
-  - **Статус**: review_ready (все 177 тестов green, инвариантность 720 состояний канонических сценариев Дёрнера и LMN v1.2 сохранена на 100%).
+  - **Статус**: review (CHANGES_REQUESTED по ревью Codex; по прямому указанию пользователя режим изолирован, аварийные дефекты deserialization/month-0 antifragile выделяются в отдельную согласованную задачу).
+
+- [ ] **extremistan-ui-isolation-001**: Временное сокрытие экспериментального режима `extremistan_challenge` из публичного диалога новой игры (new-game dialog) до завершения и приемки спецификации `extremistan-semantics-spec-001`. Публичный вызов `getScenariosList()` отображает только 4 канонических сценария Дёрнера; режим, тесты (13/13) и загрузка существующих партий сохранены.
+  - **Инициатор**: Продуктовое решение Codex (`codex-offer-extremistan-ui-isolation-083`)
+  - **Исполнитель**: `agy`
+  - **Карточка**: [`COORDINATION/tasks/extremistan-ui-isolation-001.md`](./COORDINATION/tasks/extremistan-ui-isolation-001.md)
+  - **Артефакты**: `src/app.js`, `tests/cockpit.test.js`
+  - **Статус**: review_ready (184/184 тестов green, guard в tests/cockpit.test.js 8/8 passing, whitespace очищен, uncommitted diff).
+
+- [ ] **extremistan-semantics-spec-001**: Проверяемая теоретическая спецификация понятий Крайнестана и Антихрупкости Талеба (разграничение fragile/robust/antifragile, pre-shock baseline, post-shock окно, классификация шоков, stress deck vs bounded heavy-tail) до реализации в коде.
+  - **Инициатор**: Предложение Codex (`codex-offer-extremistan-semantics-spec-076`)
+  - **Исполнитель**: `agy`
+  - **Карточка**: [`COORDINATION/tasks/extremistan-semantics-spec-001.md`](./COORDINATION/tasks/extremistan-semantics-spec-001.md)
+  - **Статус**: in_progress (research-only)
 
 ---
 
@@ -68,15 +91,20 @@
 ## ✅ Done
 *Завершенные задачи.*
 
-- [x] **binding-constraint-evaluator**: Анализ связывающих ограничений (Binding Constraints) и эффективности капитальных вложений по Дёрнеру и Голдратту: выявление преждевременного омертвления дефицитной ликвидности в ненапряженных фондах (`evaluateProjectConstraint`), точный расчет времени буфера исчерпания запаса в месяцах ($\text{surplus} / \max(0.1, \text{growthRate})$), предотвращение ложных призывов строить жилье при избыточном резерве (200 мест на 100 месяцев), интеграция в `getProjectAdvisorEndorsement` с оценкой ликвидности казны.
-  - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 38)
-  - **Артефакты**: `src/causal.js`, `tests/binding-constraints.test.js`, [`knowledge/agy-binding-constraints-and-capital-allocation.md`](./knowledge/agy-binding-constraints-and-capital-allocation.md)
-  - **Статус**: Закрыта (5/5 тестов модуля, 175/175 тестов green, HTTP 200 OK).
+- [x] **recurrence-evidence-matrix-001**: Фиксация 5-точечной регрессионной матрицы для двухуровневой модели группировки возможностей контроля (`independentFollowupOpportunities`, `independentDecisionEpochs`) по предложению Codex 074 и публичной дискуссии (#11638, #11640, #11641): покрытие всех сценариев контроля (общая возможность, раздельные эпохи, предварительный контроль, последовательный контроль, нерелевантный отчет) без изменения `src/**`.
+  - **Инициатор**: Предложение Codex (`codex-offer-recurrence-evidence-matrix-074`)
+  - **Исполнитель**: `agy`
+  - **Спецификация**: [`knowledge/agy-recurrence-evidence-matrix.md`](./knowledge/agy-recurrence-evidence-matrix.md)
+  - **Карточка**: [`COORDINATION/tasks/recurrence-evidence-matrix-001.md`](./COORDINATION/tasks/recurrence-evidence-matrix-001.md)
+  - **Артефакты**: `tests/debrief-regressions.test.js`, `knowledge/agy-recurrence-evidence-matrix.md`
+  - **Статус**: Закрыта (принята Codex письмом `codex-recurrence-matrix-accept-084`, 10/10 тестов debrief-regressions passing, zero source changes).
 
-- [x] **competing-hypotheses-journal**: Фиксация и автоматическая верификация конкурирующих гипотез ($H_1$: целевой выигрыш vs $H_2$: побочная цена/потеря занятости) в журнале решений (`startProject` с опциональным объектом гипотез, `verifyHypotheses` в `src/debrief.js`) с нейтральными формулировками (`consistent`, `inconsistent`, `no_data`) без оценочных ярлыков и с полной обратной совместимостью для legacy-партий.
-  - **Исполнитель**: Коллаборация `dorner_scenarios` & `agy` (при аудите `codex`)
-  - **Артефакты**: `src/model.js`, `src/debrief.js`, `tests/hypotheses.test.js`, [`knowledge/agy-competing-hypotheses-journal-spec.md`](./knowledge/agy-competing-hypotheses-journal-spec.md)
-  - **Статус**: Закрыта (4/4 тестов модуля, 175/175 тестов green, HTTP 200 OK).
+
+- [x] **extremistan-save-safety-001**: Устранение аварийного дефекта валидации сохранений Крайнестана (`talebState: {}`) и рассинхронизации seed contract (`rawSeed >>> 0`) по предложению Codex 075 и ревью 079: строгий валидатор `validateTalebState` (проверка `history.month <= currentMonth`, строгая числовая проверка `effects`, соответствие `game.seed` и `talebState.seed`, обязательность uint32 `prngState`), удаление repair-присваиваний в `processTalebPreStep`, scope addendum для `src/prng.js` (`return s >>> 0`) и assert в `tests/prng.test.js`.
+  - **Инициатор**: Предложение Codex (`codex-offer-extremistan-save-safety-075`, ревью `codex-extremistan-save-safety-review-079`)
+  - **Исполнитель**: `agy`
+  - **Карточка**: [`COORDINATION/tasks/extremistan-save-safety-001.md`](./COORDINATION/tasks/extremistan-save-safety-001.md)
+  - **Статус**: Закрыта (принята Codex письмом `codex-extremistan-save-safety-accept-082`, 183/183 тестов green, 720 состояний ok, HTTP 200 OK).
 
 - [x] **fiscal-squeeze-diagnostics**: Предостережение от фискальной ловушки завышения налогов (кривая Лаффера по Дёрнеру): нелинейный штраф при превышении порога 20% ($\Delta \text{taxRate} \times 0.55$), асимметрия миграционных потоков ($[-15, +2]$ чел./мес., коэффициент восстановления 7.5:1), расчет чистого располагаемого дохода домохозяйств (`taxForecast`), интеграция в `getPolicyWhatIf` и предупреждение казначея фрау Вебер до запуска необратимого оттока населения.
   - **Исполнитель**: `agy` (в рамках Кайдзен-цикла 35)

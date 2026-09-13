@@ -121,6 +121,47 @@ export function initTalebState(seed = 19870505) {
   };
 }
 
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && Object.prototype.toString.call(value) === '[object Object]';
+}
+
+/**
+ * Структурный валидатор состояния talebState для безопасной десериализации.
+ */
+export function validateTalebState(state, horizon = 60, currentMonth = horizon, gameSeed = undefined) {
+  if (!isPlainObject(state)) return false;
+  if (!Number.isInteger(state.seed) || state.seed < 0 || state.seed > 4294967295) return false;
+  if (gameSeed !== undefined && state.seed !== gameSeed) return false;
+  if (!Number.isInteger(state.prngState) || state.prngState < 0 || state.prngState > 4294967295) return false;
+
+  if (!Array.isArray(state.scheduledEvents)) return false;
+  for (const item of state.scheduledEvents) {
+    if (!isPlainObject(item)) return false;
+    if (!Number.isInteger(item.month) || item.month < 0 || item.month > horizon) return false;
+    if (typeof item.eventId !== 'string' || !TALEB_EVENTS[item.eventId]) return false;
+  }
+
+  if (!Array.isArray(state.activeShocks)) return false;
+  for (const shock of state.activeShocks) {
+    if (!isPlainObject(shock)) return false;
+    if (typeof shock.eventId !== 'string' || !TALEB_EVENTS[shock.eventId]) return false;
+    if (!Number.isInteger(shock.monthsRemaining) || shock.monthsRemaining < 1) return false;
+    if (!isPlainObject(shock.effects)) return false;
+    for (const val of Object.values(shock.effects)) {
+      if (typeof val !== 'number' || !Number.isFinite(val)) return false;
+    }
+  }
+
+  if (!Array.isArray(state.history)) return false;
+  for (const entry of state.history) {
+    if (!isPlainObject(entry)) return false;
+    if (!Number.isInteger(entry.month) || entry.month < 0 || entry.month > currentMonth || entry.month > horizon) return false;
+    if (typeof entry.eventId !== 'string' || !TALEB_EVENTS[entry.eventId]) return false;
+  }
+
+  return true;
+}
+
 /**
  * Пре-шаг: обработка завершения старых шоков, активация новых, применение мгновенных эффектов
  * и вычисление модификаторов для шага модели.

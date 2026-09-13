@@ -204,6 +204,88 @@ test('recurrence rule groups by independent follow-up opportunities and decision
   assert.equal(recurrentAnalysis.archetype?.id, 'ballistic');
 });
 
+test('recurrence evidence matrix satisfies 5 acceptance traces (Attribution: #11638 Кар/Caveman AI, #11640 Visiting agent, #11641 Dörner)', () => {
+  // Trace 1: Two completions in one epoch + one matching post-completion report -> 0 unverified opportunities
+  let trace1 = createGame();
+  trace1 = startProject(trace1, 'tourism', 'resort 1');
+  trace1 = startProject(trace1, 'tourism', 'resort 2');
+  trace1 = advance(trace1, 6);
+  trace1 = requestReport(trace1, 'tourism');
+  trace1 = advance(trace1, 1);
+  const a1 = analyzeDebrief(trace1);
+  const t1 = a1.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t1.detected, false);
+  assert.equal(t1.evidence.clearedProjects.length, 2);
+  assert.equal(t1.evidence.unverifiedProjects.length, 0);
+  assert.equal(t1.evidence.independentFollowupOpportunities, 0);
+  assert.equal(t1.evidence.isRecurrent, false);
+
+  // Trace 2: Projects in two distinct epochs without post-completion reports -> 2 independent epochs, recurrence = true
+  let trace2 = createGame();
+  trace2 = startProject(trace2, 'tourism', 'epoch 1');
+  trace2 = advance(trace2, 7); // completes month 6, unverified at month 7
+  trace2 = startProject(trace2, 'modernization', 'epoch 2');
+  trace2 = advance(trace2, 10); // completes month 16, unverified at month 17
+  const a2 = analyzeDebrief(trace2);
+  const t2 = a2.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t2.detected, true);
+  assert.equal(t2.evidence.independentDecisionEpochs, 2);
+  assert.equal(t2.evidence.independentFollowupOpportunities, 2);
+  assert.equal(t2.evidence.isRecurrent, true);
+  assert.equal(t2.severity, 'high');
+
+  // Trace 3: Reports requested only BEFORE project completions -> both opportunities remain unverified, recurrence = true
+  let trace3 = createGame();
+  trace3 = requestReport(trace3, 'tourism'); // month 0 (before completion at month 6)
+  trace3 = startProject(trace3, 'tourism', 'early report 1');
+  trace3 = advance(trace3, 6);
+  trace3 = requestReport(trace3, 'factory'); // month 6 (before modernization completion at month 15)
+  trace3 = startProject(trace3, 'modernization', 'early report 2');
+  trace3 = advance(trace3, 10); // advanced past month 15 without reports after completion
+  const a3 = analyzeDebrief(trace3);
+  const t3 = a3.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t3.detected, true);
+  assert.equal(t3.evidence.independentDecisionEpochs, 2);
+  assert.equal(t3.evidence.isRecurrent, true);
+  assert.equal(t3.severity, 'high');
+
+  // Trace 4: Matching report requested after each completion in its own epoch -> 0 unverified opportunities, recurrence = false
+  let trace4 = createGame();
+  trace4 = startProject(trace4, 'tourism', 'monitored epoch 1');
+  trace4 = advance(trace4, 6);
+  trace4 = requestReport(trace4, 'tourism');
+  trace4 = startProject(trace4, 'modernization', 'monitored epoch 2');
+  trace4 = advance(trace4, 9);
+  trace4 = requestReport(trace4, 'factory');
+  trace4 = advance(trace4, 1);
+  const a4 = analyzeDebrief(trace4);
+  const t4 = a4.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t4.detected, false);
+  assert.equal(t4.evidence.unverifiedProjects.length, 0);
+  assert.equal(t4.evidence.clearedProjects.length, 2);
+  assert.equal(t4.evidence.isRecurrent, false);
+
+  // Trace 5: Irrelevant report kind does not clear opportunity; matching kind clears
+  let trace5 = createGame();
+  trace5 = startProject(trace5, 'tourism', 'tourism project');
+  trace5 = advance(trace5, 6);
+  trace5 = requestReport(trace5, 'factory'); // irrelevant report kind
+  trace5 = advance(trace5, 1);
+  const a5Irrelevant = analyzeDebrief(trace5);
+  const t5Irrelevant = a5Irrelevant.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t5Irrelevant.detected, true);
+  assert.equal(t5Irrelevant.evidence.unmonitoredInterventions, 1);
+  assert.equal(t5Irrelevant.evidence.isRecurrent, false, 'Single unverified project is not recurrent');
+  assert.equal(t5Irrelevant.severity, 'low');
+
+  // Matching report clears it
+  const trace5Cleared = requestReport(trace5, 'tourism');
+  const a5Cleared = analyzeDebrief(trace5Cleared);
+  const t5Cleared = a5Cleared.traps.find(t => t.id === 'ballistic_action');
+  assert.equal(t5Cleared.detected, false);
+  assert.equal(t5Cleared.evidence.clearedProjects.length, 1);
+});
+
 test('verifyHypotheses reports completion-month observations rather than current values or proof', () => {
   const game = {
     month: 24,

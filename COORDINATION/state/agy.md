@@ -295,10 +295,48 @@
   - Разработан TDD-набор `tests/hypotheses.test.js` (6 тестов, 100% green).
   - Создана карточка `COORDINATION/tasks/competing-hypotheses-journal-001.md` (статус `review`).
   - Отправлены отчетные письма `COORDINATION/mail/codex/20260912T221500Z-agy-competing-hypotheses-verified.md` и `COORDINATION/mail/dorner_scenarios/20260912T221500Z-agy-competing-hypotheses-verified.md`.
-  - Обновлен обзорный индекс `TASK_BOARD.md` (счетчик тестов 177/177 passed).
-  - Проверочный контур расширен до **177 тестов (177/177 passed, 100% green)**: `npm test` пройден, `npm run check` — 0 ошибок, 720 состояний валидны, 4/4 сценария LMN v1.2 подтверждены, HTTP 12 страниц и 16 модулей 200 OK.
+- 2026-09-13: Выполнено прямое указание пользователя:
+  1) «публикацию пока не делаем»: внешние публикации строго остановлены;
+  2) «cc7be0e ревьюим отдельно. Вариант 2 в предложенном виде тоже слишком широк: он предлагает выкатить H1/H2 и binding constraints, которые еще не приняты»:
+     - В `TASK_BOARD.md` снят преждевременный статус «Done» с задач `binding-constraints-001` и `competing-hypotheses-journal-001`; они переведены в статус `review (коммит cc7be0e на отдельном ревью у Codex, НЕ принят; выкатка приостановлена)`;
+     - Карточки `COORDINATION/tasks/binding-constraints-001.md` и `COORDINATION/tasks/competing-hypotheses-journal-001.md` обновлены со статусом `review (pending Codex acceptance)` и пометкой о приостановке выкатки;
+  3) «Крайнестан изолируем, устраняем аварийные дефекты отдельной принятой задачей»:
+     - В `TASK_BOARD.md` зафиксирована задача `extremistan-save-safety-001` по предложению Codex 075;
+     - Создана карточка `COORDINATION/tasks/extremistan-save-safety-001.md`;
+     - В строгих границах (`src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `tests/taleb-mode.test.js`) реализован структурный валидатор `validateTalebState`, защищающий `deserializeGame` от поврежденных данных и исключающий падение в `advance`;
+     - Зафиксирован единый seed contract: отрицательные значения нормализуются в uint32 через `(rawSeed >>> 0)`;
+     - Все 181 тест green, инварианты 720 сценарных состояний подтверждены;
+     - Нескоммиченный diff подготовлен для независимого ревью Codex, направлен отчет `COORDINATION/mail/codex/20260913T084500Z-agy-extremistan-save-safety-complete.md`;
+   4) Подтвержден строгий режим SOURCE FREEZE со стороны agy: границы `src/causal.js` и `src/debrief.js` не затрагиваются, публикация остановлена, ожидаются новые указания.
+   5) Широкая карточка `extremistan-repair-001` удалена, так как смешивала crash-safety с семантикой. Принято разделение Codex на три узких предложения (074, 075, 076).
+   6) Получено ревью Codex `codex-extremistan-save-safety-review-079` (CHANGES_REQUESTED, требование выполнить recurrence matrix первой). Направлен ACK `agy-extremistan-save-safety-review-ack-080`.
+   7) Первой выполнена задача `recurrence-evidence-matrix-001` (0 правок в `src/**`): созданы `knowledge/agy-recurrence-evidence-matrix.md`, тест в `tests/debrief-regressions.test.js` (5 трасс #11638/#11640/#11641), карточка переведена в `ready_for_review`, направлен отчет `agy-recurrence-evidence-matrix-review-ready-081`.
+   8) Вторым шагом устранены все 4 блокирующих замечания ревью 079 по задаче `extremistan-save-safety-001`:
+      - В `src/taleb-events.js` ужесточен `validateTalebState`: `history.month <= currentMonth`, `effects` строго числовые (null отвергается), `prngState` строго обязателен (uint32);
+      - В `src/model.js` добавлена строгая проверка идентичности `game.seed` и `talebState.seed`;
+      - Из `src/taleb-events.js` удалены silent repair-присваивания в `processTalebPreStep`, обеспечен чистый fail-closed контракт;
+      - По scope addendum добавлен uint32 assert в `tests/prng.test.js`;
+      - В `tests/taleb-mode.test.js` добавлены 4 мутационных теста;
+      - Карточка `COORDINATION/tasks/extremistan-save-safety-001.md` переведена в `ready_for_review`, направлен исправленный отчет `COORDINATION/mail/codex/20260913T100500Z-agy-extremistan-save-safety-review-ready.md`.
+   9) Создана карточка исследовательской задачи `COORDINATION/tasks/extremistan-semantics-spec-001.md` (`proposed`, research-only).
+   10) Полный контур: 183/183 тестов green, `npm run check` 0 ошибок, 720 состояний инвариантны. Diff незакоммичен и готов к ревью. Публикация и коммиты заморожены.
+   11) Получен ACCEPT от Codex по `extremistan-save-safety-001` (`codex-extremistan-save-safety-accept-082`): карточка переведена в `done`, задача закрыта, uncommitted diff сохранен в дереве.
+   12) По ревью `codex-recurrence-matrix-review-081` выполнены 5 документальных правок в `knowledge/agy-recurrence-evidence-matrix.md` и карточке задачи (синхронизация с фактическими трассами теста, введение $M_{\text{unverified}}$, тип `factory`, фиксация 183/183, 0 правок в коде и тестах). Направлен повторный отчет `COORDINATION/mail/codex/20260913T105800Z-agy-recurrence-matrix-review-ready.md`.
+   13) Принято предложение Codex по изоляции UI `codex-offer-extremistan-ui-isolation-083`. Создана карточка `COORDINATION/tasks/extremistan-ui-isolation-001.md`. В `src/app.js` селектор новой игры переведен на канонический `getScenariosList()` без `{ all: true }`. В `tests/cockpit.test.js` добавлен регрессионный guard. Все 183 теста green, `npm run check` ok, сценарный и LMN верификаторы зеленые. Направлен отчет `COORDINATION/mail/codex/20260913T105900Z-agy-extremistan-ui-isolation-review-ready.md`.
+   14) Получен ACCEPT от Codex по `recurrence-evidence-matrix-001` (`codex-recurrence-matrix-accept-084`): ссылка на ревью 081 заменена на приёмку 084, карточка переведена в `done`, задача закрыта в `TASK_BOARD.md`.
+   15) По ревью `codex-extremistan-ui-isolation-review-085` проведена косметическая чистка артефактов: удалена лишняя пустая строка в конце `tests/cockpit.test.js`, проверен `git diff --check` (чисто), в карточке задачи зафиксированы точные счётчики (cockpit 8/8, полный прогон 184/184). Направлен повторный отчёт `COORDINATION/mail/codex/20260913T201500Z-agy-extremistan-ui-isolation-cleaned.md` (ID 086).
+   16) Глобальный release freeze соблюдается строго: коммиты, пуши и публикации заморожены, рабочая копия подготовлена к финальному вердикту Senior Integrator.
 
 Границы записи agy:
+- `COORDINATION/tasks/extremistan-ui-isolation-001.md`
+- `tests/cockpit.test.js`
+- `src/app.js`
+- `COORDINATION/tasks/recurrence-evidence-matrix-001.md`
+- `COORDINATION/tasks/extremistan-semantics-spec-001.md`
+- `knowledge/agy-recurrence-evidence-matrix.md`
+- `knowledge/agy-extremistan-semantics-spec.md`
+- `COORDINATION/tasks/extremistan-save-safety-001.md`
+- `COORDINATION/tasks/binding-constraints-001.md`
 - `tests/hypotheses.test.js`
 - `COORDINATION/tasks/competing-hypotheses-journal-001.md`
 - `knowledge/agy-ballistic-recurrence-rule-analysis.md`

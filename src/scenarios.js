@@ -183,7 +183,8 @@ export function applyScenario(baseGame, scenarioId, seed = null) {
     game.satisfaction = 68;
     game.satisfactionGroups = { workers: 58, families: 65, seniors: 74 };
   } else if (scenario.id === 'extremistan_challenge') {
-    game.seed = Number.isInteger(seed) ? seed : (baseGame.seed || 19870505);
+    const rawSeed = Number.isInteger(seed) ? seed : (baseGame.seed ?? 19870505);
+    game.seed = rawSeed >>> 0;
     game.talebState = initTalebState(game.seed);
     game.treasury = 900;
     game.debt = 0;

@@ -49,6 +49,7 @@ test('prng: getState и setState сохраняют и восстанавлив�
 
   // Сохраняем состояние
   const savedState = rng.getState();
+  assert.ok(Number.isInteger(savedState) && savedState >= 0, `getState must return an unsigned 32-bit integer: got ${savedState}`);
   const nextThreeOriginal = [rng.next(), rng.next(), rng.next()];
 
   // Восстанавливаем состояние

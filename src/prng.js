@@ -37,7 +37,7 @@ export function createPRNG(initialSeed = 19870505) {
   }
 
   function getState() {
-    return s;
+    return s >>> 0;
   }
 
   function setState(savedState) {

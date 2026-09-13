@@ -1415,7 +1415,7 @@ function render() {
       <h2 id="reset-title">Новая партия в Лоххаузене</h2>
       <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите дидактический сценарий управления по мотивам книги Дитриха Дёрнера:</p>
       <div class="scenario-select-list" style="display: grid; gap: 8px; margin-bottom: 20px;">
-        ${getScenariosList({ all: true }).map(sc => `
+        ${getScenariosList().map(sc => `
           <label class="scenario-option" style="display:flex; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--surface); align-items:flex-start;">
             <input type="radio" name="scenario-choice" value="${sc.id}" ${sc.id === selectedScenarioId ? 'checked' : ''} style="margin-top:4px;">
             <div style="flex:1;">
