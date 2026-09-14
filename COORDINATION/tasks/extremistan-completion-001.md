@@ -18,4 +18,4 @@ Next: visual browser review; CUA reported “Computer Use permissions are not gr
 
 Publication: the user's follow-up «и коммит и пуш?» explicitly authorizes committing and pushing this implementation branch. It supersedes the historical commit/push freeze for this task. No main merge or Pages deployment is included.
 
-Publication attempt: implementation committed as b41fb00. HTTPS push with the user's one-time credential authenticated as Kate-Lus but GitHub denied repository write access (403). The token was entered only into Git's password prompt with credential helpers disabled; no credential is stored in project files. Branch publication requires repository/token write permission. No remote branch was created by these attempts.
+Publication: implementation committed as b41fb00; branch publication is being retried with the repository developer access now enabled.
