@@ -71,78 +71,19 @@ test('taleb: processTalebPreStep корректно активирует шок�
   assert.equal(mods2.demandMultiplier, 0.4);
 });
 
-test('taleb: тест стратегии штанги (distressed_asset_sale) капитализирует активы при казне >= 800 и упускает при нехватке', () => {
-  // Вариант 1: Казна достаточна (капитализация)
-  const solventGame = createGame();
-  solventGame.month = 20;
-  solventGame.treasury = 950;
-  solventGame.equipment = 50;
-  solventGame.talebState = {
-    scheduledEvents: [{ month: 20, eventId: 'distressed_asset_sale' }],
-    activeShocks: [],
-    history: []
-  };
-
-  const solventEvents = [];
-  processTalebPreStep(solventGame, solventEvents);
-
-  assert.equal(solventGame.treasury, 750); // 950 - 200
-  assert.equal(solventGame.equipment, 68); // 50 + 18
-  assert.ok(solventEvents.some(e => e.includes('Опциональность реализована')));
-  assert.equal(solventGame.talebState.history[0].outcome, 'capitalized');
-
-  // Вариант 2: Казна недостаточна (упущенная опциональность)
-  const leanGame = createGame();
-  leanGame.month = 20;
-  leanGame.treasury = 400; // < 800
-  leanGame.equipment = 50;
-  leanGame.talebState = {
-    scheduledEvents: [{ month: 20, eventId: 'distressed_asset_sale' }],
-    activeShocks: [],
-    history: []
-  };
-
-  const leanEvents = [];
-  processTalebPreStep(leanGame, leanEvents);
-
-  assert.equal(leanGame.treasury, 400); // не изменилась
-  assert.equal(leanGame.equipment, 50); // не изменилась
-  assert.ok(leanEvents.some(e => e.includes('Упущенная опциональность')));
-  assert.equal(leanGame.talebState.history[0].outcome, 'missed_liquidity');
-});
-
-test('taleb: computeAntifragilityMetrics корректно вычисляет классификацию по Триаде Талеба', () => {
-  // 1. Хрупкая система (падение в долг)
-  const fragileGame = createGame();
-  fragileGame.history = [
-    { satisfaction: 84, treasury: 1200, debt: 0 },
-    { satisfaction: 82, treasury: 50, debt: 2000 },
-    { satisfaction: 45, treasury: 0, debt: 6500, population: 2400 }
-  ];
-  const fragileMetrics = computeAntifragilityMetrics(fragileGame);
-  assert.equal(fragileMetrics.classification, 'fragile');
-  assert.ok(fragileMetrics.triadTitle.includes('Хрупкая'));
-
-  // 2. Антихрупкая система (буфер ликвидности, отсутствие долга, высокая удовлетворенность)
-  const antifragileGame = createGame();
-  antifragileGame.history = [
-    { satisfaction: 84, treasury: 1000, debt: 0 },
-    { satisfaction: 85, treasury: 950, debt: 0 },
-    { satisfaction: 88, treasury: 1100, debt: 0 },
-    { satisfaction: 90, treasury: 1200, debt: 0 }
-  ];
-  antifragileGame.talebState = { history: [{ outcome: 'active' }, { outcome: 'capitalized' }] };
-  const afMetrics = computeAntifragilityMetrics(antifragileGame);
-  assert.equal(afMetrics.classification, 'antifragile');
-  assert.ok(afMetrics.triadTitle.includes('Антихрупкая'));
-  assert.equal(afMetrics.barbellCompliance, 100);
+test('taleb: богатый город без наблюдений не доказывает антихрупкость', () => {
+  const game = applyScenario(createGame(), 'extremistan_challenge', 42);
+  const metrics = computeAntifragilityMetrics(game);
+  assert.equal(metrics.classification, 'insufficient_evidence');
+  assert.equal(metrics.survivedNegativeShocks, 0);
+  assert.equal(metrics.liquidityDiscipline, 100);
 });
 
 test('scenarios: extremistan_challenge инициализируется, оценивается и предоставляет бенчмарки', () => {
   const scenario = getScenario('extremistan_challenge');
   assert.equal(scenario.id, 'extremistan_challenge');
   assert.equal(scenario.horizon, 60);
-  assert.equal(scenario.objectives.length, 4);
+  assert.equal(scenario.objectives.length, 5);
 
   // Проверка расширенного списка сценариев
   const allList = getScenariosList({ all: true });

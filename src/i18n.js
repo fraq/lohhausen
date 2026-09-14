@@ -3,12 +3,13 @@ import de from './locales/de.js';
 import fr from './locales/fr.js';
 import extra from './locales/extra.js';
 import cockpit from './locales/cockpit.js';
+import extremistan from './locales/extremistan.js';
 
 export const supportedLanguages = ['ru', 'en', 'de', 'fr'];
 const dictionaries = {
-  en: withTextAliases({ ...en, ...extra.en, ...cockpit.en }),
-  de: withTextAliases({ ...de, ...extra.de, ...cockpit.de }),
-  fr: withTextAliases({ ...fr, ...extra.fr, ...cockpit.fr }),
+  en: withTextAliases({ ...en, ...extra.en, ...cockpit.en, ...extremistan.en }),
+  de: withTextAliases({ ...de, ...extra.de, ...cockpit.de, ...extremistan.de }),
+  fr: withTextAliases({ ...fr, ...extra.fr, ...cockpit.fr, ...extremistan.fr }),
 };
 function withTextAliases(dictionary) {
   // Decorative icons can live in their own DOM node; the text still needs its translation.

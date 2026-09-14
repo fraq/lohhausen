@@ -1,7 +1,7 @@
 import { createPRNG } from "./prng.js";
 
 /**
- * Каталог событий Крайнестана по Нассиму Талебу.
+ * Author-written, bounded stress deck inspired by Taleb. Not a Pareto process.
  */
 export const TALEB_EVENTS = Object.freeze({
   quartz_crisis: {
@@ -54,7 +54,7 @@ export const TALEB_EVENTS = Object.freeze({
     type: "positive_swan",
     icon: "💎",
     title: "Аукцион активов разорившейся коммуны",
-    description: "Соседний муниципалитет объявил банкротство. Тест стратегии штанги: при наличии свободной казны от 800 тыс. марок выкуплено современное оборудование (+18 п.) всего за 200 тыс. марок!",
+    description: "Предложение оборудования: +18 п. за 200 тыс. марок. Для покупки нужна казна от 800 тыс. Решение принимаете вы; предложение действует три месяца.",
     duration: 1,
     instant: true,
     requiredTreasury: 800,
@@ -75,7 +75,7 @@ export const TALEB_EVENTS = Object.freeze({
     type: "noise",
     icon: "📰",
     title: "Газетная паника вокруг дефицита",
-    description: "Слухи в региональной прессе провоцируют панику. Советники требуют поднять налоги. Напоминание: завышение налога выше 20% вызовет исход жителей!",
+    description: "Слухи в прессе провоцируют панику и призывы повысить налоги. При ставке выше 20% усиливается миграционное давление. Проверьте показатели перед решением.",
     duration: 4,
     effects: { taxPenaltyMultiplier: 1.6 },
   },
@@ -110,14 +110,75 @@ export function initTalebState(seed = 19870505) {
     { month: prng.int(32, 38), eventId: noiseEvent },
     { month: prng.int(40, 48), eventId: secondNeg },
     { month: prng.int(50, 56), eventId: secondPos },
-  ].sort((a, b) => a.month - b.month);
+  ].sort((a, b) => a.month - b.month).map((item, index) => ({ ...item, instanceId: `${item.month}:${item.eventId}:${index}` }));
 
   return {
-    seed,
+    seed: seed >>> 0,
     prngState: prng.getState(),
     scheduledEvents,
     activeShocks: [],
     history: [],
+  };
+}
+
+export function talebEventInstanceId(item, index) {
+  return item.instanceId ?? `${item.month}:${item.eventId}:${index}`;
+}
+
+export function listTalebOpportunities(game) {
+  if (!game.talebState || game.month >= game.horizon) return [];
+  const def = TALEB_EVENTS.distressed_asset_sale;
+  return game.talebState.history.filter(entry => entry.eventId === def.id
+    && entry.outcome === 'offered' && entry.month <= game.month && entry.expiresMonth >= game.month)
+    .map(entry => ({ instanceId: entry.instanceId, eventId: def.id, title: def.title,
+      cost: def.cost, requiredTreasury: def.requiredTreasury, equipmentBonus: def.equipmentBonus, expiresMonth: entry.expiresMonth }));
+}
+
+export function resolveTalebOpportunity(game, instanceId, choice) {
+  if (!['buy', 'decline'].includes(choice)) throw new Error('Выберите покупку или отказ от предложения.');
+  const offer = listTalebOpportunities(game).find(item => item.instanceId === instanceId);
+  if (!offer) throw new Error('Предложение недоступно или уже закрыто.');
+  if (choice === 'buy' && game.treasury < offer.requiredTreasury) throw new Error('Для покупки оборудования нужна казна не менее 800 тыс. марок.');
+  const next = structuredClone(game);
+  const entry = next.talebState.history.find(item => item.instanceId === instanceId);
+  entry.outcome = choice === 'buy' ? 'capitalized' : 'declined';
+  entry.choice = choice;
+  entry.choiceMonth = game.month;
+  if (choice === 'buy') {
+    next.treasury = Number((next.treasury - offer.cost).toFixed(6));
+    next.equipment = Math.min(100, next.equipment + offer.equipmentBonus);
+  }
+  const message = choice === 'buy' ? 'Оборудование куплено за 200 тыс. марок.' : 'Вы отказались от покупки оборудования.';
+  next.journal.push({ month: next.month, type: 'taleb_choice', title: offer.title, note: message,
+    instanceId, eventId: offer.eventId, choice });
+  next.events = [message];
+  return next;
+}
+
+export function getTalebEventSummary(game) {
+  const entries = game.talebState?.history || [];
+  const negativeShocks = entries.filter(entry => TALEB_EVENTS[entry.eventId]?.type === 'negative_swan').map(entry => {
+    const duration = TALEB_EVENTS[entry.eventId].duration;
+    const endMonth = entry.month + duration - 1;
+    const completed = game.month >= endMonth;
+    const samples = (game.history || []).filter(snap => snap.month >= entry.month && snap.month <= endMonth);
+    const completeHistory = samples.length === duration && samples.every((snap, i) => snap.month === entry.month + i
+      && ['treasury', 'debt', 'population'].every(key => Number.isFinite(snap[key])));
+    const survived = completed && completeHistory
+      ? samples.every(snap => snap.treasury > 0 && snap.debt <= 5000 && snap.population >= 2500) : null;
+    const scheduleIndex = game.talebState.scheduledEvents.findIndex(item => item.eventId === entry.eventId && item.month === entry.month);
+    return { instanceId: entry.instanceId ?? talebEventInstanceId(entry, scheduleIndex), eventId: entry.eventId,
+      startMonth: entry.month, endMonth, observationMonth: endMonth + 6, completed, survived };
+  });
+  return {
+    activatedEventsCount: entries.length,
+    completedNegativeShocks: negativeShocks.filter(entry => entry.completed).length,
+    survivedNegativeShocks: negativeShocks.filter(entry => entry.survived === true).length,
+    windfallEventsCount: entries.filter(entry => TALEB_EVENTS[entry.eventId]?.type === 'positive_swan').length,
+    noiseEventsCount: entries.filter(entry => TALEB_EVENTS[entry.eventId]?.type === 'noise').length,
+    capitalizedOpportunities: entries.filter(entry => entry.eventId === 'distressed_asset_sale' && entry.outcome === 'capitalized'
+      && entry.choice === 'buy' && game.journal.some(action => action.type === 'taleb_choice' && action.choice === 'buy' && action.instanceId === entry.instanceId)).length,
+    negativeShocks,
   };
 }
 
@@ -135,28 +196,52 @@ export function validateTalebState(state, horizon = 60, currentMonth = horizon, 
   if (!Number.isInteger(state.prngState) || state.prngState < 0 || state.prngState > 4294967295) return false;
 
   if (!Array.isArray(state.scheduledEvents)) return false;
-  for (const item of state.scheduledEvents) {
+  const identities = new Set();
+  for (const [index, item] of state.scheduledEvents.entries()) {
     if (!isPlainObject(item)) return false;
-    if (!Number.isInteger(item.month) || item.month < 0 || item.month > horizon) return false;
-    if (typeof item.eventId !== 'string' || !TALEB_EVENTS[item.eventId]) return false;
+    if (!Number.isInteger(item.month) || item.month < 1 || item.month > horizon) return false;
+    if (typeof item.eventId !== 'string' || !Object.hasOwn(TALEB_EVENTS, item.eventId)) return false;
+    if ('instanceId' in item && (typeof item.instanceId !== 'string' || !item.instanceId)) return false;
+    const identity = talebEventInstanceId(item, index);
+    if (identities.has(identity)) return false;
+    identities.add(identity);
   }
 
   if (!Array.isArray(state.activeShocks)) return false;
   for (const shock of state.activeShocks) {
     if (!isPlainObject(shock)) return false;
-    if (typeof shock.eventId !== 'string' || !TALEB_EVENTS[shock.eventId]) return false;
-    if (!Number.isInteger(shock.monthsRemaining) || shock.monthsRemaining < 1) return false;
+    if (typeof shock.eventId !== 'string' || !Object.hasOwn(TALEB_EVENTS, shock.eventId)) return false;
+    if (!Number.isInteger(shock.monthsRemaining) || shock.monthsRemaining < 1 || shock.monthsRemaining > TALEB_EVENTS[shock.eventId].duration) return false;
+    if ('instanceId' in shock && !identities.has(shock.instanceId)) return false;
     if (!isPlainObject(shock.effects)) return false;
-    for (const val of Object.values(shock.effects)) {
-      if (typeof val !== 'number' || !Number.isFinite(val)) return false;
+    if (Object.keys(TALEB_EVENTS[shock.eventId].effects || {}).some(key => !(key in shock.effects))) return false;
+    for (const [key, val] of Object.entries(shock.effects)) {
+      if (typeof val !== 'number' || !Number.isFinite(val) || val !== TALEB_EVENTS[shock.eventId].effects?.[key]) return false;
     }
   }
 
   if (!Array.isArray(state.history)) return false;
+  const recordedIdentities = new Set();
   for (const entry of state.history) {
     if (!isPlainObject(entry)) return false;
     if (!Number.isInteger(entry.month) || entry.month < 0 || entry.month > currentMonth || entry.month > horizon) return false;
-    if (typeof entry.eventId !== 'string' || !TALEB_EVENTS[entry.eventId]) return false;
+    if (typeof entry.eventId !== 'string' || !Object.hasOwn(TALEB_EVENTS, entry.eventId)) return false;
+    if ('instanceId' in entry && !identities.has(entry.instanceId)) return false;
+    if ('instanceId' in entry) {
+      if (recordedIdentities.has(entry.instanceId)) return false;
+      recordedIdentities.add(entry.instanceId);
+      if (!state.scheduledEvents.some((item, index) => talebEventInstanceId(item, index) === entry.instanceId
+        && item.month === entry.month && item.eventId === entry.eventId)) return false;
+    }
+    if ('outcome' in entry && !['active', 'capitalized', 'missed_liquidity', 'offered', 'declined', 'expired'].includes(entry.outcome)) return false;
+    if (['offered', 'declined', 'expired'].includes(entry.outcome) || 'choice' in entry || 'expiresMonth' in entry) {
+      if (entry.eventId !== 'distressed_asset_sale' || typeof entry.instanceId !== 'string') return false;
+      if (!Number.isInteger(entry.expiresMonth) || entry.expiresMonth !== Math.min(horizon - 1, entry.month + 2)) return false;
+      if ('choice' in entry) {
+        if (!['buy', 'decline'].includes(entry.choice) || entry.outcome !== (entry.choice === 'buy' ? 'capitalized' : 'declined')) return false;
+        if (!Number.isInteger(entry.choiceMonth) || entry.choiceMonth < entry.month || entry.choiceMonth > entry.expiresMonth || entry.choiceMonth > currentMonth) return false;
+      } else if (entry.outcome === 'declined') return false;
+    }
   }
 
   return true;
@@ -172,6 +257,10 @@ export function processTalebPreStep(game, events) {
   const state = game.talebState;
   const currentMonth = game.month; // Месяц, в который перешел симулятор
 
+  for (const entry of state.history) {
+    if (entry.outcome === 'offered' && currentMonth > entry.expiresMonth) entry.outcome = 'expired';
+  }
+
   // 1. Декремент активных шоков
   const remainingShocks = [];
   for (const shock of state.activeShocks) {
@@ -180,7 +269,7 @@ export function processTalebPreStep(game, events) {
       remainingShocks.push(shock);
     } else {
       const def = TALEB_EVENTS[shock.eventId];
-      events.push(`Завершилось действие события «${def.title}». Ситуация нормализована.`);
+      events.push(`Завершилось действие события «${def.title}». Последствия могут сохраняться.`);
     }
   }
   state.activeShocks = remainingShocks;
@@ -191,29 +280,12 @@ export function processTalebPreStep(game, events) {
     const def = TALEB_EVENTS[item.eventId];
     if (!def) continue;
 
-    if (def.instant && def.id === "distressed_asset_sale") {
-      // Тест стратегии штанги
-      if (game.treasury >= def.requiredTreasury) {
-        game.treasury = Math.round(game.treasury - def.cost);
-        game.equipment = Math.min(100, Math.round(game.equipment + def.equipmentBonus));
-        events.push(`🏆 Опциональность реализована! «${def.title}»: казна ${game.treasury + def.cost} тыс. позволила выкупить станки (+18 п.) за ${def.cost} тыс. марок!`);
-        game.journal.push({
-          month: currentMonth,
-          type: "taleb_positive",
-          title: def.title,
-          note: `Успех стратегии штанги: наличие свободной подушки ликвидности (${game.treasury + def.cost} тыс.) позволило инвестировать в активы с колоссальной скидкой.`,
-        });
-        state.history.push({ month: currentMonth, eventId: def.id, outcome: "capitalized" });
-      } else {
-        events.push(`⚠️ Упущенная опциональность! «${def.title}»: в казне всего ${Math.round(game.treasury)} тыс. (требовалось ${def.requiredTreasury} тыс.). Активы ушли конкурентам.`);
-        game.journal.push({
-          month: currentMonth,
-          type: "taleb_missed",
-          title: def.title,
-          note: `Провал стратегии штанги: недостаток свободной ликвидности (${Math.round(game.treasury)} тыс. < ${def.requiredTreasury} тыс.) не позволил выкупить подешевевшие активы.`,
-        });
-        state.history.push({ month: currentMonth, eventId: def.id, outcome: "missed_liquidity" });
-      }
+    const instanceId = talebEventInstanceId(item, state.scheduledEvents.indexOf(item));
+    if (def.id === "distressed_asset_sale") {
+      state.history.push({ month: currentMonth, eventId: def.id, instanceId, outcome: 'offered',
+        expiresMonth: Math.min(game.horizon - 1, currentMonth + 2) });
+      events.push(def.description);
+      game.journal.push({ month: currentMonth, type: 'taleb_offer', title: def.title, note: def.description, instanceId });
       continue;
     }
 
@@ -233,11 +305,12 @@ export function processTalebPreStep(game, events) {
     state.activeShocks.push({
       eventId: def.id,
       title: def.title,
+      instanceId,
       monthsRemaining: def.duration,
       effects: def.effects || {},
     });
 
-    events.push(`🦢 Черный лебедь! «${def.title}»: ${def.description}`);
+    events.push(`🦢 Событие стресс-теста! «${def.title}»: ${def.description}`);
     game.journal.push({
       month: currentMonth,
       type: def.type === "negative_swan" ? "taleb_shock" : def.type === "positive_swan" ? "taleb_windfall" : "taleb_noise",
@@ -245,7 +318,7 @@ export function processTalebPreStep(game, events) {
       note: def.description,
       duration: def.duration,
     });
-    state.history.push({ month: currentMonth, eventId: def.id, outcome: "active" });
+    state.history.push({ month: currentMonth, eventId: def.id, instanceId, outcome: "active" });
   }
 
   // 3. Агрегация активных модификаторов
@@ -279,82 +352,5 @@ export function processTalebPreStep(game, events) {
   };
 }
 
-/**
- * Расчет антихрупкостных метрик по Нассиму Талебу для итогового разбора (/debrief).
- */
-export function computeAntifragilityMetrics(game) {
-  const history = game.history || [];
-  if (history.length === 0) {
-    return {
-      classification: "robust",
-      turkeyIndex: 0,
-      slackScore: 50,
-      barbellCompliance: 50,
-      convexityRatio: 1.0,
-      verdict: "Недостаточно данных для анализа антихрупкости.",
-    };
-  }
-
-  let turkeyStreak = 0;
-  let maxTurkeyIndex = 0;
-  let barbellMonths = 0;
-  let totalSlackSum = 0;
-
-  for (const snap of history) {
-    // Индекс индейки: удовлетворенность >= 80, но казна < 400 или долг > 0
-    if (snap.satisfaction >= 80 && (snap.treasury < 400 || snap.debt > 0)) {
-      turkeyStreak += 1;
-      if (turkeyStreak > maxTurkeyIndex) maxTurkeyIndex = turkeyStreak;
-    } else {
-      turkeyStreak = 0;
-    }
-
-    // Соблюдение стратегии штанги: казна >= 600 и долг === 0
-    if (snap.treasury >= 600 && snap.debt === 0) {
-      barbellMonths += 1;
-    }
-
-    // Оценка буфера ликвидности (Slack)
-    const bufferScore = Math.min(100, Math.round((snap.treasury / 800) * 100));
-    totalSlackSum += bufferScore;
-  }
-
-  const barbellCompliance = Math.round((barbellMonths / history.length) * 100);
-  const slackScore = Math.round(totalSlackSum / history.length);
-
-  // Классификация по Триаде Талеба
-  let classification = "robust";
-  let triadTitle = "🛡️ Неуязвимая система (Phoenix)";
-  let verdict = "Город выдержал внешние шоки Крайнестана, сохранив устойчивость без критических потерь.";
-
-  const finalSnap = history[history.length - 1];
-  const isSolvent = finalSnap.debt === 0;
-  const isCapitalized = finalSnap.treasury >= 800;
-  const isSatisfied = finalSnap.satisfaction >= 80;
-
-  if (finalSnap.debt > 5000 || finalSnap.population < 2500) {
-    classification = "fragile";
-    triadTitle = "⚔️ Хрупкая система (Damocles)";
-    verdict = "Город не выдержал Черных лебедей: отсутствие запаса прочности (Slack) и долговой навес привели к разрушительной катастрофе.";
-  } else if (isSolvent && isCapitalized && isSatisfied && barbellCompliance >= 50) {
-    classification = "antifragile";
-    triadTitle = "🦢 Антихрупкая система (Hydra)";
-    verdict = "Истинная победа по Талебу: стратегия штанги и подушка ликвидности позволили капитализировать кризисы и стать сильнее от испытаний!";
-  } else if (!isSolvent || finalSnap.treasury < 300) {
-    classification = "fragile";
-    triadTitle = "⚔️ Хрупкая система (Damocles)";
-    verdict = "Признаки хрупкости: уязвимость перед внешними шоками из-за истощения ликвидности или накопления долгов.";
-  }
-
-  const survivedSwans = (game.talebState?.history || []).filter((h) => h.outcome === "active" || h.outcome === "capitalized").length;
-
-  return {
-    classification,
-    triadTitle,
-    verdict,
-    turkeyIndex: maxTurkeyIndex,
-    slackScore,
-    barbellCompliance,
-    survivedSwans,
-  };
-}
+// Backwards-compatible entry point; analysis lives outside the event engine.
+export { computeAntifragilityMetrics } from './extremistan-analysis.js';

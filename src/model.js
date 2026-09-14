@@ -335,7 +335,8 @@ function validateGame(value) {
   if (!Array.isArray(value.history) || value.history.length === 0 || !value.history.every(validSnapshot) || value.history[0].month !== 0 || value.history.at(-1).month !== value.month || !value.history.every((item, index) => item.month === index)) return false;
   if (!Array.isArray(value.journal) || !value.journal.every((entry) => isPlainObject(entry) && Number.isInteger(entry.month) && entry.month >= 0 && entry.month <= value.month && typeof entry.type === 'string' && typeof entry.title === 'string' && typeof entry.note === 'string')) return false;
   if (!Array.isArray(value.events) || !value.events.every((event) => typeof event === 'string') || !isPlainObject(value.lastBudget) || !['income', 'expenses', 'net'].every((key) => Number.isFinite(value.lastBudget[key]))) return false;
-  if ('seed' in value && (!Number.isInteger(value.seed) || value.seed < 0)) return false;
+  if ('seed' in value && (!Number.isInteger(value.seed) || value.seed < 0 || value.seed > 4294967295)) return false;
+  if (value.scenarioId === 'extremistan_challenge' && (!('talebState' in value) || !('seed' in value))) return false;
   if ('talebState' in value && !validateTalebState(value.talebState, value.horizon, value.month, value.seed)) return false;
   return true;
 }

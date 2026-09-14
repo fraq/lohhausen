@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createGame, setPolicies, startProject, advance, serializeGame, deserializeGame, POLICY_CONFIG } from '../src/model.js';
+import { createScenarioGame, getScenarioBenchmark } from '../src/scenarios.js';
+import { getTalebEventSummary, resolveTalebOpportunity } from '../src/taleb-events.js';
 
 const scenarios = [];
 const near = (actual, expected, label) => assert(Math.abs(actual - expected) < 0.00001, label);
@@ -8,9 +10,18 @@ function finiteTree(value) {
   if (typeof value === 'number') assert(Number.isFinite(value));
   else if (value && typeof value === 'object') Object.values(value).forEach(finiteTree);
 }
-function run(name, initial) {
+function applyRecordedAction(game, action) {
+  if (action.type === 'policy') return setPolicies(game, action.changes, action.note);
+  if (action.type === 'project') return startProject(game, action.project.type, action.note);
+  if (action.type === 'taleb_choice') return resolveTalebOpportunity(game, action.instanceId, action.choice);
+  throw new Error(`Unexpected benchmark action: ${action.type}`);
+}
+function run(name, initial, actionJournal = []) {
   let game = initial;
-  for (let month = 1; month <= 120; month += 1) {
+  for (let month = 1; month <= initial.horizon; month += 1) {
+    for (const action of actionJournal.filter((entry) => entry.month === game.month)) {
+      game = applyRecordedAction(game, action);
+    }
     const previous = game;
     game = advance(game, 1);
     finiteTree(game);
@@ -24,7 +35,13 @@ function run(name, initial) {
     assert.equal(game.history.length, month + 1);
     assert.deepEqual(deserializeGame(serializeGame(game)), game);
   }
-  scenarios.push(Object.fromEntries([['name', name], ...['month', 'population', 'treasury', 'debt', 'equipment', 'production', 'satisfaction', 'housingShortage'].map(key => [key, game[key]])]));
+  const summary = Object.fromEntries([['name', name], ...['month', 'population', 'treasury', 'debt', 'equipment', 'production', 'satisfaction', 'housingShortage'].map(key => [key, game[key]])]);
+  if (game.talebState) {
+    summary.seed = game.seed;
+    summary.eventSummary = getTalebEventSummary(game);
+    summary.actionCount = actionJournal.length;
+  }
+  scenarios.push(summary);
   return game;
 }
 
@@ -45,9 +62,19 @@ const ads = advance(setPolicies(createGame(), { tourismMarketing: 60 }), 6);
 const infrastructure = advance(startProject(setPolicies(createGame(), { tourismMarketing: 60 }), 'tourism'), 6);
 assert.equal(ads.visitors, 20);
 assert.equal(infrastructure.visitors, 100);
+for (const seed of [42, 19870505]) {
+  const benchmarks = getScenarioBenchmark('extremistan_challenge', seed);
+  for (const [id, profile] of Object.entries(benchmarks)) {
+    const game = run(`Крайнестан: ${id}, seed ${seed}`, createScenarioGame('extremistan_challenge', seed), profile.actionJournal);
+    assert.deepEqual(game, profile.finalState, `Benchmark replay: ${id}, seed ${seed}`);
+    assert.deepEqual(game.history, profile.history);
+    assert.equal(game.talebState.scheduledEvents.length, 5);
+    assert.equal(getTalebEventSummary(game).activatedEventsCount, 5);
+  }
+}
 const result = {
-  ok: true, monthlyStates: scenarios.length * 120,
-  checks: ['finite', 'stock conservation', 'cash/debt balance', 'single workforce', 'bounds', 'tourism capacity/demand', 'history', 'save round-trip'],
+  ok: true, monthlyStates: scenarios.reduce((total, scenario) => total + scenario.month, 0),
+  checks: ['finite', 'stock conservation', 'cash/debt balance', 'single workforce', 'bounds', 'tourism capacity/demand', 'history', 'save round-trip', 'seeded Extremistan benchmark replay', 'five-event activation'],
   scenarios, tourism: { adsOnly: ads.visitors, withInfrastructure: infrastructure.visitors },
 };
 mkdirSync(new URL('../artifacts/', import.meta.url), { recursive: true });

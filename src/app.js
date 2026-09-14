@@ -6,7 +6,8 @@ import { ADVISORS, CAUSAL_LOOPS, getAdvisorDiagnosis, explainStepCauses, detectC
 import { analyzeDebrief, formatDebriefMarkdown, formatDebriefJSON, formatDebriefAIPrompt, formatDebriefLMN, verifyHypotheses } from './debrief.js';
 import { listProjectChoices, compareWithoutProject } from './counterfactual.js';
 import { getScenario, getScenariosList, applyScenario, evaluateScenario, getScenarioBenchmark } from './scenarios.js';
-import { computeAntifragilityMetrics } from './taleb-events.js';
+import { computeAntifragilityMetrics } from './extremistan-analysis.js';
+import { listTalebOpportunities, resolveTalebOpportunity, TALEB_EVENTS } from './taleb-events.js';
 
 const SAVE_KEY = 'lohhausen-save-v1';
 const LANGUAGE_KEY = 'lohhausen-language';
@@ -39,6 +40,18 @@ let selectedScenarioId = 'sandbox';
 let comparisonGame = null;
 let comparisonChoice = null;
 let projectComparison = null;
+
+function readNewGameSeed(value, random = globalThis.crypto) {
+  const text = String(value).trim();
+  if (text !== '') {
+    if (!/^\d+$/.test(text) || !Number.isSafeInteger(Number(text)) || Number(text) > 4294967295) {
+      throw new Error('Введите целое число от 0 до 4294967295 или оставьте поле пустым.');
+    }
+    return Number(text);
+  }
+  if (!random?.getRandomValues) throw new Error('Генератор случайных чисел недоступен. Введите сид вручную.');
+  return random.getRandomValues(new Uint32Array(1))[0];
+}
 
 try {
   const raw = localStorage.getItem(SAVE_KEY);
@@ -354,6 +367,21 @@ function causalLoopExplorerSection() {
   `;
 }
 
+function renderTalebOpportunities() {
+  if (!game.talebState) return '';
+  return listTalebOpportunities(game).map(offer => `
+    <section class="panel" data-testid="taleb-opportunity" data-instance-id="${escapeHTML(offer.instanceId)}" style="margin-top:12px;">
+      <h3>${escapeHTML(offer.title)}</h3>
+      <p>Покупка оборудования: +${offer.equipmentBonus} п. (максимум 100) за ${offer.cost} тыс. м. До покупки нужно иметь ${offer.requiredTreasury} тыс. м. в казне.</p>
+      <p>Решение доступно до месяца ${offer.expiresMonth} включительно. Истечение предложения не считается неудачей.</p>
+      ${game.treasury < offer.requiredTreasury ? '<p class="source-note">Для покупки недостаточно свободных средств.</p>' : ''}
+      <div class="dialog-actions">
+        <button class="button primary" data-action="taleb-buy" data-instance-id="${escapeHTML(offer.instanceId)}" ${disabled(locked() || game.treasury < offer.requiredTreasury)} data-testid="taleb-buy">Купить оборудование</button>
+        <button class="button secondary" data-action="taleb-decline" data-instance-id="${escapeHTML(offer.instanceId)}" ${disabled(locked())} data-testid="taleb-decline">Отказаться от предложения</button>
+      </div>
+    </section>`).join('');
+}
+
 function scenarioObjectiveBanner() {
   const scenario = getScenario(game.scenarioId || 'sandbox');
   const evaluation = evaluateScenario(game);
@@ -395,15 +423,17 @@ function scenarioObjectiveBanner() {
             <strong>🦢 Крайнестан (Нассим Талеб)</strong>
             <span class="badge" style="font-size:11px;">Сид: #${game.seed}</span>
           </div>
-          ${game.talebState.activeShocks?.length > 0 ? `
+          <p class="source-note">Учебная колода из пяти событий с фиксированными силой и длительностью. Это ограниченный стресс-тест, а не статистическая модель редких событий.</p>
+          ${game.talebState.activeShocks?.some(s => s.monthsRemaining > 1) ? `
             <div style="margin-top:6px; display:grid; gap:4px;">
-              ${game.talebState.activeShocks.map(s => `
-                <div style="color:#8d4130; font-weight:600;">⚠️ ${escapeHTML(s.title)} (осталось ${s.monthsRemaining} мес.): ${escapeHTML(s.effects?.demandMultiplier ? `спрос x${s.effects.demandMultiplier}` : s.effects?.maintenanceMultiplier ? `ремонт x${s.effects.maintenanceMultiplier}` : s.effects?.interestMultiplier ? `ставка долга x${s.effects.interestMultiplier}` : 'активен')}</div>
+              ${game.talebState.activeShocks.filter(s => s.monthsRemaining > 1).map(s => `
+                <div style="color:#8d4130; font-weight:600;">⚠️ ${escapeHTML(s.title)} (осталось ${s.monthsRemaining - 1} мес.): ${escapeHTML(s.effects?.demandMultiplier ? `спрос x${s.effects.demandMultiplier}` : s.effects?.maintenanceMultiplier ? `ремонт x${s.effects.maintenanceMultiplier}` : s.effects?.interestMultiplier ? `ставка долга x${s.effects.interestMultiplier}` : 'активен')}</div>
               `).join('')}
             </div>
           ` : `
-            <div style="margin-top:4px; color:var(--muted); font-style:italic;">Текущий режим: штиль. Берегите подушку ликвидности (Slack) от редких шоков.</div>
+            <div style="margin-top:4px; color:var(--muted); font-style:italic;">Сейчас нет активных событий. Свободные средства помогают выдерживать расходы.</div>
           `}
+          ${renderTalebOpportunities()}
         </div>
       ` : ''}
       ${isDefeat && evaluation.reason ? `
@@ -957,35 +987,53 @@ function projectComparisonView() {
 function renderTalebAntifragilitySection() {
   if (!game.talebState && game.scenarioId !== 'extremistan_challenge') return '';
   const metrics = computeAntifragilityMetrics(game);
-  return `
-    <div class="panel" style="margin-bottom: 24px; border-left: 4px solid #1f5f7a; background: var(--surface);" data-testid="taleb-antifragility-panel">
-      <p class="eyebrow" style="color: #1f5f7a;">РИСК-ПРОФИЛЬ И АНТИХРУПКОСТЬ (НАССИМ ТАЛЕБ)</p>
-      <h3 style="margin: 4px 0 8px; font-size: 20px;">${escapeHTML(metrics.triadTitle)}</h3>
-      <p style="margin: 0 0 12px; font-size: 14px; color: var(--ink);"><strong>Оценка устойчивости:</strong> ${escapeHTML(metrics.verdict)}</p>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;">
-        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
-          <div style="font-size:12px; color:var(--muted);">Подушка ликвидности (Slack)</div>
-          <div style="font-size:18px; font-weight:700; color:#1f5f7a;">${metrics.slackScore}/100</div>
-          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Запас свободной казны</div>
-        </div>
-        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
-          <div style="font-size:12px; color:var(--muted);">Индекс индейки (Turkey Index)</div>
-          <div style="font-size:18px; font-weight:700; color:${metrics.turkeyIndex > 10 ? '#8d4130' : '#3a7d44'};">${metrics.turkeyIndex} мес.</div>
-          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Беспечность при нулевых резервах</div>
-        </div>
-        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
-          <div style="font-size:12px; color:var(--muted);">Стратегия штанги (Barbell)</div>
-          <div style="font-size:18px; font-weight:700; color:${metrics.barbellCompliance >= 60 ? '#3a7d44' : '#b67a24'};">${metrics.barbellCompliance}%</div>
-          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Месяцев с надежной базой (казна 600+)</div>
-        </div>
-        <div style="padding: 10px; background: rgba(31, 95, 122, 0.06); border-radius: 6px; border: 1px solid rgba(31, 95, 122, 0.2);">
-          <div style="font-size:12px; color:var(--muted);">Черные лебеди</div>
-          <div style="font-size:18px; font-weight:700; color:#1f5f7a;">${metrics.survivedSwans}</div>
-          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Событий пережито / капитализировано</div>
-        </div>
-      </div>
+  const classifications = {
+    insufficient_evidence: ['Недостаточно данных', 'Нужны завершенные отрицательные шоки, полная история и воспроизводимое контрольное сравнение.'],
+    fragile: ['Хрупкость в наблюдаемом интервале', 'Нарушены пределы выживания или результат после шока хуже контрольного более чем на порог.'],
+    robust: ['Устойчивость в наблюдаемом сравнении', 'Все оцененные шоки пережиты; различие с контролем находится в пределах порога.'],
+    antifragile: ['Выгода в наблюдаемом сравнении', 'Все оцененные шоки пережиты; хотя бы один дал положительное отличие от контроля выше порога.'],
+  };
+  const [title, verdict] = classifications[metrics.classification] || classifications.insufficient_evidence;
+  const reasons = {
+    no_negative_shocks: 'Отрицательных шоков для оценки пока нет.',
+    pending_window: 'Окно наблюдения еще открыто или выходит за срок партии.',
+    unverifiable: 'Историю партии не удалось воспроизвести по журналу действий.',
+    infeasible_control: 'В контрольном прогоне одно из записанных действий невыполнимо.',
+    missing_history: 'В интервале отсутствуют необходимые месячные снимки.',
+  };
+  const counters = [
+    ['activatedEventsCount', 'Активировано событий'],
+    ['completedNegativeShocks', 'Завершено отрицательных шоков'],
+    ['survivedNegativeShocks', 'Пережито отрицательных шоков'],
+    ['windfallEventsCount', 'Положительных событий'],
+    ['noiseEventsCount', 'Шумовых событий'],
+    ['capitalizedOpportunities', 'Явных покупок оборудования'],
+  ];
+  return `<section class="panel" style="margin-bottom:24px;" data-testid="taleb-antifragility-panel" data-classification="${escapeHTML(metrics.classification)}">
+    <p class="eyebrow">РЕЗУЛЬТАТЫ СТРЕСС-ТЕСТА</p>
+    <h3>${title}</h3><p>${verdict}</p>
+    <p class="source-note">Локальная оценка пользы от шока при тех же действиях. Она не доказывает математическую выпуклость и не описывает личность игрока. Победа в сценарии означает выполнение целей устойчивости.</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+      ${counters.map(([key, label]) => `<div class="debrief-metric" data-testid="taleb-${key}"><span>${label}</span><strong>${integer.format(metrics[key])}</strong></div>`).join('')}
     </div>
-  `;
+    <p><strong>Дисциплина ликвидности:</strong> ${fmt(metrics.liquidityDiscipline)}% — доля снимков с казной не ниже 600 и без долга.</p>
+    <p class="source-note">Денежный резерв и покупка оборудования сами по себе не устанавливают антихрупкость.</p>
+    <p class="source-note">Шок пережит, если в каждом его месяце казна выше 0, долг не больше 5000, население не ниже 2500. Это пределы стресс-теста.</p>
+    <h4>Контроль без одного шока</h4>
+    <p class="source-note">Сравнение через 6 месяцев после последнего месяца шока. Все остальные события и действия сохранены. Действия в самом месяце наблюдения влияют только на следующие расчеты.</p>
+    <p class="source-note">Итоговая разница = 0.5 × Δ чистых средств / 800 + 0.25 × Δ выпуска / 800 + 0.25 × Δ благополучия / 100. Порог: ±0.01. Положительная разница лучше контроля.</p>
+    ${metrics.observations.length ? metrics.observations.map(row => `<article data-testid="taleb-observation" data-status="${escapeHTML(row.status)}" style="border-top:1px solid var(--line); padding-top:12px; margin-top:12px;">
+      <strong>${escapeHTML(TALEB_EVENTS[row.eventId]?.title || row.eventId)}</strong>
+      <p>Шок: месяцы ${row.startMonth}–${row.endMonth}. Наблюдение: месяц ${row.observationMonth}.</p>
+      <p>${row.survived === true ? 'Пределы выживания соблюдены.' : row.survived === false ? 'Пределы выживания нарушены.' : 'Выживание пока не установлено.'}</p>
+      ${row.status === 'available' ? `<dl class="budget-list">
+        <div class="budget-row"><dt>Δ чистых средств, тыс. м.</dt><dd>${signed(row.financeDelta)}</dd></div>
+        <div class="budget-row"><dt>Δ выпуска, шт. / месяц</dt><dd>${signed(row.productionDelta)}</dd></div>
+        <div class="budget-row"><dt>Δ благополучия, п.</dt><dd>${signed(row.satisfactionDelta)}</dd></div>
+        <div class="budget-total"><dt>Итоговая разница с контролем</dt><dd translate="no">${row.delta > 0 ? '+' : ''}${Number(row.delta).toFixed(4)}</dd></div>
+      </dl>` : `<p>${row.status === 'pending' ? reasons.pending_window : (reasons[row.reason] || reasons.unverifiable)}</p>`}
+    </article>`).join('') : `<p>${reasons.no_negative_shocks}</p>`}
+  </section>`;
 }
 
 function debriefView() {
@@ -995,7 +1043,7 @@ function debriefView() {
   const staticTraps = detectCognitiveTraps(game);
   const scenario = getScenario(game.scenarioId || 'sandbox');
   const evaluation = evaluateScenario(game);
-  const benchmark = getScenarioBenchmark(game.scenarioId || 'sandbox');
+  const benchmark = getScenarioBenchmark(game.scenarioId || 'sandbox', game.seed);
 
   const horizon = game.horizon || 120;
 
@@ -1050,16 +1098,16 @@ function debriefView() {
       </div>
 
       <div class="panel" style="margin-bottom: 24px;">
-        <p class="eyebrow">ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА</p>
-        <h3 style="margin: 4px 0 6px;">Сравнение с модельными профилями поведения</h3>
+        <p class="eyebrow">${game.talebState ? 'АВТОРСКИЕ РЕЦЕПТЫ УПРАВЛЕНИЯ' : 'ИЛЛЮСТРАТИВНЫЕ АРХЕТИПЫ ПО КНИГЕ ДЁРНЕРА'}</p>
+        <h3 style="margin: 4px 0 6px;">${game.talebState ? 'Сравнение на той же колоде событий' : 'Сравнение с модельными профилями поведения'}</h3>
         <p class="source-note" style="margin: 0 0 14px;">
-          Траектории Конрада (системный эталон) и Маркуса (реактивная ловушка) — это вымышленные учебные примеры, смоделированные по мотивам глав 2 и 7 книги «Логика неудачи» для дидактического сопоставления.
+          ${game.talebState ? 'Два авторских рецепта выполнены реальным движком с вашим сидом. Имена обозначают способы управления; победа и оптимальность не гарантируются.' : 'Траектории Конрада (системный эталон) и Маркуса (реактивная ловушка) — это вымышленные учебные примеры, смоделированные по мотивам глав 2 и 7 книги «Логика неудачи» для дидактического сопоставления.'}
         </p>
         <div class="grid-two" style="gap: 16px;">
           <div style="padding: 14px; background: rgba(58, 125, 68, 0.05); border-radius: 8px; border: 1px solid rgba(58, 125, 68, 0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
               <strong style="color: #2b6134; font-size: 15px;">🌟 ${escapeHTML(benchmark.conrad.name)}</strong>
-              <span class="badge" style="background:#e0f0e3; color:#2b6134;">Системный эталон</span>
+              <span class="badge" style="background:#e0f0e3; color:#2b6134;">${game.talebState ? 'Авторский рецепт' : 'Системный эталон'}</span>
             </div>
             <p style="font-size: 13px; margin: 0 0 8px; color: var(--ink);"><strong>Стратегия:</strong> ${escapeHTML(benchmark.conrad.strategy)}</p>
             <p style="font-size: 12px; margin: 0; color: var(--muted); font-style: italic;">${escapeHTML(benchmark.conrad.verdict)}</p>
@@ -1067,12 +1115,13 @@ function debriefView() {
           <div style="padding: 14px; background: rgba(141, 65, 48, 0.05); border-radius: 8px; border: 1px solid rgba(141, 65, 48, 0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
               <strong style="color: #8d4130; font-size: 15px;">⚠️ ${escapeHTML(benchmark.marcus.name)}</strong>
-              <span class="badge" style="background:#fbeae7; color:#8d4130;">Реактивная ловушка</span>
+              <span class="badge" style="background:#fbeae7; color:#8d4130;">${game.talebState ? 'Авторский рецепт' : 'Реактивная ловушка'}</span>
             </div>
             <p style="font-size: 13px; margin: 0 0 8px; color: var(--ink);"><strong>Стратегия:</strong> ${escapeHTML(benchmark.marcus.strategy)}</p>
             <p style="font-size: 12px; margin: 0; color: var(--muted); font-style: italic;">${escapeHTML(benchmark.marcus.verdict)}</p>
           </div>
         </div>
+        ${game.talebState ? `<p><button class="button secondary" data-action="export-taleb-benchmarks" data-testid="export-taleb-benchmarks">Скачать рецепты, решения и траектории (JSON)</button></p>` : ''}
         <div style="margin-top: 18px;">
           ${(() => {
             const isEquipment = game.scenarioId === 'factory_crisis';
@@ -1415,7 +1464,7 @@ function render() {
       <h2 id="reset-title">Новая партия в Лоххаузене</h2>
       <p style="margin: 6px 0 16px; color: var(--muted); font-size: 14px;">Выберите дидактический сценарий управления по мотивам книги Дитриха Дёрнера:</p>
       <div class="scenario-select-list" style="display: grid; gap: 8px; margin-bottom: 20px;">
-        ${getScenariosList().map(sc => `
+        ${getScenariosList({ all: true }).map(sc => `
           <label class="scenario-option" style="display:flex; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--surface); align-items:flex-start;">
             <input type="radio" name="scenario-choice" value="${sc.id}" ${sc.id === selectedScenarioId ? 'checked' : ''} style="margin-top:4px;">
             <div style="flex:1;">
@@ -1428,6 +1477,12 @@ function render() {
           </label>
         `).join('')}
       </div>
+      <div id="new-game-seed-options" ${selectedScenarioId === 'extremistan_challenge' ? '' : 'hidden'}>
+        <label for="new-game-seed">Сид Крайнестана (необязательно)</label>
+        <input id="new-game-seed" data-testid="new-game-seed" type="text" inputmode="numeric" autocomplete="off" aria-describedby="new-game-seed-help new-game-seed-error" placeholder="От 0 до 4294967295">
+        <p id="new-game-seed-help" class="source-note">Оставьте поле пустым для случайного сида. Он создается один раз при старте партии; тот же сид повторяет колоду событий.</p>
+      </div>
+      <p id="new-game-seed-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button class="button secondary" data-action="cancel-new-game">Остаться в текущей</button>
         <button class="button danger" data-action="confirm-new-game" data-testid="confirm-new-game">Начать новую игру</button>
@@ -1510,6 +1565,18 @@ app.addEventListener('click', event => {
       return;
     }
     switch (control.dataset.action) {
+      case 'taleb-buy':
+      case 'taleb-decline': {
+        if (locked()) break;
+        const choice = control.dataset.action === 'taleb-buy' ? 'buy' : 'decline';
+        commit(resolveTalebOpportunity(game, control.dataset.instanceId, choice), choice === 'buy' ? 'Оборудование куплено. Решение записано в журнал.' : 'Вы отказались от предложения. Решение записано в журнал.');
+        break;
+      }
+      case 'export-taleb-benchmarks': {
+        const benchmark = getScenarioBenchmark(game.scenarioId || 'sandbox', game.seed);
+        downloadFile(`lohhausen-benchmarks-seed-${game.seed}.json`, 'application/json', JSON.stringify(benchmark, null, 2));
+        break;
+      }
       case 'compare-project': {
         comparisonChoice = Number(document.getElementById('counterfactual-project').value);
         projectComparison = compareWithoutProject(game, comparisonChoice);
@@ -1611,7 +1678,21 @@ app.addEventListener('click', event => {
       case 'open-keyboard-help':
         document.getElementById('keyboard-help-dialog')?.showModal();
         break;
-      case 'confirm-new-game':
+      case 'confirm-new-game': {
+        const checkedRadio = document.querySelector('input[name="scenario-choice"]:checked');
+        const nextScenarioId = checkedRadio?.value || selectedScenarioId;
+        let seed;
+        try {
+          if (nextScenarioId === 'extremistan_challenge') seed = readNewGameSeed(document.getElementById('new-game-seed').value);
+        } catch (error) {
+          const alert = document.getElementById('new-game-seed-error');
+          alert.textContent = translate(error.message, language);
+          alert.hidden = false;
+          document.getElementById('new-game-seed').setAttribute('aria-invalid', 'true');
+          document.getElementById('new-game-seed').focus();
+          break;
+        }
+        const nextGame = applyScenario(createGame(), nextScenarioId, seed);
         if (game && game.history && game.history.length > 1) {
           try {
             const prevKey = `lohhausen_prev_run_${game.scenarioId || 'sandbox'}`;
@@ -1625,9 +1706,8 @@ app.addEventListener('click', event => {
             }));
           } catch { /* storage quota or blocked */ }
         }
-        const checkedRadio = document.querySelector('input[name="scenario-choice"]:checked');
-        if (checkedRadio) selectedScenarioId = checkedRadio.value;
-        game = applyScenario(createGame(), selectedScenarioId);
+        selectedScenarioId = nextScenarioId;
+        game = nextGame;
         storageBlocked = false;
         errorMessage = '';
         setRoute('overview');
@@ -1638,6 +1718,7 @@ app.addEventListener('click', event => {
         render();
         window.scrollTo(0, 0);
         break;
+      }
     }
   } catch (error) {
     errorMessage = error.message;
@@ -1696,6 +1777,11 @@ app.addEventListener('submit', event => {
 });
 
 app.addEventListener('change', event => {
+  if (event.target.name === 'scenario-choice') {
+    document.getElementById('new-game-seed-options').hidden = event.target.value !== 'extremistan_challenge';
+    document.getElementById('new-game-seed-error').hidden = true;
+    document.getElementById('new-game-seed').removeAttribute('aria-invalid');
+  }
   if (event.target.id === 'counterfactual-project') {
     comparisonChoice = Number(event.target.value);
     projectComparison = null;
