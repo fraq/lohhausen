@@ -326,14 +326,31 @@
    14) Получен ACCEPT от Codex по `recurrence-evidence-matrix-001` (`codex-recurrence-matrix-accept-084`): ссылка на ревью 081 заменена на приёмку 084, карточка переведена в `done`, задача закрыта в `TASK_BOARD.md`.
    15) По ревью `codex-extremistan-ui-isolation-review-085` проведена косметическая чистка артефактов: удалена лишняя пустая строка в конце `tests/cockpit.test.js`, проверен `git diff --check` (чисто), в карточке задачи зафиксированы точные счётчики (cockpit 8/8, полный прогон 184/184). Направлен повторный отчёт `COORDINATION/mail/codex/20260913T201500Z-agy-extremistan-ui-isolation-cleaned.md` (ID 086).
    16) Глобальный release freeze соблюдается строго: коммиты, пуши и публикации заморожены, рабочая копия подготовлена к финальному вердикту Senior Integrator.
+   17) По прямому поручению пользователя по завершению проекта Черного Лебедя и модульному разделению между агентами:
+       - Завершена и передана на ревью Codex спецификация `extremistan-semantics-spec-001` (`knowledge/agy-extremistan-semantics-spec.md`), разрешившая все 9 вопросов математическими моделями и критериями приемки;
+       - Сформировано и направлено коллегам модульное предложение по распределению 4 узких непересекающихся подзадач: движок/формулы (`extremistan-engine-antifragility-001`, agy), воспроизводимые бенчмарки (`extremistan-benchmarks-001`, dorner_scenarios), UI/дебрифинг (`extremistan-ui-debrief-001`, dorner_scenarios) и релизная интеграция (`extremistan-release-verdict-001`, Codex);
+       - Направлены письма в `mail/codex/` (086) и `mail/dorner_scenarios/` (086);
+       - Обновлены карточка задачи и обзорный индекс `TASK_BOARD.md`.
+   18) Получен ACCEPT от Codex по `extremistan-ui-isolation-001` (письмо `codex-ui-accept-release-freeze-semantics-review-087`). Карточка обновлена (зафиксировано включение в коммит `0fdc5de`), задача перенесена в Done в `TASK_BOARD.md`.
+   19) По спецификации `extremistan-semantics-spec-001` получен вердикт CHANGES_REQUESTED (письмо 087). Карточка задачи переведена в статус `in_progress` для устранения 9 замечаний (контрфактический контроль, единая знаковая конвенция, эксплицитный конечный автомат, проверка цитат/глав).
+   20) Принято предложение Codex `codex-offer-model-calibration-audit-088` и директива `codex-audit-go-and-card-corrections-090` по исследовательской задаче `model-calibration-audit-001`.
+        - Создана карточка `COORDINATION/tasks/model-calibration-audit-001.md`.
+        - Проведен строгий математический и численный аудит на коммите `0fdc5de` (0 правок в `src/**` и `tests/**`).
+        - Оформлен исследовательский артефакт `knowledge/agy-model-calibration-audit.md`:
+          * Эксперимент 1 (Миграция): доказан храповик асимметрии 7.5:1 ($-15$ vs $+2$), потеря 328 чел. при 24-мес. кризисе восстанавливается за 164 мес., что превышает 120-мес. горизонт игры (REPRODUCED & PROVED).
+          * Эксперимент 2 (Жилье): доказана ловушка омертвления капитала при отсутствии дефицита (300k затрат дают $\Delta \text{Rent}=+0.00$k, $\Delta \text{Sat}=0.00$ и убыток $-375.29$k от процентов по долгу) (REPRODUCED & PROVED).
+          * Эксперимент 3 (Занятость): гипотеза жесткого потолка 86% фальсифицирована сплошным перебором 466 560 состояний — достигнут `employmentScore = 100%` (`unemployment = 0`) при $P=2500$ (DIRECTIONALLY TRUE AT BASELINE, NUMERICALLY FALSE GLOBALLY).
+        - Предложены две независимые минимальные интервенции (предостережение советника по жилью при избытке >50 мест; опциональная симметризация миграции при высокой привлекательности).
+        - Карточка задачи переведена в `ready_for_review`, направлен отчет `COORDINATION/mail/codex/20260913T215500Z-agy-model-calibration-audit-ready.md` (ID 091).
 
 Границы записи agy:
+- `knowledge/agy-model-calibration-audit.md`
+- `COORDINATION/tasks/model-calibration-audit-001.md`
 - `COORDINATION/tasks/extremistan-ui-isolation-001.md`
 - `tests/cockpit.test.js`
 - `src/app.js`
 - `COORDINATION/tasks/recurrence-evidence-matrix-001.md`
 - `COORDINATION/tasks/extremistan-semantics-spec-001.md`
-- `knowledge/agy-recurrence-evidence-matrix.md`
 - `knowledge/agy-extremistan-semantics-spec.md`
 - `COORDINATION/tasks/extremistan-save-safety-001.md`
 - `COORDINATION/tasks/binding-constraints-001.md`

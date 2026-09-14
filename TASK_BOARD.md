@@ -63,18 +63,34 @@
   - **Артефакты**: `src/prng.js`, `src/taleb-events.js`, `src/model.js`, `src/scenarios.js`, `src/app.js`, `src/locales/extra.js`
   - **Статус**: review (CHANGES_REQUESTED по ревью Codex; по прямому указанию пользователя режим изолирован, аварийные дефекты deserialization/month-0 antifragile выделяются в отдельную согласованную задачу).
 
-- [ ] **extremistan-ui-isolation-001**: Временное сокрытие экспериментального режима `extremistan_challenge` из публичного диалога новой игры (new-game dialog) до завершения и приемки спецификации `extremistan-semantics-spec-001`. Публичный вызов `getScenariosList()` отображает только 4 канонических сценария Дёрнера; режим, тесты (13/13) и загрузка существующих партий сохранены.
-  - **Инициатор**: Продуктовое решение Codex (`codex-offer-extremistan-ui-isolation-083`)
+- [ ] **model-calibration-audit-001**: Исследовательский аудит калибровки модели Лоххаузена (рекуррентность миграции, окупаемость жилья, потолок занятости) на коммите `0fdc5de` по ветке обсуждения Get Posting Board (#11816, #11840, #11861, #11867, #11875). Доказан храповик миграции (7.5:1, 164 мес. на восстановление), доказана ловушка капитала в жилье (0 аренды, 0 удовлетворенности, -375k чистый убыток), фальсифицирован жесткий потолок занятости 86% (достижимо 100% при P=2500).
+  - **Инициатор**: Предложение Codex (`codex-offer-model-calibration-audit-088`, директива 090)
   - **Исполнитель**: `agy`
-  - **Карточка**: [`COORDINATION/tasks/extremistan-ui-isolation-001.md`](./COORDINATION/tasks/extremistan-ui-isolation-001.md)
-  - **Артефакты**: `src/app.js`, `tests/cockpit.test.js`
-  - **Статус**: review_ready (184/184 тестов green, guard в tests/cockpit.test.js 8/8 passing, whitespace очищен, uncommitted diff).
+  - **Карточка**: [`COORDINATION/tasks/model-calibration-audit-001.md`](./COORDINATION/tasks/model-calibration-audit-001.md)
+  - **Артефакты**: [`knowledge/agy-model-calibration-audit.md`](./knowledge/agy-model-calibration-audit.md)
+  - **Статус**: review_ready (исследование завершено, отчет сдан Codex письмом 091, 0 правок в коде).
 
 - [ ] **extremistan-semantics-spec-001**: Проверяемая теоретическая спецификация понятий Крайнестана и Антихрупкости Талеба (разграничение fragile/robust/antifragile, pre-shock baseline, post-shock окно, классификация шоков, stress deck vs bounded heavy-tail) до реализации в коде.
   - **Инициатор**: Предложение Codex (`codex-offer-extremistan-semantics-spec-076`)
   - **Исполнитель**: `agy`
   - **Карточка**: [`COORDINATION/tasks/extremistan-semantics-spec-001.md`](./COORDINATION/tasks/extremistan-semantics-spec-001.md)
-  - **Статус**: in_progress (research-only)
+  - **Артефакты**: [`knowledge/agy-extremistan-semantics-spec.md`](./knowledge/agy-extremistan-semantics-spec.md)
+  - **Статус**: in_progress (на доработке по 9 замечаниям CHANGES_REQUESTED письма Codex 087: контрфактический контроль, единая функция полезности/потерь, конечный автомат, проверка цитат).
+
+- [ ] **extremistan-engine-antifragility-001** *(Proposed)*: Реализация в `src/taleb-events.js` строгой формулы `computeAntifragilityMetrics` (устранение month-0 false positive, требование $N_{\text{survived}} \ge 1$, pre-shock baseline и post-shock delta), дифференциация 5 счетчиков событий и исключение автоматического списания опциона.
+  - **Инициатор**: Поручение пользователя по модульному распределению
+  - **Предлагаемый исполнитель**: `agy` (или Codex)
+  - **Статус**: proposed
+
+- [ ] **extremistan-benchmarks-001** *(Proposed)*: Реализация в `src/scenarios.js` динамических воспроизводимых бенчмарков Конрада и Маркуса на базе детерминированных `actionJournal`, формулировка условий победы через преодоление шоков и подключение к `verify-scenarios.mjs`.
+  - **Инициатор**: Поручение пользователя по модульному распределению
+  - **Предлагаемый исполнитель**: `dorner_scenarios`
+  - **Статус**: proposed
+
+- [ ] **extremistan-ui-debrief-001** *(Proposed)*: Интеграция в `src/app.js` селектора сида (случайный / ручной ввод), возврат сценария в селектор диалога новой игры после готовности движка и бенчмарков, обновленная debrief-панель Талеба и выверка локализации `src/locales/extra.js`.
+  - **Инициатор**: Поручение пользователя по модульному распределению
+  - **Предлагаемый исполнитель**: `dorner_scenarios` (при участии `agy`)
+  - **Статус**: proposed
 
 ---
 
@@ -90,6 +106,13 @@
 
 ## ✅ Done
 *Завершенные задачи.*
+
+- [x] **extremistan-ui-isolation-001**: Временное сокрытие экспериментального режима `extremistan_challenge` из публичного диалога новой игры (new-game dialog) до завершения и приемки спецификации `extremistan-semantics-spec-001`. Публичный вызов `getScenariosList()` отображает только 4 канонических сценария Дёрнера; режим, тесты (13/13) и загрузка существующих партий сохранены.
+  - **Инициатор**: Продуктовое решение Codex (`codex-offer-extremistan-ui-isolation-083`)
+  - **Исполнитель**: `agy`
+  - **Карточка**: [`COORDINATION/tasks/extremistan-ui-isolation-001.md`](./COORDINATION/tasks/extremistan-ui-isolation-001.md)
+  - **Артефакты**: `src/app.js`, `tests/cockpit.test.js`
+  - **Статус**: Закрыта (принята Codex письмом `codex-ui-accept-release-freeze-semantics-review-087`, включена в коммит `0fdc5de`, 184/184 тестов green).
 
 - [x] **recurrence-evidence-matrix-001**: Фиксация 5-точечной регрессионной матрицы для двухуровневой модели группировки возможностей контроля (`independentFollowupOpportunities`, `independentDecisionEpochs`) по предложению Codex 074 и публичной дискуссии (#11638, #11640, #11641): покрытие всех сценариев контроля (общая возможность, раздельные эпохи, предварительный контроль, последовательный контроль, нерелевантный отчет) без изменения `src/**`.
   - **Инициатор**: Предложение Codex (`codex-offer-recurrence-evidence-matrix-074`)

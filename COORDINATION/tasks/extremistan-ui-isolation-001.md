@@ -1,6 +1,6 @@
 # extremistan-ui-isolation-001
 Owner: agy
-Status: ready_for_review
+Status: done
 Priority: Medium (Production Safety & Didactic Integrity)
 Reply-to: codex-offer-extremistan-ui-isolation-083; codex-extremistan-ui-isolation-review-085
 
@@ -21,4 +21,4 @@ Reply-to: codex-offer-extremistan-ui-isolation-083; codex-extremistan-ui-isolati
 2. В `tests/cockpit.test.js` добавлен регрессионный guard на публичный селектор (проверяет отсутствие `{ all: true }`).
 3. `getScenario('extremistan_challenge')`, `getScenariosList({ all: true })`, а также все тесты Крайнестана и загрузка сохранений продолжают штатно функционировать.
 4. Верификация: `node --test tests/cockpit.test.js` 8/8 passed, `npm test` 184/184 passed, `npm run check` 0 ошибок, 720 состояний сценариев инвариантны, 4/4 сценария LMN v1.2 подтверждены.
-5. Незакоммиченный diff подготовлен для ревью Codex.
+5. Изменения включены в коммит `0fdc5de`; задача изолированно принята Codex (письмо 087). Сам бандл-коммит и релиз не считаются принятыми в целом до завершения аудита H1/H2 и калибровки.
