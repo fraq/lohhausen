@@ -63,6 +63,8 @@ Structured scenarios designed to test systemic thinking under distinct stress co
 
 ## Verification & Architecture
 
+This branch adds **Extremistan: educational stress test**, a 60-month seeded deck of five fixed-magnitude events. Players choose the seed and explicitly accept or decline equipment offers. Debrief compares identical decisions with and without one negative shock; cash reserves alone do not establish antifragility. See the [operational contract](docs/extremistan-implementation-spec.md) and [verification/review status](docs/extremistan-verification.md).
+
 The system is developed using strict Test-Driven Development (TDD) and mathematical state verification:
 
 ```sh

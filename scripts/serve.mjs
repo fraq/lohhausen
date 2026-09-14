@@ -21,6 +21,8 @@ const assets = new Map([
   ['/src/scenarios.js', ['../src/scenarios.js', 'text/javascript; charset=utf-8']],
   ['/src/visuals.js', ['../src/visuals.js', 'text/javascript; charset=utf-8']],
   ['/src/taleb-events.js', ['../src/taleb-events.js', 'text/javascript; charset=utf-8']],
+  ['/src/extremistan-analysis.js', ['../src/extremistan-analysis.js', 'text/javascript; charset=utf-8']],
+  ['/src/locales/extremistan.js', ['../src/locales/extremistan.js', 'text/javascript; charset=utf-8']],
   ['/src/prng.js', ['../src/prng.js', 'text/javascript; charset=utf-8']],
   ['/tests/browser-checks.js', ['../tests/browser-checks.js', 'text/javascript; charset=utf-8']],
 ]);

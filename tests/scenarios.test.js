@@ -96,6 +96,5 @@ test('scenarios: applyScenario корректно инициализирует �
   const evaluation = evaluateScenario(gameDefault);
   assert.equal(evaluation.scenarioId, 'extremistan_challenge');
   assert.equal(evaluation.status, 'active');
-  assert.equal(evaluation.objectives.length, 4);
+  assert.equal(evaluation.objectives.length, 5);
 });
-

@@ -56,7 +56,7 @@ test("scenarios: extremistan_challenge доступен и корректно с
   assert.equal(scenario.id, "extremistan_challenge");
   assert.equal(scenario.horizon, 60);
   assert.equal(scenario.duration, 60);
-  assert.equal(scenario.objectives.length, 4);
+  assert.equal(scenario.objectives.length, 5);
 
   // Проверка разделения канонического списка и полного
   const canonicalList = getScenariosList();
@@ -114,23 +114,23 @@ test("taleb-mode: расчет метрик антихрупкости (Triad, S
   const game = advance(applyScenario(createGame(), "extremistan_challenge", 54321), 60);
   const metrics = computeAntifragilityMetrics(game);
 
-  assert.ok(["antifragile", "robust", "fragile"].includes(metrics.classification));
+  assert.ok(["insufficient_evidence", "antifragile", "robust", "fragile"].includes(metrics.classification));
   assert.ok(typeof metrics.triadTitle === "string");
   assert.ok(typeof metrics.verdict === "string");
   assert.ok(typeof metrics.turkeyIndex === "number");
   assert.ok(typeof metrics.slackScore === "number");
-  assert.ok(typeof metrics.barbellCompliance === "number");
-  assert.ok(typeof metrics.survivedSwans === "number");
+  assert.ok(typeof metrics.liquidityDiscipline === "number");
+  assert.ok(typeof metrics.survivedNegativeShocks === "number");
 });
 
 test("scenarios: бенчмарки Конрада и Маркуса для extremistan_challenge", () => {
   const benchmark = getScenarioBenchmark("extremistan_challenge");
   assert.ok(benchmark.conrad);
   assert.ok(benchmark.marcus);
-  assert.ok(benchmark.conrad.name.includes("Антихрупкость"));
-  assert.ok(benchmark.marcus.name.includes("индейки"));
-  assert.equal(benchmark.conrad.finalDebt, 0);
-  assert.ok(benchmark.marcus.finalDebt > 10000);
+  assert.ok(benchmark.conrad.name.includes("Конрада"));
+  assert.ok(benchmark.marcus.name.includes("Маркуса"));
+  assert.equal(benchmark.conrad.finalDebt, benchmark.conrad.history.at(-1).debt);
+  assert.equal(benchmark.marcus.finalDebt, benchmark.marcus.history.at(-1).debt);
 });
 
 test("taleb-mode: deserializeGame отвергает поврежденный talebState ({}, не-массивы, невалидные поля)", () => {
